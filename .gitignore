@@ -1,0 +1,16 @@
+# Node.js
+node_modules/
+
+# Variables de entorno
+.env
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Docker (opcional)
+docker-compose.override.yml
+
+# Otros
+.DS_Store
