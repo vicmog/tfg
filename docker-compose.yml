@@ -1,13 +1,9 @@
-version: "3.9"
-
 services:
   db:
     image: postgres:16-alpine
     container_name: postgres_db
-    env_file:
-      - ./.env
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     networks:
@@ -16,10 +12,8 @@ services:
   backend:
     build: ./backend
     container_name: backend_api
-    env_file:
-      - ./.env
     ports:
-      - "${BACKEND_PORT}:3000"
+      - "3000:3000"
     depends_on:
       - db
     networks:
