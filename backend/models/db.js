@@ -1,5 +1,5 @@
 import { Sequelize } from "sequelize";
-import config from "./config/config.js";
+import config from "./../config/config.cjs";
 
 export const sequelize = new Sequelize(
   config.development.database,
@@ -7,6 +7,7 @@ export const sequelize = new Sequelize(
   config.development.password,
   {
     host: config.development.host,
-    dialect: config.development.dialect
+    dialect: config.development.dialect,
+    freezeTableName: true
   }
 );
