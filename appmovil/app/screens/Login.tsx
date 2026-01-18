@@ -11,6 +11,8 @@ import {
   TextInput,
 } from "react-native";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 type LoginScreenProps = NativeStackScreenProps<NavigationScreenList, "Login">;
 const styles = StyleSheet.create({
   container: {
@@ -105,9 +107,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
         setError(data.message || "Error al Iniciar sesión");
         return;
       }
-      //Guardar token
+  
+      await AsyncStorage.setItem("token", data.token);
       navigation.navigate("Negocios");
-
     } catch (error) {
       setError("No se pudo conectar con el servidor");
       console.error(error);
