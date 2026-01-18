@@ -19,6 +19,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 20,
   },
+  success: {
+    color: "#878e94",
+    backgroundColor: "#e3f2fd",
+    padding: 10,
+    borderRadius: 6,
+    marginBottom: 10,
+    textAlign: "center",
+  },
+
   title: {
     fontSize: 28,
     fontWeight: "bold",
@@ -35,6 +44,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     fontSize: 16,
     color: "#0D47A1",
+  },
+  error: {
+    fontSize: 15,
+    color: "#f50000",
+    marginBottom: 10,
+    textAlign: "center",
   },
   button: {
     backgroundColor: "#1976D2",
@@ -56,25 +71,57 @@ const styles = StyleSheet.create({
   },
 });
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
+const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const message = route.params?.message;
+  const messages: Record<string, string> = {
+    REGISTER_SUCCESS: "Registrado Correctamente. Inicie Sesion",
+    SESSION_EXPIRED: "Tu sesión ha expirado.",
+  };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!username || !password) {
-      Alert.alert("Error", "Por favor completa todos los campos");
+      setError("Por favor completa todos los campos");
       return;
     }
 
-    Alert.alert("Login", `username: ${username}\nPassword: ${password}`);
+    try {
+      const response = await fetch("http://localhost:3000/v1/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          nombre_usuario: username,
+          contrasena: password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || "Error al Iniciar sesión");
+        return;
+      }
+      //Guardar token
+      navigation.navigate("Negocios");
+
+    } catch (error) {
+      setError("No se pudo conectar con el servidor");
+      console.error(error);
+    }
   };
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      {message && message.length > 0 && (
+        <Text style={styles.success}>{messages[message]}</Text>
+      )}
 
       <Text style={styles.title}>Login</Text>
-
       <TextInput
         style={styles.input}
         placeholder="Usuario"
@@ -96,6 +143,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Ingresar</Text>
       </TouchableOpacity>
+
+      {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <TouchableOpacity onPress={() => navigation.navigate("Register")}>
         <Text style={styles.linkText}>¿No tienes cuenta? Regístrate</Text>

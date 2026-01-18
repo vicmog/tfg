@@ -30,6 +30,12 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     textAlign: "center",
   },
+  error: {
+    fontSize: 15,
+    color: "#f50000",
+    marginBottom: 10,
+    textAlign: "center",
+  },
   input: {
     borderWidth: 2,
     borderColor: "#1976D2",
@@ -68,8 +74,61 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const handleRegister = () => {};
+  const handleRegister = async () => {
+    if (
+      !username ||
+      !fullname ||
+      !dni ||
+      !email ||
+      !phone ||
+      !password ||
+      !confirmPassword
+    ) {
+      setError("Completa todos los campos");
+      return;
+    }
+
+    if (password != confirmPassword) {
+      setError("Las contraseñas no coinciden");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        "http://localhost:3000/v1/api/auth/register",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            nombre_usuario: username,
+            nombre: fullname,
+            dni: dni,
+            email: email,
+            numero_telefono: phone,
+            contrasena: password,
+            consentimiento: false,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || "Error al registrarse");
+        return;
+      }
+
+      setError("Usuario registrado correctamente");
+      navigation.navigate("Login", {message:"REGISTER_SUCCESS"});
+    } catch (error) {
+      setError("No se pudo conectar con el servidor");
+      console.error(error);
+    }
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -115,7 +174,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         style={styles.input}
         placeholder="Numero de Teléfono"
         placeholderTextColor="#1976D2"
-        secureTextEntry
         value={phone}
         onChangeText={setPhone}
       />
@@ -141,8 +199,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       <TouchableOpacity style={styles.button} onPress={handleRegister}>
         <Text style={styles.buttonText}>Crear Cuenta</Text>
       </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+      <TouchableOpacity onPress={() => navigation.navigate("Login", {message:""})}>
         <Text style={styles.linkText}>¿Ya tienes cuenta? Inicia sesión</Text>
       </TouchableOpacity>
     </ScrollView>

@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
 export const register = async (req, res) => {
-    const { nombre_usuario, nombre, dni, email, numero_telefono, contrasena, consentimiento } = req.body;
+    const { nombre_usuario, nombre, dni,numero_telefono, email, contrasena, consentimiento } = req.body;
     if (!dni) {
         return res.status(400).json({
             message: "El DNI es obligatorio",
@@ -13,9 +13,9 @@ export const register = async (req, res) => {
         return res.status(400).json({ message: "Faltan campos obligatorios" });
     }
     try {
-        const existingUser = await Usuario.findOne({ where: { email } });
+        const existingUser = await Usuario.findOne({ where: { nombre_usuario } });
         if (existingUser) {
-            return res.status(400).json({ message: "Usuario ya registrado con este email" });
+            return res.status(400).json({ message: "Usuario ya registrado con este nombre de usuario" });
         }
         const seed = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(contrasena, seed);
@@ -24,8 +24,8 @@ export const register = async (req, res) => {
             nombre_usuario,
             nombre,
             dni,
-            email,
             numero_telefono,
+            email,
             contrasena: hashedPassword,
             consentimiento: consentimiento || false,
         });
@@ -38,18 +38,18 @@ export const register = async (req, res) => {
 }
 
 export const login = async (req, res) => {
-    const { email, contrasena } = req.body;
-    if (!email || !contrasena) {
+    const { nombre_usuario, contrasena } = req.body;
+    if (!nombre_usuario || !contrasena) {
         return res.status(400).json({ message: "Faltan campos obligatorios" });
     }
     try {
-        const user = await Usuario.findOne({ where: { email } });
+        const user = await Usuario.findOne({ where: { nombre_usuario } });
         if (!user) return res.status(400).json({ message: "Usuario no encontrado" });
 
         const isMatch = await bcrypt.compare(contrasena, user.contrasena);
         if (!isMatch) return res.status(400).json({ message: "Contraseña incorrecta" });
 
-        const token = jwt.sign({ id_usuario: user.id_usuario, email: user.email }, process.env.JWT_SECRET, {
+        const token = jwt.sign({ id_usuario: user.id_usuario, nombre_usuario: user.nombre_usuario }, process.env.JWT_SECRET, {
             expiresIn: "1d",
         });
 
