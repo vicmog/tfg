@@ -113,7 +113,7 @@ describe("RegisterScreen", () => {
     const { getByText } = render(<RegisterScreen navigation={navigation} route={mockRoute}/>);
     const loginLink = getByText("¿Ya tienes cuenta? Inicia sesión");
     fireEvent.press(loginLink);
-    expect(mockNavigate).toHaveBeenCalledWith("Login", { message: "" });
+    expect(mockNavigate).toHaveBeenCalledWith("Login", {});
   });
 
   it("coincide con el snapshot", () => {

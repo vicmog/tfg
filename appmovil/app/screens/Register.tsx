@@ -200,7 +200,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         <Text style={styles.buttonText}>Crear Cuenta</Text>
       </TouchableOpacity>
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <TouchableOpacity onPress={() => navigation.navigate("Login", {message:""})}>
+      <TouchableOpacity onPress={() => navigation.navigate("Login", {})}>
         <Text style={styles.linkText}>¿Ya tienes cuenta? Inicia sesión</Text>
       </TouchableOpacity>
     </ScrollView>

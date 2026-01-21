@@ -5,12 +5,14 @@ import LoginScreen from "./screens/Login";
 import RegisterScreen from "./screens/Register";
 import Negocios from "./screens/Negocios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import PersonalDataEdit from "./screens/PersonalDataEdit";
 
 export type NavigationScreenList = {
   Home: undefined;
-  Login: { message: string };
+  Login: { message?: string };
   Register: undefined;
   Negocios: undefined;
+  EditarDatos: undefined;
 };
 
 const Stack = createNativeStackNavigator<NavigationScreenList>();
@@ -27,18 +29,13 @@ const App: React.FC = () => {
     loadToken();
   }, []);
 
-  console.log("asdasdasd" + token);
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {!token ? (
-        <>
-          <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="Register" component={RegisterScreen} />
-        </>
-      ) : (
-        <Stack.Screen name="Negocios" component={Negocios} />
-      )}
+      <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="Negocios" component={Negocios} />
+      <Stack.Screen name="EditarDatos" component={PersonalDataEdit} />
     </Stack.Navigator>
   );
 };

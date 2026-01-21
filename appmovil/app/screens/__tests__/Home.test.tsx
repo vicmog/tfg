@@ -34,7 +34,7 @@ describe("HomeScreen", () => {
     const { getByText } = render(<HomeScreen navigation={navigation} route={mockRoute} />);
     const loginButton = getByText("Iniciar Sesión");
     fireEvent.press(loginButton);
-    expect(mockNavigate).toHaveBeenCalledWith("Login", { message: "" });
+    expect(mockNavigate).toHaveBeenCalledWith("Login", {});
   });
 
   it("navega a Register al presionar Crear cuenta", () => {

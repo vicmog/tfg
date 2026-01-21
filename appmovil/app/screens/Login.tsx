@@ -107,7 +107,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
         setError(data.message || "Error al Iniciar sesión");
         return;
       }
-  
+
       await AsyncStorage.setItem("token", data.token);
       navigation.navigate("Negocios");
     } catch (error) {
