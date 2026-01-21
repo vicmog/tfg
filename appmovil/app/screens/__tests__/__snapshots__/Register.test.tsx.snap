@@ -1,0 +1,259 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`RegisterScreen coincide con el snapshot 1`] = `
+<RCTScrollView
+  contentContainerStyle={
+    {
+      "backgroundColor": "#ffffff",
+      "flexGrow": 1,
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 40,
+    }
+  }
+>
+  <View>
+    <Text
+      style={
+        {
+          "color": "#0D47A1",
+          "fontSize": 28,
+          "fontWeight": "bold",
+          "marginBottom": 30,
+          "textAlign": "center",
+        }
+      }
+    >
+      Registrate Gratis!
+    </Text>
+    <TextInput
+      onChangeText={[Function]}
+      placeholder="Usuario"
+      placeholderTextColor="#1976D2"
+      style={
+        {
+          "borderColor": "#1976D2",
+          "borderRadius": 10,
+          "borderWidth": 2,
+          "color": "#0D47A1",
+          "fontSize": 16,
+          "marginBottom": 20,
+          "paddingHorizontal": 15,
+          "paddingVertical": 12,
+        }
+      }
+      value=""
+    />
+    <TextInput
+      onChangeText={[Function]}
+      placeholder="Nombre completo"
+      placeholderTextColor="#1976D2"
+      style={
+        {
+          "borderColor": "#1976D2",
+          "borderRadius": 10,
+          "borderWidth": 2,
+          "color": "#0D47A1",
+          "fontSize": 16,
+          "marginBottom": 20,
+          "paddingHorizontal": 15,
+          "paddingVertical": 12,
+        }
+      }
+      value=""
+    />
+    <TextInput
+      onChangeText={[Function]}
+      placeholder="DNI/NIE"
+      placeholderTextColor="#1976D2"
+      style={
+        {
+          "borderColor": "#1976D2",
+          "borderRadius": 10,
+          "borderWidth": 2,
+          "color": "#0D47A1",
+          "fontSize": 16,
+          "marginBottom": 20,
+          "paddingHorizontal": 15,
+          "paddingVertical": 12,
+        }
+      }
+      value=""
+    />
+    <TextInput
+      autoCapitalize="none"
+      keyboardType="email-address"
+      onChangeText={[Function]}
+      placeholder="Email"
+      placeholderTextColor="#1976D2"
+      style={
+        {
+          "borderColor": "#1976D2",
+          "borderRadius": 10,
+          "borderWidth": 2,
+          "color": "#0D47A1",
+          "fontSize": 16,
+          "marginBottom": 20,
+          "paddingHorizontal": 15,
+          "paddingVertical": 12,
+        }
+      }
+      value=""
+    />
+    <TextInput
+      onChangeText={[Function]}
+      placeholder="Numero de Teléfono"
+      placeholderTextColor="#1976D2"
+      style={
+        {
+          "borderColor": "#1976D2",
+          "borderRadius": 10,
+          "borderWidth": 2,
+          "color": "#0D47A1",
+          "fontSize": 16,
+          "marginBottom": 20,
+          "paddingHorizontal": 15,
+          "paddingVertical": 12,
+        }
+      }
+      value=""
+    />
+    <TextInput
+      onChangeText={[Function]}
+      placeholder="Contraseña"
+      placeholderTextColor="#1976D2"
+      secureTextEntry={true}
+      style={
+        {
+          "borderColor": "#1976D2",
+          "borderRadius": 10,
+          "borderWidth": 2,
+          "color": "#0D47A1",
+          "fontSize": 16,
+          "marginBottom": 20,
+          "paddingHorizontal": 15,
+          "paddingVertical": 12,
+        }
+      }
+      value=""
+    />
+    <TextInput
+      onChangeText={[Function]}
+      placeholder="Confirmar contraseña"
+      placeholderTextColor="#1976D2"
+      secureTextEntry={true}
+      style={
+        {
+          "borderColor": "#1976D2",
+          "borderRadius": 10,
+          "borderWidth": 2,
+          "color": "#0D47A1",
+          "fontSize": 16,
+          "marginBottom": 20,
+          "paddingHorizontal": 15,
+          "paddingVertical": 12,
+        }
+      }
+      value=""
+    />
+    <View
+      accessibilityState={
+        {
+          "busy": undefined,
+          "checked": undefined,
+          "disabled": undefined,
+          "expanded": undefined,
+          "selected": undefined,
+        }
+      }
+      accessibilityValue={
+        {
+          "max": undefined,
+          "min": undefined,
+          "now": undefined,
+          "text": undefined,
+        }
+      }
+      accessible={true}
+      collapsable={false}
+      focusable={true}
+      onClick={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      style={
+        {
+          "alignItems": "center",
+          "backgroundColor": "#1976D2",
+          "borderRadius": 10,
+          "marginBottom": 15,
+          "opacity": 1,
+          "paddingVertical": 15,
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#fff",
+            "fontSize": 18,
+            "fontWeight": "bold",
+          }
+        }
+      >
+        Crear Cuenta
+      </Text>
+    </View>
+    <View
+      accessibilityState={
+        {
+          "busy": undefined,
+          "checked": undefined,
+          "disabled": undefined,
+          "expanded": undefined,
+          "selected": undefined,
+        }
+      }
+      accessibilityValue={
+        {
+          "max": undefined,
+          "min": undefined,
+          "now": undefined,
+          "text": undefined,
+        }
+      }
+      accessible={true}
+      collapsable={false}
+      focusable={true}
+      onClick={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      style={
+        {
+          "opacity": 1,
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#1976D2",
+            "fontSize": 16,
+            "marginTop": 10,
+            "textAlign": "center",
+          }
+        }
+      >
+        ¿Ya tienes cuenta? Inicia sesión
+      </Text>
+    </View>
+  </View>
+</RCTScrollView>
+`;

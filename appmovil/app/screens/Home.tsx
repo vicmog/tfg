@@ -77,7 +77,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.loginButton}
-          onPress={() => navigation.navigate("Login")}
+          onPress={() => navigation.navigate("Login", {message:""})}
         >
           <Text style={styles.loginText}>Iniciar Sesión</Text>
         </TouchableOpacity>

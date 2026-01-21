@@ -134,7 +134,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     <ScrollView contentContainerStyle={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
-      <Text style={styles.title}>Crear Cuenta</Text>
+      <Text style={styles.title}>Registrate Gratis!</Text>
 
       <TextInput
         style={styles.input}
