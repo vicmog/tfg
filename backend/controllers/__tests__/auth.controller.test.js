@@ -102,7 +102,7 @@ describe("AuthController Unit Tests", () => {
 
       expect(res.status).toHaveBeenCalledWith(200);
       expect(jsonMock).toHaveBeenCalledWith({
-        message: "Login exitoso",
+        id_usuario: 1,
         token: "mocked-jwt-token",
       });
       expect(Usuario.findOne).toHaveBeenCalled();

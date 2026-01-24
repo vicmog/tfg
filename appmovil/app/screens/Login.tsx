@@ -143,7 +143,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
       />
 
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Ingresar</Text>
+        <Text style={styles.buttonText}>Iniciar Sesión</Text>
       </TouchableOpacity>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}

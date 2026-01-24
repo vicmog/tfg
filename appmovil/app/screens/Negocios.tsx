@@ -19,20 +19,6 @@ const Negocios: React.FC<NegociosScreenProps> = ({ navigation }) => {
   const negocios = [
     { id: 1, nombre: "Tienda A" },
     { id: 2, nombre: "Cafetería B" },
-    { id: 3, nombre: "Restaurante C" },
-    { id: 4, nombre: "Librería D" },
-    { id: 5, nombre: "Librería D" },
-    { id: 6, nombre: "Librería D" },
-    { id: 7, nombre: "Librería D" },
-    { id: 8, nombre: "Librería D" },
-    { id: 9, nombre: "Librería D" },
-    { id: 10, nombre: "Librería D" },
-    { id: 11, nombre: "Librería D" },
-    { id: 12, nombre: "Librería D" },
-    { id: 13, nombre: "Librería D" },
-    { id: 14, nombre: "Librería D" },
-    { id: 15, nombre: "Librería D" },
-    { id: 16, nombre: "Librería D" },
   ];
   return (
     <View style={styles.container}>
