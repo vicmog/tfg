@@ -70,20 +70,26 @@ const styles = StyleSheet.create({
 const PersonalDataEdit: React.FC<PersonalDataEditProps> = ({ navigation }) => {
   const [username, setUsername] = useState("");
   const [fullname, setFullname] = useState("");
+  const [dni, setDni] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [jwt, setJwt] = useState("");
+  const [id_usuario, setIdUsuario] = useState("");
 
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        const jwt = AsyncStorage.getItem("token");
-        const id_usuario = AsyncStorage.getItem("id_usuario");
+        const jwt = await AsyncStorage.getItem("token");
+        const id_usuario = await AsyncStorage.getItem("id_usuario");
+        setIdUsuario(id_usuario!);
+        setJwt(jwt!);
+        const route = `http://localhost:3000/v1/api/users/user/${id_usuario}`;
         const response = await fetch(
-          `http://localhost:3000/v1/api/users/user?id_usuario=${id_usuario}`,
+          route,
           {
             method: "GET",
             headers: {
@@ -97,6 +103,7 @@ const PersonalDataEdit: React.FC<PersonalDataEditProps> = ({ navigation }) => {
         setUsername(data.nombre_usuario);
         setFullname(data.nombre);
         setEmail(data.email);
+        setDni(data.dni);
         setPhone(data.numero_telefono);
       } catch (error) {
         console.error(error);
@@ -106,17 +113,40 @@ const PersonalDataEdit: React.FC<PersonalDataEditProps> = ({ navigation }) => {
   }, []);
 
   const handleSave = async () => {
-    setLoading(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setMessage("Datos guardados correctamente");
-    } catch (error) {
-      Alert.alert("Error", "No se pudo guardar los datos");
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
 
+  try {
+    const route = `http://localhost:3000/v1/api/users/user/${id_usuario}`;
+    const response = await fetch(route, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${jwt}`,
+      },
+      body: JSON.stringify({
+        nombre: fullname,
+        email,
+        dni,
+        numero_telefono: phone,
+        contrasena: oldPassword,
+        nuevacontrasena: newPassword,
+      }),
+    });
+
+    if (!response.ok) {
+      setMessage("Error No se pudo actualizar el usuario");
+    } else {
+      setMessage("Datos guardados correctamente");
+      setOldPassword("");
+      setNewPassword("");
+    }
+  } catch (error) {
+    console.error(error);
+    setMessage("Error No se pudo actualizar el usuario");
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
       <View style={styles.container}>
@@ -136,6 +166,7 @@ const PersonalDataEdit: React.FC<PersonalDataEditProps> = ({ navigation }) => {
             value={username}
             onChangeText={setUsername}
             testID="input-username"
+            editable={false}
           />
           <TextInput
             style={styles.input}
@@ -143,6 +174,14 @@ const PersonalDataEdit: React.FC<PersonalDataEditProps> = ({ navigation }) => {
             value={fullname}
             onChangeText={setFullname}
             testID="input-fullname"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="DNI/NIE"
+            value={dni}
+            onChangeText={setDni}
+            testID="input-dni"
+            editable={false}
           />
           <TextInput
             style={styles.input}
