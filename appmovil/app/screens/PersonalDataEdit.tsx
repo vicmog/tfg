@@ -77,27 +77,21 @@ const PersonalDataEdit: React.FC<PersonalDataEditProps> = ({ navigation }) => {
   const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [jwt, setJwt] = useState("");
-  const [id_usuario, setIdUsuario] = useState("");
 
   useEffect(() => {
     const loadUserData = async () => {
       try {
         const jwt = await AsyncStorage.getItem("token");
         const id_usuario = await AsyncStorage.getItem("id_usuario");
-        setIdUsuario(id_usuario!);
-        setJwt(jwt!);
+
         const route = `http://localhost:3000/v1/api/users/user/${id_usuario}`;
-        const response = await fetch(
-          route,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${jwt}`,
-            },
+        const response = await fetch(route, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${jwt}`,
           },
-        );
+        });
 
         const data = await response.json();
         setUsername(data.nombre_usuario);
@@ -113,40 +107,43 @@ const PersonalDataEdit: React.FC<PersonalDataEditProps> = ({ navigation }) => {
   }, []);
 
   const handleSave = async () => {
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    const route = `http://localhost:3000/v1/api/users/user/${id_usuario}`;
-    const response = await fetch(route, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${jwt}`,
-      },
-      body: JSON.stringify({
-        nombre: fullname,
-        email,
-        dni,
-        numero_telefono: phone,
-        contrasena: oldPassword,
-        nuevacontrasena: newPassword,
-      }),
-    });
+    try {
+      const jwt = await AsyncStorage.getItem("token");
+      const id_usuario = await AsyncStorage.getItem("id_usuario");
+      const route = `http://localhost:3000/v1/api/users/user/${id_usuario}`;
+      const response = await fetch(route, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${jwt}`,
+        },
+        body: JSON.stringify({
+          nombre: fullname,
+          email,
+          dni,
+          numero_telefono: phone,
+          contrasena: oldPassword,
+          nuevacontrasena: newPassword,
+        }),
+      });
+      const data = await response.json();
 
-    if (!response.ok) {
+      if (!response.ok) {
+        setMessage(data.message);
+      } else {
+        setMessage("Datos guardados correctamente");
+        setOldPassword("");
+        setNewPassword("");
+      }
+    } catch (error) {
+      console.error(error);
       setMessage("Error No se pudo actualizar el usuario");
-    } else {
-      setMessage("Datos guardados correctamente");
-      setOldPassword("");
-      setNewPassword("");
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error(error);
-    setMessage("Error No se pudo actualizar el usuario");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
   return (
     <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
       <View style={styles.container}>

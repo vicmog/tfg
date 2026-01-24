@@ -124,7 +124,7 @@ exports[`LoginScreen coincide con el snapshot 1`] = `
         }
       }
     >
-      Ingresar
+      Iniciar Sesión
     </Text>
   </View>
   <View

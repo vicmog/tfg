@@ -33,16 +33,16 @@ describe("LoginScreen", () => {
     expect(getByText("Login")).toBeTruthy();
     expect(getByPlaceholderText("Usuario")).toBeTruthy();
     expect(getByPlaceholderText("Contraseña")).toBeTruthy();
-    expect(getByText("Ingresar")).toBeTruthy();
+    expect(getByText("Iniciar Sesión")).toBeTruthy();
     expect(getByText("¿No tienes cuenta? Regístrate")).toBeTruthy();
     expect(getByText("Registrado Correctamente. Inicie Sesion")).toBeTruthy();
   });
 
-  it("muestra error si los campos están vacíos al presionar Ingresar", () => {
+  it("muestra error si los campos están vacíos al presionar Iniciar Sesión", () => {
     const { getByText } = render(
       <LoginScreen navigation={navigation} route={mockRoute} />
     );
-    const loginButton = getByText("Ingresar");
+    const loginButton = getByText("Iniciar Sesión");
 
     fireEvent.press(loginButton);
     expect(getByText("Por favor completa todos los campos")).toBeTruthy();
@@ -61,7 +61,7 @@ describe("LoginScreen", () => {
     fireEvent.changeText(getByPlaceholderText("Usuario"), "usuario1");
     fireEvent.changeText(getByPlaceholderText("Contraseña"), "123456");
 
-    fireEvent.press(getByText("Ingresar"));
+    fireEvent.press(getByText("Iniciar Sesión"));
 
     await waitFor(() => {
       expect(AsyncStorage.setItem).toHaveBeenCalledWith("token", "abc123");
@@ -82,7 +82,7 @@ describe("LoginScreen", () => {
     fireEvent.changeText(getByPlaceholderText("Usuario"), "usuario1");
     fireEvent.changeText(getByPlaceholderText("Contraseña"), "wrongpass");
 
-    fireEvent.press(getByText("Ingresar"));
+    fireEvent.press(getByText("Iniciar Sesión"));
 
     await waitFor(() => {
       expect(getByText("Usuario o contraseña incorrecta")).toBeTruthy();
