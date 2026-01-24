@@ -1,4 +1,4 @@
-import { register, login } from "../../controllers/authController.js";
+import { register, login } from "../authController.js";
 import { Usuario } from "../../models/Usuario.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
