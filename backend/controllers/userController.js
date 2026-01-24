@@ -2,7 +2,7 @@ import { Usuario } from "../models/Usuario.js";
 import bcrypt from "bcrypt";
 
 export const getUserInfo = async (req, res) => {
-    const { id_usuario } = req.body;
+    const { id_usuario } = req.params;
     if (!id_usuario) {
         return res.status(400).json({ message: "Falta el id del usuario" });
     }
@@ -29,7 +29,8 @@ export const getUserInfo = async (req, res) => {
 };
 
 export const updateUser = async (req, res) => {
-    const { id_usuario,nombre_usuario, nombre, dni, email, numero_telefono, contrasena, nuevacontrasena } = req.body;
+    const { id_usuario } = req.params;
+    const { nombre_usuario, nombre, dni, email, numero_telefono, contrasena, nuevacontrasena } = req.body;
 
     if (!id_usuario) {
         return res.status(400).json({ message: "Falta el id del usuario" });

@@ -79,16 +79,28 @@ const PersonalDataEdit: React.FC<PersonalDataEditProps> = ({ navigation }) => {
 
   useEffect(() => {
     const loadUserData = async () => {
-      const data = {
-        username: "usuario1",
-        fullname: "Juan Perez",
-        email: "juan@test.com",
-        phone: "600123456",
-      };
-      setUsername(data.username);
-      setFullname(data.fullname);
-      setEmail(data.email);
-      setPhone(data.phone);
+      try {
+        const jwt = AsyncStorage.getItem("token");
+        const id_usuario = AsyncStorage.getItem("id_usuario");
+        const response = await fetch(
+          `http://localhost:3000/v1/api/users/user?id_usuario=${id_usuario}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${jwt}`,
+            },
+          },
+        );
+
+        const data = await response.json();
+        setUsername(data.nombre_usuario);
+        setFullname(data.nombre);
+        setEmail(data.email);
+        setPhone(data.numero_telefono);
+      } catch (error) {
+        console.error(error);
+      }
     };
     loadUserData();
   }, []);

@@ -109,6 +109,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
       }
 
       await AsyncStorage.setItem("token", data.token);
+      await AsyncStorage.setItem("id_usuario", data.id_usuario);
       navigation.navigate("Negocios");
     } catch (error) {
       setError("No se pudo conectar con el servidor");
