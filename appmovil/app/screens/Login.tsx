@@ -13,7 +13,10 @@ import {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-type LoginScreenProps = NativeStackScreenProps<NavigationScreenList, "Login">;
+type LoginScreenProps = NativeStackScreenProps<NavigationScreenList, "Login"> & {
+  setIsAuth: (value: boolean) => void;
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -73,7 +76,7 @@ const styles = StyleSheet.create({
   },
 });
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
+const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route, setIsAuth }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -110,7 +113,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
 
       await AsyncStorage.setItem("token", data.token);
       await AsyncStorage.setItem("id_usuario", data.id_usuario);
-      navigation.navigate("Negocios");
+      setIsAuth(true);
+      
     } catch (error) {
       setError("No se pudo conectar con el servidor");
       console.error(error);

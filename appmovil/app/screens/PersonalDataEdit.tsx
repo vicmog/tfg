@@ -15,7 +15,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 type PersonalDataEditProps = NativeStackScreenProps<
   NavigationScreenList,
   "EditarDatos"
->;
+> & {
+  setIsAuth: (value: boolean) => void;
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -67,7 +69,7 @@ const styles = StyleSheet.create({
   success: { textAlign: "center", color: "#4CAF50", marginBottom: 10 },
 });
 
-const PersonalDataEdit: React.FC<PersonalDataEditProps> = ({ navigation }) => {
+const PersonalDataEdit: React.FC<PersonalDataEditProps> = ({ navigation, route, setIsAuth }) => {
   const [username, setUsername] = useState("");
   const [fullname, setFullname] = useState("");
   const [dni, setDni] = useState("");
@@ -105,6 +107,12 @@ const PersonalDataEdit: React.FC<PersonalDataEditProps> = ({ navigation }) => {
     };
     loadUserData();
   }, []);
+
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem("token");
+    await AsyncStorage.removeItem("id_usuario");
+    setIsAuth(false);
+  };
 
   const handleSave = async () => {
     setLoading(true);
@@ -223,6 +231,14 @@ const PersonalDataEdit: React.FC<PersonalDataEditProps> = ({ navigation }) => {
             <Text style={styles.saveText}>
               {loading ? "Guardando..." : "Guardar cambios"}
             </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={handleLogout}
+            testID="logout-button"
+          >
+            <Text style={styles.logoutText}>Cerrar sesión</Text>
           </TouchableOpacity>
         </View>
       </View>

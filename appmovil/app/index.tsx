@@ -18,24 +18,35 @@ export type NavigationScreenList = {
 const Stack = createNativeStackNavigator<NavigationScreenList>();
 
 const App: React.FC = () => {
-  const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isAuth, setIsAuth] = useState(false);
+
+  const checkToken = async () => {
+    const storedToken = await AsyncStorage.getItem("token");
+    setIsAuth(!!storedToken);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const loadToken = async () => {
-      const storedToken = await AsyncStorage.getItem("token");
-      setToken(storedToken);
-    };
-
-    loadToken();
+    checkToken();
   }, []);
+
+  if (loading) return null;
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Home" component={HomeScreen} />
-      <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="Register" component={RegisterScreen} />
-      <Stack.Screen name="Negocios" component={Negocios} />
-      <Stack.Screen name="EditarDatos" component={PersonalDataEdit} />
+      {isAuth ? (
+        <>
+          <Stack.Screen name="Negocios" component={Negocios} />
+          <Stack.Screen name="EditarDatos" children={(props) => <PersonalDataEdit {...props} setIsAuth={setIsAuth} />}/>
+        </>
+      ) : (
+        <>
+          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="Login" children={(props) => <LoginScreen {...props} setIsAuth={setIsAuth} />}/>
+          <Stack.Screen name="Register" component={RegisterScreen} />
+        </>
+      )}
     </Stack.Navigator>
   );
 };

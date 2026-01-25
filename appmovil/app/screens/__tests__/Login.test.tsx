@@ -3,9 +3,10 @@ import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import LoginScreen from "./../Login";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const mockNavigate = jest.fn();
-const navigation = {
-  navigate: mockNavigate,
+const mockSetIsAuth = jest.fn();
+
+const mockNavigation = {
+  navigate: jest.fn(),
   goBack: jest.fn(),
   setOptions: jest.fn(),
 } as any;
@@ -27,7 +28,11 @@ describe("LoginScreen", () => {
 
   it("renderiza correctamente todos los elementos", () => {
     const { getByPlaceholderText, getByText } = render(
-      <LoginScreen navigation={navigation} route={mockRoute} />
+      <LoginScreen
+        navigation={mockNavigation}
+        route={mockRoute}
+        setIsAuth={mockSetIsAuth}
+      />
     );
 
     expect(getByText("Login")).toBeTruthy();
@@ -40,32 +45,41 @@ describe("LoginScreen", () => {
 
   it("muestra error si los campos están vacíos al presionar Iniciar Sesión", () => {
     const { getByText } = render(
-      <LoginScreen navigation={navigation} route={mockRoute} />
+      <LoginScreen
+        navigation={mockNavigation}
+        route={mockRoute}
+        setIsAuth={mockSetIsAuth}
+      />
     );
-    const loginButton = getByText("Iniciar Sesión");
 
+    const loginButton = getByText("Iniciar Sesión");
     fireEvent.press(loginButton);
+
     expect(getByText("Por favor completa todos los campos")).toBeTruthy();
   });
 
-  it("navega a Negocios si login es exitoso", async () => {
+  it("cambia isAuth si login es exitoso", async () => {
     (fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ token: "abc123" }),
+      json: async () => ({ token: "abc123", id_usuario: "1" }),
     });
 
     const { getByText, getByPlaceholderText } = render(
-      <LoginScreen navigation={navigation} route={mockRoute} />
+      <LoginScreen
+        navigation={mockNavigation}
+        route={mockRoute}
+        setIsAuth={mockSetIsAuth}
+      />
     );
 
     fireEvent.changeText(getByPlaceholderText("Usuario"), "usuario1");
     fireEvent.changeText(getByPlaceholderText("Contraseña"), "123456");
-
     fireEvent.press(getByText("Iniciar Sesión"));
 
     await waitFor(() => {
       expect(AsyncStorage.setItem).toHaveBeenCalledWith("token", "abc123");
-      expect(mockNavigate).toHaveBeenCalledWith("Negocios");
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith("id_usuario", "1");
+      expect(mockSetIsAuth).toHaveBeenCalledWith(true);
     });
   });
 
@@ -76,12 +90,15 @@ describe("LoginScreen", () => {
     });
 
     const { getByText, getByPlaceholderText } = render(
-      <LoginScreen navigation={navigation} route={mockRoute} />
+      <LoginScreen
+        navigation={mockNavigation}
+        route={mockRoute}
+        setIsAuth={mockSetIsAuth}
+      />
     );
 
     fireEvent.changeText(getByPlaceholderText("Usuario"), "usuario1");
     fireEvent.changeText(getByPlaceholderText("Contraseña"), "wrongpass");
-
     fireEvent.press(getByText("Iniciar Sesión"));
 
     await waitFor(() => {
@@ -91,18 +108,26 @@ describe("LoginScreen", () => {
 
   it("navega a Register al presionar Regístrate", () => {
     const { getByText } = render(
-      <LoginScreen navigation={navigation} route={mockRoute} />
+      <LoginScreen
+        navigation={mockNavigation}
+        route={mockRoute}
+        setIsAuth={mockSetIsAuth}
+      />
     );
 
     const registerLink = getByText("¿No tienes cuenta? Regístrate");
     fireEvent.press(registerLink);
 
-    expect(mockNavigate).toHaveBeenCalledWith("Register");
+    expect(mockNavigation.navigate).toHaveBeenCalledWith("Register");
   });
 
   it("coincide con el snapshot", () => {
     const { toJSON } = render(
-      <LoginScreen navigation={navigation} route={mockRoute} />
+      <LoginScreen
+        navigation={mockNavigation}
+        route={mockRoute}
+        setIsAuth={mockSetIsAuth}
+      />
     );
     expect(toJSON()).toMatchSnapshot();
   });
