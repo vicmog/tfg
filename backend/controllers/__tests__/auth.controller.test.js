@@ -2,10 +2,12 @@ import { register, login } from "../authController.js";
 import { Usuario } from "../../models/Usuario.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { sendValidationEmail } from "../../utils/mailer.js";
 
 jest.mock("../../models/Usuario.js");
 jest.mock("bcrypt");
 jest.mock("jsonwebtoken");
+jest.mock("../../utils/mailer.js", () => ({ sendValidationEmail: jest.fn().mockResolvedValue({}) }));
 
 describe("AuthController Unit Tests", () => {
   beforeEach(() => {
@@ -21,6 +23,8 @@ describe("AuthController Unit Tests", () => {
         nombre: "Test User",
         dni: "12345678X",
         email: "test@test.com",
+        codigo_validacion: "123456",
+        validacion: false,
       });
 
       const req = {
@@ -47,6 +51,7 @@ describe("AuthController Unit Tests", () => {
         userId: 1,
       });
       expect(Usuario.create).toHaveBeenCalled();
+      expect(sendValidationEmail).toHaveBeenCalledWith("test@test.com", expect.any(String), "testuser");
     });
 
     it("debería fallar si el email ya existe", async () => {
@@ -84,6 +89,7 @@ describe("AuthController Unit Tests", () => {
         nombre_usuario: "username",
         email: "test@test.com",
         contrasena: "hashedpassword",
+        validacion: true,
       });
 
       (bcrypt.compare).mockResolvedValue(true);
