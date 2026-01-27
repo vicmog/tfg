@@ -58,15 +58,45 @@ export const login = async (req, res) => {
         const isMatch = await bcrypt.compare(contrasena, user.contrasena);
         if (!isMatch) return res.status(400).json({ message: "Contraseña incorrecta" });
 
-        if (!user.validacion) {
-            return res.status(400).json({ message: "UsuarioNoValidado" });
+       
+
+        const token = jwt.sign({ id_usuario: user.id_usuario, nombre_usuario: user.nombre_usuario }, process.env.JWT_SECRET, {
+            expiresIn: "1d",
+        });
+        
+         if (!user.validacion) {
+            return res.status(200).json({ id_usuario: user.id_usuario, token, message: "UsuarioNoValidado"});
         }
+
+        return res.status(200).json({ id_usuario: user.id_usuario, token});
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Error en el servidor" });
+    }
+};
+
+export const validateCode = async (req, res) => {
+    const { id_usuario, codigo_validacion } = req.body;
+    if (!id_usuario || !codigo_validacion) {
+        return res.status(400).json({ message: "Faltan campos obligatorios" });
+    }
+    try {
+        const user = await Usuario.findOne({ where: { id_usuario } });
+        if (!user) return res.status(400).json({ message: "Usuario no encontrado" });
+
+        if (user.codigo_validacion !== codigo_validacion) {
+            return res.status(400).json({ message: "Código inválido" });
+        }
+
+        user.validacion = true;
+        user.codigo_validacion = null;
+        await user.save();
 
         const token = jwt.sign({ id_usuario: user.id_usuario, nombre_usuario: user.nombre_usuario }, process.env.JWT_SECRET, {
             expiresIn: "1d",
         });
 
-        return res.status(200).json({ id_usuario: user.id_usuario, token});
+        return res.status(200).json({ id_usuario: user.id_usuario, token });
     } catch (err) {
         console.error(err);
         return res.status(500).json({ message: "Error en el servidor" });

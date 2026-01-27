@@ -6,11 +6,13 @@ import RegisterScreen from "./screens/Register";
 import Negocios from "./screens/Negocios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import PersonalDataEdit from "./screens/PersonalDataEdit";
+import ValidateCode from "./screens/ValidateCode";
 
 export type NavigationScreenList = {
   Home: undefined;
   Login: { message?: string };
   Register: undefined;
+  ValidateCode: { id_usuario?: number; nombre_usuario?: string };
   Negocios: undefined;
   EditarDatos: undefined;
 };
@@ -44,6 +46,7 @@ const App: React.FC = () => {
         <>
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="Login" children={(props) => <LoginScreen {...props} setIsAuth={setIsAuth} />}/>
+          <Stack.Screen name="ValidateCode" children={(props) => <ValidateCode {...props} setIsAuth={setIsAuth} />}/>
           <Stack.Screen name="Register" component={RegisterScreen} />
         </>
       )}
