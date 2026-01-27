@@ -40,7 +40,30 @@ describe("LoginScreen", () => {
     expect(getByPlaceholderText("Contraseña")).toBeTruthy();
     expect(getByText("Iniciar Sesión")).toBeTruthy();
     expect(getByText("¿No tienes cuenta? Regístrate")).toBeTruthy();
-    expect(getByText("Registrado Correctamente. Inicie Sesion")).toBeTruthy();
+    expect(getByText("Registrado Correctamente. Comprueba tu email para validar tu cuenta.")).toBeTruthy();
+  });
+
+  it('navega a ValidateCode cuando backend devuelve UsuarioNoValidado', async () => {
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id_usuario: 10, message: 'UsuarioNoValidado' }),
+    });
+
+    const { getByPlaceholderText, getByText } = render(
+      <LoginScreen
+        navigation={mockNavigation}
+        route={mockRoute}
+        setIsAuth={mockSetIsAuth}
+      />
+    );
+
+    fireEvent.changeText(getByPlaceholderText('Usuario'), 'user1');
+    fireEvent.changeText(getByPlaceholderText('Contraseña'), 'pass');
+    fireEvent.press(getByText('Iniciar Sesión'));
+
+    await waitFor(() => {
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('ValidateCode', { id_usuario: 10, nombre_usuario: 'user1' });
+    });
   });
 
   it("muestra error si los campos están vacíos al presionar Iniciar Sesión", () => {
