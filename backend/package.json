@@ -19,7 +19,8 @@
     "pg": "^8.17.1",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.7",
-    "sequelize-cli": "^6.6.5"
+    "sequelize-cli": "^6.6.5",
+    "nodemailer": "^6.9.3"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.28.6",

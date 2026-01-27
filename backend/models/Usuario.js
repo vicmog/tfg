@@ -9,7 +9,9 @@ export const Usuario = sequelize.define("Usuario", {
     email: { type: DataTypes.STRING, allowNull: false, unique: true },
     numero_telefono: { type: DataTypes.STRING },
     contrasena: { type: DataTypes.STRING, allowNull: false },
-    consentimiento: { type: DataTypes.BOOLEAN, allowNull: false }
+    consentimiento: { type: DataTypes.BOOLEAN, allowNull: false },
+    validacion: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    codigo_validacion: { type: DataTypes.STRING, allowNull: true }
 },
 {
     tableName: "Usuario",

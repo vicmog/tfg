@@ -1,6 +1,7 @@
 import { Usuario } from "../models/Usuario.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { sendValidationEmail } from "../utils/mailer.js";
 
 export const register = async (req, res) => {
     const { nombre_usuario, nombre, dni, numero_telefono, email, contrasena, consentimiento } = req.body;
@@ -19,6 +20,7 @@ export const register = async (req, res) => {
         }
         const seed = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(contrasena, seed);
+        const codigo_validacion = Math.floor(100000 + Math.random() * 900000).toString();
 
         const user = await Usuario.create({
             nombre_usuario,
@@ -28,7 +30,14 @@ export const register = async (req, res) => {
             email,
             contrasena: hashedPassword,
             consentimiento: consentimiento || false,
+            codigo_validacion: codigo_validacion,
         });
+
+        try {
+            await sendValidationEmail(email, codigo_validacion, nombre_usuario);
+        } catch (mailErr) {
+            console.error("Error sending validation email:", mailErr);
+        }
 
         return res.status(201).json({ message: "Usuario registrado correctamente", userId: user.id_usuario });
     } catch (err) {
@@ -48,6 +57,10 @@ export const login = async (req, res) => {
 
         const isMatch = await bcrypt.compare(contrasena, user.contrasena);
         if (!isMatch) return res.status(400).json({ message: "Contraseña incorrecta" });
+
+        if (!user.validacion) {
+            return res.status(400).json({ message: "UsuarioNoValidado" });
+        }
 
         const token = jwt.sign({ id_usuario: user.id_usuario, nombre_usuario: user.nombre_usuario }, process.env.JWT_SECRET, {
             expiresIn: "1d",
