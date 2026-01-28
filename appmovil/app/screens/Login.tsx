@@ -83,6 +83,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route, setIsAuth 
   const message = route.params?.message;
   const messages: Record<string, string> = {
     REGISTER_SUCCESS: "Registrado Correctamente. Inicia sesión para validar tu cuenta.",
+    VALIDATION_SUCCESS: "Cuenta validada correctamente. Ahora puedes iniciar sesión.",
+    PASSWORD_RESET_SUCCESS: "Contraseña restablecida correctamente. Inicia sesión con tu nueva contraseña.",
     SESSION_EXPIRED: "Tu sesión ha expirado.",
   };
 
@@ -159,6 +161,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route, setIsAuth 
 
       <TouchableOpacity onPress={() => navigation.navigate("Register")}>
         <Text style={styles.linkText}>¿No tienes cuenta? Regístrate</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => navigation.navigate("ResetPassword")}>
+        <Text style={styles.linkText}>¿Olvidaste tu contraseña?</Text>
       </TouchableOpacity>
     </View>
   );

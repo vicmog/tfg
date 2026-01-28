@@ -13,6 +13,7 @@ export type NavigationScreenList = {
   Login: { message?: string };
   Register: undefined;
   ValidateCode: { id_usuario?: number; nombre_usuario?: string };
+  ResetPassword: undefined;
   Negocios: undefined;
   EditarDatos: undefined;
 };
@@ -47,6 +48,7 @@ const App: React.FC = () => {
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="Login" children={(props) => <LoginScreen {...props} setIsAuth={setIsAuth} />}/>
           <Stack.Screen name="ValidateCode" children={(props) => <ValidateCode {...props} setIsAuth={setIsAuth} />}/>
+          <Stack.Screen name="ResetPassword" component={require('./screens/ResetPassword').default} />
           <Stack.Screen name="Register" component={RegisterScreen} />
         </>
       )}
