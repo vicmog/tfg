@@ -21,9 +21,8 @@ describe('ResetPassword screen', () => {
         fireEvent.changeText(getByPlaceholderText('Nombre de usuario'), 'usuario1');
         fireEvent.press(getByText('Enviar nueva contraseña'));
 
-        // modal should appear
-        await waitFor(() => expect(getByText('Confirmar')).toBeTruthy());
-        fireEvent.press(getByText('Confirmar'));
+        await waitFor(() => expect(getByText('Si')).toBeTruthy());
+        fireEvent.press(getByText('Si'));
 
         await waitFor(() => {
             expect(global.fetch).toHaveBeenCalledWith('http://localhost:3000/v1/api/auth/reset-password', expect.any(Object));
