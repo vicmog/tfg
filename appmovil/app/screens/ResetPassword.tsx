@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, StatusBar } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, StatusBar, Modal } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { NavigationScreenList } from "..";
 
@@ -47,12 +47,18 @@ const ResetPassword: React.FC<Props> = ({ navigation }) => {
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  const handleReset = async () => {
+  const handleReset = () => {
     if (!username) {
       Alert.alert("Error", "Por favor introduce el nombre de usuario");
       return;
     }
+    setShowConfirm(true);
+  };
+
+  const handleConfirmReset = async () => {
+    setShowConfirm(false);
     setLoading(true);
     try {
       const res = await fetch("http://localhost:3000/v1/api/auth/reset-password", {
@@ -66,11 +72,10 @@ const ResetPassword: React.FC<Props> = ({ navigation }) => {
         setLoading(false);
         return;
       }
-        navigation.navigate("Login", { message: "PASSWORD_RESET_SUCCESS" });
-
+      navigation.navigate("Login", { message: "PASSWORD_RESET_SUCCESS" });
     } catch (err) {
       console.error(err);
-        setError("Error de red. Por favor, inténtalo de nuevo.");
+      setError("Error de red. Por favor, inténtalo de nuevo.");
     } finally {
       setLoading(false);
     }
@@ -92,7 +97,23 @@ const ResetPassword: React.FC<Props> = ({ navigation }) => {
       <TouchableOpacity style={styles.button} onPress={handleReset} disabled={loading}>
         <Text style={styles.buttonText}>{loading ? "Enviando..." : "Enviar nueva contraseña"}</Text>
       </TouchableOpacity>
-        {error ? <Text style={{ color: "red", textAlign: "center" }}>{error}</Text> : null}
+      {error ? <Text style={{ color: "red", textAlign: "center" }}>{error}</Text> : null}
+
+      <Modal visible={showConfirm} transparent animationType="fade">
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.4)" }}>
+          <View style={{ width: 320, padding: 20, backgroundColor: "#fff", borderRadius: 8 }}>
+            <Text style={{ fontSize: 16, marginBottom: 12 }}>Se generará una nueva contraseña y se enviará al email asociado. ¿Deseas continuar?</Text>
+            <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+              <TouchableOpacity onPress={() => setShowConfirm(false)} style={{ marginRight: 12 }}>
+                <Text style={{ color: "#1976D2" }}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleConfirmReset}>
+                <Text style={{ color: "#1976D2", fontWeight: "bold" }}>Si</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
     </View>
   );

@@ -1,7 +1,6 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import ResetPassword from '../ResetPassword';
-import { Alert } from 'react-native';
 
 global.fetch = jest.fn();
 
@@ -22,9 +21,13 @@ describe('ResetPassword screen', () => {
         fireEvent.changeText(getByPlaceholderText('Nombre de usuario'), 'usuario1');
         fireEvent.press(getByText('Enviar nueva contraseña'));
 
+        // modal should appear
+        await waitFor(() => expect(getByText('Confirmar')).toBeTruthy());
+        fireEvent.press(getByText('Confirmar'));
+
         await waitFor(() => {
             expect(global.fetch).toHaveBeenCalledWith('http://localhost:3000/v1/api/auth/reset-password', expect.any(Object));
-            expect(mockNavigation.navigate).toHaveBeenCalledWith('Login',{"message": "PASSWORD_RESET_SUCCESS"});
+            expect(mockNavigation.navigate).toHaveBeenCalledWith('Login', { message: 'PASSWORD_RESET_SUCCESS' });
         });
     });
 });
