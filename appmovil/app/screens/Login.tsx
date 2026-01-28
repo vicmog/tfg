@@ -84,7 +84,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route, setIsAuth 
   const messages: Record<string, string> = {
     REGISTER_SUCCESS: "Registrado Correctamente. Inicia sesión para validar tu cuenta.",
     VALIDATION_SUCCESS: "Cuenta validada correctamente. Ahora puedes iniciar sesión.",
-    PASSWORD_RESET_SUCCESS: "Contraseña restablecida correctamente. Inicia sesión con tu nueva contraseña.",
+    PASSWORD_RESET_SUCCESS: "Contraseña restablecida correctamente. Puede encontrarla en su correo.",
     SESSION_EXPIRED: "Tu sesión ha expirado.",
   };
 

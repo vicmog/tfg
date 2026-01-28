@@ -66,7 +66,6 @@ const ResetPassword: React.FC<Props> = ({ navigation }) => {
         setLoading(false);
         return;
       }
-        Alert.alert("Éxito", "Se ha enviado una nueva contraseña a tu correo electrónico");
         navigation.navigate("Login", { message: "PASSWORD_RESET_SUCCESS" });
 
     } catch (err) {
