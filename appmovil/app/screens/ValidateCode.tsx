@@ -18,7 +18,7 @@ const styles = StyleSheet.create({
 });
 
 const ValidateCode: React.FC<ValidateCodeProps> = ({ navigation, route, setIsAuth }) => {
-  const { id_usuario, nombre_usuario } = route.params || {};
+  const { id_usuario } = route.params || {};
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
 

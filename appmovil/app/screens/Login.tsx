@@ -82,7 +82,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route, setIsAuth 
   const [error, setError] = useState("");
   const message = route.params?.message;
   const messages: Record<string, string> = {
-    REGISTER_SUCCESS: "Registrado Correctamente. Comprueba tu email para validar tu cuenta.",
+    REGISTER_SUCCESS: "Registrado Correctamente. Inicia sesión para validar tu cuenta.",
     SESSION_EXPIRED: "Tu sesión ha expirado.",
   };
 
@@ -111,7 +111,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route, setIsAuth 
         return;
       }
       if (data.message === "UsuarioNoValidado") {
-        navigation.navigate("ValidateCode", { id_usuario: data.id_usuario, nombre_usuario: username });
+        navigation.navigate("ValidateCode", { id_usuario: data.id_usuario});
         return;
       }
 
