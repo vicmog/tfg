@@ -1,13 +1,8 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { NavigationScreenList } from "..";
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type NegociosScreenProps = NativeStackScreenProps<
@@ -20,34 +15,37 @@ const Negocios: React.FC<NegociosScreenProps> = ({ navigation }) => {
     { id: 1, nombre: "Tienda A" },
     { id: 2, nombre: "Cafetería B" },
   ];
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
-          style={styles.headerButtonLeft}
+          style={styles.editButton}
           onPress={() => navigation.navigate("EditarDatos")}
           testID="edit-profile-button"
         >
-          <Text style={styles.headerButtonText}>Editar datos personales</Text>
+          <MaterialIcons name="person" size={18} color="#1976D2" style={{ marginRight: 8 }} />
+          <Text style={styles.editButtonText}>Editar datos personales</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.headerButtonRight}
+          style={styles.addButton}
           onPress={() => navigation.navigate("EditarDatos")}
           testID="add-business-button"
         >
-          <Text style={styles.headerButtonText}>Añadir negocio</Text>
+          <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 8 }} />
+          <Text style={styles.addButtonText}>Añadir negocio</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.negociosContainer}>
         {negocios.map((negocio) => (
-          <View
-            key={negocio.id}
-            style={styles.negocioCard}
-            testID={`business-${negocio.id}`}
-          >
-            <Text style={styles.negocioText}>{negocio.nombre}</Text>
+          <View key={negocio.id} style={styles.negocioCard} testID={`business-${negocio.id}`}>
+            <MaterialIcons name="store" size={36} color="#1976D2" style={{ marginRight: 12 }} />
+            <View style={styles.businessMeta}>
+              <Text style={styles.negocioText}>{negocio.nombre}</Text>
+              <Text style={styles.negocioSubtitle}>Jefe</Text>
+            </View>
           </View>
         ))}
       </ScrollView>
@@ -60,7 +58,7 @@ export default Negocios;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#f7fafc",
     paddingTop: 40,
   },
   header: {
@@ -70,23 +68,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginBottom: 20,
   },
-  headerButtonLeft: {
-    backgroundColor: "#1976D2",
-    paddingVertical: 15,
-    paddingHorizontal: 15,
-    borderRadius: 50,
-    marginRight: 5,
+  editButton: {
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "#1976D2",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
   },
-  headerButtonRight: {
-    backgroundColor: "#4CAF50",
-    paddingVertical: 15,
-    paddingHorizontal: 15,
-    borderRadius: 50,
-  },
-  headerButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
+  editButtonText: {
+    width: "100%",
+    color: "#1976D2",
+    fontWeight: "600",
     fontSize: 14,
+  },
+  addButton: {
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1976D2",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    minHeight: 44,
+    justifyContent: "center",
+  },
+  addButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 15,
   },
   negociosContainer: {
     flexDirection: "row",
@@ -97,16 +110,40 @@ const styles = StyleSheet.create({
   negocioCard: {
     width: "48%",
     height: 100,
-    backgroundColor: "#E3F2FD",
-    borderRadius: 5,
-    marginBottom: 20,
-    justifyContent: "center",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    flexDirection: "row",
     alignItems: "center",
-    boxShadow: "1px 3px 1px #9E9E9E",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  businessImagePlaceholder: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+    backgroundColor: "#f2f6fb",
+    marginRight: 12,
+  },
+  businessMeta: {
+    flex: 1,
+    justifyContent: "center",
   },
   negocioText: {
-    fontWeight: "bold",
+    fontWeight: "700",
     fontSize: 16,
     color: "#0D47A1",
+  },
+  negocioSubtitle: {
+    fontSize: 13,
+    color: "#6b7280",
+    marginTop: 4,
+  },
+  actionsRow: {
+    marginLeft: 8,
   },
 });
