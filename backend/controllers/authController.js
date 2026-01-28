@@ -112,8 +112,6 @@ export const resetPassword = async (req, res) => {
     try {
         const user = await Usuario.findOne({ where: { nombre_usuario } });
         if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
-
-        // Generar contraseña aleatoria sencilla
         const generateRandomPassword = (len = 10) => {
             const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
             let pw = "";

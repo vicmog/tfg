@@ -174,5 +174,52 @@ exports[`LoginScreen coincide con el snapshot 1`] = `
       ¿No tienes cuenta? Regístrate
     </Text>
   </View>
+  <View
+    accessibilityState={
+      {
+        "busy": undefined,
+        "checked": undefined,
+        "disabled": undefined,
+        "expanded": undefined,
+        "selected": undefined,
+      }
+    }
+    accessibilityValue={
+      {
+        "max": undefined,
+        "min": undefined,
+        "now": undefined,
+        "text": undefined,
+      }
+    }
+    accessible={true}
+    collapsable={false}
+    focusable={true}
+    onClick={[Function]}
+    onResponderGrant={[Function]}
+    onResponderMove={[Function]}
+    onResponderRelease={[Function]}
+    onResponderTerminate={[Function]}
+    onResponderTerminationRequest={[Function]}
+    onStartShouldSetResponder={[Function]}
+    style={
+      {
+        "opacity": 1,
+      }
+    }
+  >
+    <Text
+      style={
+        {
+          "color": "#1976D2",
+          "fontSize": 16,
+          "marginTop": 10,
+          "textAlign": "center",
+        }
+      }
+    >
+      ¿Olvidaste tu contraseña?
+    </Text>
+  </View>
 </View>
 `;

@@ -22,7 +22,7 @@ describe("RegisterScreen", () => {
 
   it("renderiza correctamente todos los elementos", () => {
     const { getByPlaceholderText, getByText } = render(
-      <RegisterScreen navigation={navigation} route={mockRoute}/>
+      <RegisterScreen navigation={navigation} route={mockRoute} />
     );
 
     expect(getByText("Registrate Gratis!")).toBeTruthy();
@@ -39,7 +39,7 @@ describe("RegisterScreen", () => {
 
   it("muestra error si los campos están vacíos al presionar Crear Cuenta", () => {
     const { getByText } = render(
-      <RegisterScreen navigation={navigation} route={mockRoute}/>
+      <RegisterScreen navigation={navigation} route={mockRoute} />
     );
 
     fireEvent.press(getByText("Crear Cuenta"));
@@ -65,7 +65,7 @@ describe("RegisterScreen", () => {
     });
 
     const { getByText, getByPlaceholderText } = render(
-      <RegisterScreen navigation={navigation} route={mockRoute}/>
+      <RegisterScreen navigation={navigation} route={mockRoute} />
     );
 
     fireEvent.changeText(getByPlaceholderText("Usuario"), "usuario1");
@@ -91,7 +91,7 @@ describe("RegisterScreen", () => {
     });
 
     const { getByText, getByPlaceholderText } = render(
-      <RegisterScreen navigation={navigation} route={mockRoute}/>
+      <RegisterScreen navigation={navigation} route={mockRoute} />
     );
 
     fireEvent.changeText(getByPlaceholderText("Usuario"), "usuario1");
@@ -110,14 +110,14 @@ describe("RegisterScreen", () => {
   });
 
   it("navega a Login al presionar el link", () => {
-    const { getByText } = render(<RegisterScreen navigation={navigation} route={mockRoute}/>);
+    const { getByText } = render(<RegisterScreen navigation={navigation} route={mockRoute} />);
     const loginLink = getByText("¿Ya tienes cuenta? Inicia sesión");
     fireEvent.press(loginLink);
     expect(mockNavigate).toHaveBeenCalledWith("Login", {});
   });
 
   it("coincide con el snapshot", () => {
-    const { toJSON } = render(<RegisterScreen navigation={navigation} route={mockRoute}/>);
+    const { toJSON } = render(<RegisterScreen navigation={navigation} route={mockRoute} />);
     expect(toJSON()).toMatchSnapshot();
   });
 });

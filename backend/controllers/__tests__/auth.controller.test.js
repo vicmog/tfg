@@ -1,13 +1,14 @@
-import { register, login, validateCode } from "../authController.js";
+import { register, login, validateCode,resetPassword  } from "../authController.js";
 import { Usuario } from "../../models/Usuario.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { sendValidationEmail } from "../../utils/mailer.js";
 
+
 jest.mock("../../models/Usuario.js");
 jest.mock("bcrypt");
 jest.mock("jsonwebtoken");
-jest.mock("../../utils/mailer.js", () => ({ sendValidationEmail: jest.fn().mockResolvedValue({}) }));
+jest.mock("../../utils/mailer.js", () => ({ sendValidationEmail: jest.fn().mockResolvedValue({}), sendNewPasswordEmail: jest.fn().mockResolvedValue({}) }));
 
 describe("AuthController Unit Tests", () => {
   beforeEach(() => {
@@ -251,6 +252,37 @@ describe("AuthController Unit Tests", () => {
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(jsonMock).toHaveBeenCalledWith({ message: "Faltan campos obligatorios" });
+    });
+  });
+
+  describe("resetPassword", () => {
+    it("debería devolver 404 si el usuario no existe", async () => {
+      (Usuario.findOne).mockResolvedValue(null);
+
+      const req = { body: { nombre_usuario: 'noexiste' } };
+      const jsonMock = jest.fn();
+      const res = { status: jest.fn(() => ({ json: jsonMock })) };
+
+      await resetPassword(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(jsonMock).toHaveBeenCalledWith({ message: 'Usuario no encontrado' });
+    });
+
+    it("debería generar nueva contraseña, guardarla y enviar email", async () => {
+      const mockUser = { id_usuario: 10, nombre_usuario: 'u10', email: 'u10@test.com', save: jest.fn().mockResolvedValue(true) };
+      (Usuario.findOne).mockResolvedValue(mockUser);
+
+      const req = { body: { nombre_usuario: 'u10' } };
+      const jsonMock = jest.fn();
+      const res = { status: jest.fn(() => ({ json: jsonMock })) };
+
+      await resetPassword(req, res);
+
+      expect(Usuario.findOne).toHaveBeenCalledWith({ where: { nombre_usuario: 'u10' } });
+      expect(mockUser.save).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith({ message: "Nueva contraseña generada y enviada al email asociado" });
     });
   });
 });
