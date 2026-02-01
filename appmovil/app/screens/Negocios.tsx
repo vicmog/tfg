@@ -30,7 +30,7 @@ const Negocios: React.FC<NegociosScreenProps> = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => navigation.navigate("EditarDatos")}
+          onPress={() => navigation.navigate("CrearNegocio")}
           testID="add-business-button"
         >
           <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 8 }} />

@@ -1,0 +1,256 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CrearNegocio coincide con el snapshot 1`] = `
+<View
+  onLayout={[Function]}
+  style={
+    [
+      {
+        "backgroundColor": "#f7fafc",
+        "flex": 1,
+      },
+      {
+        "paddingBottom": 0,
+      },
+    ]
+  }
+>
+  <RCTScrollView
+    contentContainerStyle={
+      {
+        "flexGrow": 1,
+        "paddingHorizontal": 20,
+        "paddingTop": 50,
+      }
+    }
+  >
+    <View>
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "marginBottom": 30,
+          }
+        }
+      >
+        <View
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": undefined,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          collapsable={false}
+          focusable={true}
+          onClick={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            {
+              "marginRight": 10,
+              "opacity": 1,
+              "padding": 8,
+            }
+          }
+          testID="back-button"
+        >
+          <MaterialIcons
+            color="#1976D2"
+            name="arrow-back"
+            size={24}
+          />
+        </View>
+        <Text
+          style={
+            {
+              "color": "#0D47A1",
+              "fontSize": 24,
+              "fontWeight": "bold",
+            }
+          }
+        >
+          Crear Nuevo Negocio
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "backgroundColor": "#fff",
+            "borderRadius": 12,
+            "elevation": 3,
+            "padding": 20,
+            "shadowColor": "#000",
+            "shadowOffset": {
+              "height": 2,
+              "width": 0,
+            },
+            "shadowOpacity": 0.08,
+            "shadowRadius": 8,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "marginBottom": 20,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#374151",
+                "fontSize": 14,
+                "fontWeight": "600",
+                "marginBottom": 8,
+              }
+            }
+          >
+            Nombre del negocio *
+          </Text>
+          <TextInput
+            autoCapitalize="words"
+            onChangeText={[Function]}
+            placeholder="Ej: Mi Cafetería"
+            style={
+              {
+                "backgroundColor": "#f9fafb",
+                "borderColor": "#d1d5db",
+                "borderRadius": 10,
+                "borderWidth": 1,
+                "color": "#111827",
+                "fontSize": 16,
+                "paddingHorizontal": 16,
+                "paddingVertical": 14,
+              }
+            }
+            testID="nombre-input"
+            value=""
+          />
+        </View>
+        <View
+          style={
+            {
+              "marginBottom": 20,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#374151",
+                "fontSize": 14,
+                "fontWeight": "600",
+                "marginBottom": 8,
+              }
+            }
+          >
+            CIF *
+          </Text>
+          <TextInput
+            autoCapitalize="characters"
+            maxLength={9}
+            onChangeText={[Function]}
+            placeholder="Ej: B12345678"
+            style={
+              {
+                "backgroundColor": "#f9fafb",
+                "borderColor": "#d1d5db",
+                "borderRadius": 10,
+                "borderWidth": 1,
+                "color": "#111827",
+                "fontSize": 16,
+                "paddingHorizontal": 16,
+                "paddingVertical": 14,
+              }
+            }
+            testID="cif-input"
+            value=""
+          />
+        </View>
+        <View
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": false,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          collapsable={false}
+          focusable={true}
+          onClick={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            {
+              "alignItems": "center",
+              "backgroundColor": "#1976D2",
+              "borderRadius": 10,
+              "flexDirection": "row",
+              "justifyContent": "center",
+              "marginTop": 10,
+              "opacity": 1,
+              "paddingVertical": 16,
+            }
+          }
+          testID="submit-button"
+        >
+          <MaterialIcons
+            color="#fff"
+            name="add-business"
+            size={20}
+            style={
+              {
+                "marginRight": 8,
+              }
+            }
+          />
+          <Text
+            style={
+              {
+                "color": "#fff",
+                "fontSize": 16,
+                "fontWeight": "bold",
+              }
+            }
+          >
+            Crear Negocio
+          </Text>
+        </View>
+      </View>
+    </View>
+  </RCTScrollView>
+</View>
+`;
