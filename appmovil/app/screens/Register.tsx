@@ -2,69 +2,22 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { NavigationScreenList } from "..";
 import React, { useState } from "react";
 import {
-  Alert,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 
 type RegisterScreenProps = NativeStackScreenProps<
   NavigationScreenList,
   "Register"
 >;
-const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    backgroundColor: "#ffffff",
-    justifyContent: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 40,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#0D47A1",
-    marginBottom: 30,
-    textAlign: "center",
-  },
-  error: {
-    fontSize: 15,
-    color: "#f50000",
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  input: {
-    borderWidth: 2,
-    borderColor: "#1976D2",
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    marginBottom: 20,
-    fontSize: 16,
-    color: "#0D47A1",
-  },
-  button: {
-    backgroundColor: "#1976D2",
-    paddingVertical: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  linkText: {
-    color: "#1976D2",
-    fontSize: 16,
-    textAlign: "center",
-    marginTop: 10,
-  },
-});
 
 const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [username, setUsername] = useState("");
@@ -75,8 +28,12 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleRegister = async () => {
+    setError("");
+    setSuccess("");
+
     if (
       !username ||
       !fullname ||
@@ -90,7 +47,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       return;
     }
 
-    if (password != confirmPassword) {
+    if (password !== confirmPassword) {
       setError("Las contraseñas no coinciden");
       return;
     }
@@ -122,8 +79,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         return;
       }
 
-      setError("Usuario registrado correctamente");
-      navigation.navigate("Login", {message:"REGISTER_SUCCESS"});
+      setSuccess("Usuario registrado correctamente");
+      setTimeout(() => {
+        navigation.navigate("Login", { message: "REGISTER_SUCCESS" });
+      }, 1500);
     } catch (error) {
       setError("No se pudo conectar con el servidor");
       console.error(error);
@@ -131,80 +90,242 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <StatusBar barStyle="dark-content" backgroundColor="#f7fafc" />
 
-      <Text style={styles.title}>Registrate Gratis!</Text>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Crear Cuenta</Text>
+        </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Usuario"
-        placeholderTextColor="#1976D2"
-        value={username}
-        onChangeText={setUsername}
-      />
+        <View style={styles.formContainer}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Usuario</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Elige un nombre de usuario"
+              placeholderTextColor="#9ca3af"
+              value={username}
+              onChangeText={setUsername}
+            />
+          </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Nombre completo"
-        placeholderTextColor="#1976D2"
-        value={fullname}
-        onChangeText={setFullName}
-      />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Nombre completo</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Tu nombre y apellidos"
+              placeholderTextColor="#9ca3af"
+              value={fullname}
+              onChangeText={setFullName}
+            />
+          </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="DNI/NIE"
-        placeholderTextColor="#1976D2"
-        value={dni}
-        onChangeText={setDni}
-      />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>DNI/NIE</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ej: 12345678A"
+              placeholderTextColor="#9ca3af"
+              value={dni}
+              onChangeText={setDni}
+            />
+          </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="#1976D2"
-        keyboardType="email-address"
-        autoCapitalize="none"
-        value={email}
-        onChangeText={setEmail}
-      />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="tu@email.com"
+              placeholderTextColor="#9ca3af"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+            />
+          </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Numero de Teléfono"
-        placeholderTextColor="#1976D2"
-        value={phone}
-        onChangeText={setPhone}
-      />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Número de teléfono</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ej: 600123456"
+              placeholderTextColor="#9ca3af"
+              keyboardType="phone-pad"
+              value={phone}
+              onChangeText={setPhone}
+            />
+          </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Contraseña"
-        placeholderTextColor="#1976D2"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Contraseña</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Mínimo 6 caracteres"
+              placeholderTextColor="#9ca3af"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
+          </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Confirmar contraseña"
-        placeholderTextColor="#1976D2"
-        secureTextEntry
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-      />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Confirmar contraseña</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Repite la contraseña"
+              placeholderTextColor="#9ca3af"
+              secureTextEntry
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+            />
+          </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleRegister}>
-        <Text style={styles.buttonText}>Crear Cuenta</Text>
-      </TouchableOpacity>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <TouchableOpacity onPress={() => navigation.navigate("Login", {})}>
-        <Text style={styles.linkText}>¿Ya tienes cuenta? Inicia sesión</Text>
-      </TouchableOpacity>
-    </ScrollView>
+          {error ? (
+            <View style={styles.errorContainer}>
+              <MaterialIcons name="error-outline" size={20} color="#dc2626" />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
+
+          {success ? (
+            <View style={styles.successContainer}>
+              <MaterialIcons name="check-circle" size={20} color="#16a34a" />
+              <Text style={styles.successText}>{success}</Text>
+            </View>
+          ) : null}
+
+          <TouchableOpacity style={styles.button} onPress={handleRegister}>
+            <MaterialIcons name="person-add" size={20} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={styles.buttonText}>Crear Cuenta</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={() => navigation.navigate("Login", {})}
+          >
+            <Text style={styles.linkText}>¿Ya tienes cuenta? Inicia sesión</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 export default RegisterScreen;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f7fafc",
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingTop: 50,
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 30,
+  },
+  backButton: {
+    padding: 8,
+    marginRight: 10,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#0D47A1",
+  },
+  formContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: "#f9fafb",
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: "#111827",
+  },
+  errorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fef2f2",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: "#dc2626",
+    marginLeft: 8,
+    fontSize: 14,
+    flex: 1,
+  },
+  successContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f0fdf4",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  successText: {
+    color: "#16a34a",
+    marginLeft: 8,
+    fontSize: 14,
+    flex: 1,
+  },
+  button: {
+    backgroundColor: "#1976D2",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 10,
+    marginTop: 10,
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  linkButton: {
+    marginTop: 16,
+    alignItems: "center",
+  },
+  linkText: {
+    color: "#1976D2",
+    fontSize: 15,
+    fontWeight: "500",
+  },
+});

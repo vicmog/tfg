@@ -8,9 +8,11 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { MaterialIcons } from "@expo/vector-icons";
 
 type PersonalDataEditProps = NativeStackScreenProps<
   NavigationScreenList,
@@ -18,56 +20,6 @@ type PersonalDataEditProps = NativeStackScreenProps<
 > & {
   setIsAuth: (value: boolean) => void;
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    justifyContent: "space-between",
-    backgroundColor: "#fff",
-  },
-  backButton: {
-    marginBottom: 10,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-  },
-  backText: { fontSize: 19, color: "#1976D2", fontWeight: "bold" },
-  form: { flex: 1 },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#0D47A1",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  input: {
-    borderWidth: 2,
-    borderColor: "#1976D2",
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 16,
-    marginBottom: 15,
-    color: "#0D47A1",
-  },
-  saveButton: {
-    backgroundColor: "#1976D2",
-    paddingVertical: 15,
-    borderRadius: 10,
-    marginTop: 10,
-    alignItems: "center",
-  },
-  saveText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
-  logoutButton: {
-    backgroundColor: "#f44336",
-    paddingVertical: 15,
-    borderRadius: 10,
-    alignItems: "center",
-    marginTop: 20,
-  },
-  logoutText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
-  success: { textAlign: "center", color: "#4CAF50", marginBottom: 10 },
-});
 
 const PersonalDataEdit: React.FC<PersonalDataEditProps> = ({ navigation, route, setIsAuth }) => {
   const [username, setUsername] = useState("");
@@ -78,6 +30,7 @@ const PersonalDataEdit: React.FC<PersonalDataEditProps> = ({ navigation, route, 
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [isError, setIsError] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -116,6 +69,7 @@ const PersonalDataEdit: React.FC<PersonalDataEditProps> = ({ navigation, route, 
 
   const handleSave = async () => {
     setLoading(true);
+    setMessage("");
 
     try {
       const jwt = await AsyncStorage.getItem("token");
@@ -140,94 +94,144 @@ const PersonalDataEdit: React.FC<PersonalDataEditProps> = ({ navigation, route, 
 
       if (!response.ok) {
         setMessage(data.message);
+        setIsError(true);
       } else {
         setMessage("Datos guardados correctamente");
+        setIsError(false);
         setOldPassword("");
         setNewPassword("");
       }
     } catch (error) {
       console.error(error);
-      setMessage("Error No se pudo actualizar el usuario");
+      setMessage("Error: No se pudo actualizar el usuario");
+      setIsError(true);
     } finally {
       setLoading(false);
     }
   };
+
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-      <View style={styles.container}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.navigate("Negocios")}
-          testID="back-button"
-        >
-          <Text style={styles.backText}>← Volver</Text>
-        </TouchableOpacity>
-        <View style={styles.form}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            testID="back-button"
+          >
+            <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
+          </TouchableOpacity>
           <Text style={styles.title}>Editar datos personales</Text>
+        </View>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Usuario"
-            value={username}
-            onChangeText={setUsername}
-            testID="input-username"
-            editable={false}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Nombre completo"
-            value={fullname}
-            onChangeText={setFullname}
-            testID="input-fullname"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="DNI/NIE"
-            value={dni}
-            onChangeText={setDni}
-            testID="input-dni"
-            editable={false}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            testID="input-email"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Número de teléfono"
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-            testID="input-phone"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Antigua contraseña"
-            value={oldPassword}
-            onChangeText={setOldPassword}
-            secureTextEntry
-            testID="old-password"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Nueva contraseña"
-            value={newPassword}
-            onChangeText={setNewPassword}
-            secureTextEntry
-            testID="new-password"
-          />
+        <View style={styles.formContainer}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Usuario</Text>
+            <TextInput
+              style={[styles.input, styles.inputDisabled]}
+              placeholder="Usuario"
+              value={username}
+              onChangeText={setUsername}
+              testID="input-username"
+              editable={false}
+            />
+          </View>
 
-          {message ? <Text style={styles.success}>{message}</Text> : null}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Nombre completo</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Nombre completo"
+              value={fullname}
+              onChangeText={setFullname}
+              testID="input-fullname"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>DNI/NIE</Text>
+            <TextInput
+              style={[styles.input, styles.inputDisabled]}
+              placeholder="DNI/NIE"
+              value={dni}
+              onChangeText={setDni}
+              testID="input-dni"
+              editable={false}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              testID="input-email"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Número de teléfono</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Número de teléfono"
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+              testID="input-phone"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Antigua contraseña</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Antigua contraseña"
+              value={oldPassword}
+              onChangeText={setOldPassword}
+              secureTextEntry
+              testID="old-password"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Nueva contraseña</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Nueva contraseña"
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureTextEntry
+              testID="new-password"
+            />
+          </View>
+
+          {message && !isError ? (
+            <View style={styles.successContainer}>
+              <MaterialIcons name="check-circle" size={20} color="#16a34a" />
+              <Text style={styles.successText}>{message}</Text>
+            </View>
+          ) : null}
+
+          {message && isError ? (
+            <View style={styles.errorContainer}>
+              <MaterialIcons name="error-outline" size={20} color="#dc2626" />
+              <Text style={styles.errorText}>{message}</Text>
+            </View>
+          ) : null}
 
           <TouchableOpacity
-            style={styles.saveButton}
+            style={[styles.saveButton, loading && styles.saveButtonDisabled]}
             onPress={handleSave}
+            disabled={loading}
             testID="save-button"
           >
+            <MaterialIcons name="save" size={20} color="#fff" style={{ marginRight: 8 }} />
             <Text style={styles.saveText}>
               {loading ? "Guardando..." : "Guardar cambios"}
             </Text>
@@ -238,12 +242,132 @@ const PersonalDataEdit: React.FC<PersonalDataEditProps> = ({ navigation, route, 
             onPress={handleLogout}
             testID="logout-button"
           >
+            <MaterialIcons name="logout" size={20} color="#fff" style={{ marginRight: 8 }} />
             <Text style={styles.logoutText}>Cerrar sesión</Text>
           </TouchableOpacity>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 export default PersonalDataEdit;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f7fafc",
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingTop: 50,
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 30,
+  },
+  backButton: {
+    padding: 8,
+    marginRight: 10,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#0D47A1",
+  },
+  formContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: "#f9fafb",
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: "#111827",
+  },
+  inputDisabled: {
+    backgroundColor: "#e5e7eb",
+    color: "#6b7280",
+  },
+  errorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fef2f2",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: "#dc2626",
+    marginLeft: 8,
+    fontSize: 14,
+    flex: 1,
+  },
+  successContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f0fdf4",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  successText: {
+    color: "#16a34a",
+    marginLeft: 8,
+    fontSize: 14,
+    flex: 1,
+  },
+  saveButton: {
+    backgroundColor: "#1976D2",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 10,
+    marginTop: 10,
+  },
+  saveButtonDisabled: {
+    backgroundColor: "#93c5fd",
+  },
+  saveText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  logoutButton: {
+    backgroundColor: "#dc2626",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 10,
+    marginTop: 12,
+  },
+  logoutText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+});
