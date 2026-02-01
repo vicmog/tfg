@@ -1,20 +1,45 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { NavigationScreenList } from "..";
-import React from "react";
+import React, { useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 
 type NegociosScreenProps = NativeStackScreenProps<
   NavigationScreenList,
   "Negocios"
 >;
 
+type Negocio = {
+  id_negocio: number;
+  nombre: string;
+  CIF: string;
+  plantilla: number;
+  rol: string;
+}
+
 const Negocios: React.FC<NegociosScreenProps> = ({ navigation }) => {
-  const negocios = [
-    { id: 1, nombre: "Tienda A" },
-    { id: 2, nombre: "Cafetería B" },
-  ];
+
+  const [negocios, setNegocios] = React.useState<Negocio[]>([]);
+  
+  useFocusEffect(
+    useCallback(() => {
+      const fetchBusinesses = async () => {
+        const token = await AsyncStorage.getItem("token");
+        const response = await fetch("http://localhost:3000/v1/api/negocios", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setNegocios(data.negocios);
+        }
+      };
+      fetchBusinesses();
+    }, [])
+  );
 
   return (
     <View style={styles.container}>
@@ -37,18 +62,23 @@ const Negocios: React.FC<NegociosScreenProps> = ({ navigation }) => {
           <Text style={styles.addButtonText}>Añadir negocio</Text>
         </TouchableOpacity>
       </View>
-
-      <ScrollView contentContainerStyle={styles.negociosContainer}>
-        {negocios.map((negocio) => (
-          <View key={negocio.id} style={styles.negocioCard} testID={`business-${negocio.id}`}>
-            <MaterialIcons name="store" size={36} color="#1976D2" style={{ marginRight: 12 }} />
-            <View style={styles.businessMeta}>
-              <Text style={styles.negocioText}>{negocio.nombre}</Text>
-              <Text style={styles.negocioSubtitle}>Jefe</Text>
+      {negocios.length > 0 ?
+        <ScrollView contentContainerStyle={styles.negociosContainer}>
+          {negocios.map((negocio) => (
+            <View key={negocio.id_negocio} style={styles.negocioCard} testID={`business-${negocio.id_negocio}`}>
+              <MaterialIcons name="store" size={36} color="#1976D2" style={{ marginRight: 12 }} />
+              <View style={styles.businessMeta}>
+                <Text style={styles.negocioText}>{negocio.nombre}</Text>
+                <Text style={styles.negocioSubtitle}>{negocio.rol}</Text>
+              </View>
             </View>
-          </View>
-        ))}
-      </ScrollView>
+          ))}
+        </ScrollView>
+        :
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <Text style={{ fontSize: 16, color: "#6b7280" }}>No tienes negocios asignados</Text>
+        </View>
+      }
     </View>
   );
 };

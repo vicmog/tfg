@@ -87,7 +87,7 @@ export const getNegocios = async (req, res) => {
                 nombre: negocio.nombre,
                 CIF: negocio.CIF,
                 plantilla: negocio.plantilla,
-                rol: usuarioNegocio?.rol || "empleado"
+                rol: usuarioNegocio?.rol || "trabajador"
             };
         });
 
