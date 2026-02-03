@@ -179,3 +179,41 @@ export const deleteNegocio = async (req, res) => {
         return res.status(500).json({ message: "Error en el servidor" });
     }
 };
+
+export const getNegocioById = async (req, res) => {
+    const { id } = req.params;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: "Usuario no autenticado" });
+    }
+
+    try {
+        const usuarioNegocio = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio: id }
+        });
+
+        if (!usuarioNegocio) {
+            return res.status(403).json({ message: "No tienes acceso a este negocio" });
+        }
+
+        const negocio = await Negocio.findByPk(id);
+        if (!negocio) {
+            return res.status(404).json({ message: "Negocio no encontrado" });
+        }
+
+        return res.status(200).json({
+            negocio: {
+                id_negocio: negocio.id_negocio,
+                nombre: negocio.nombre,
+                CIF: negocio.CIF,
+                plantilla: negocio.plantilla,
+                rol: usuarioNegocio.rol
+            }
+        });
+
+    } catch (error) {
+        console.error("Error al obtener negocio:", error);
+        return res.status(500).json({ message: "Error en el servidor" });
+    }
+};

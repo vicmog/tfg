@@ -1,9 +1,11 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { NavigationScreenList } from "..";
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import React, { useState, useCallback } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
 import { MaterialIcons } from '@expo/vector-icons';
-import { Modulo } from "./types";
+import { Modulo, Negocio } from "./types";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 
 type NegocioDetailProps = NativeStackScreenProps<
     NavigationScreenList,
@@ -23,11 +25,49 @@ const modulos: Modulo[] = [
 ];
 
 const NegocioDetail: React.FC<NegocioDetailProps> = ({ route, navigation }) => {
-    const { negocio } = route.params;
+    const { negocio: negocioInicial } = route.params;
+    const [negocio, setNegocio] = useState<Negocio>(negocioInicial);
+    const [loading, setLoading] = useState(false);
+
+    useFocusEffect(
+        useCallback(() => {
+            const fetchNegocio = async () => {
+                setLoading(true);
+                try {
+                    const token = await AsyncStorage.getItem("token");
+                    const response = await fetch(
+                        `http://localhost:3000/v1/api/negocios/${negocioInicial.id_negocio}`,
+                        {
+                            headers: {
+                                Authorization: `Bearer ${token}`,
+                            },
+                        }
+                    );
+                    if (response.ok) {
+                        const data = await response.json();
+                        setNegocio(data.negocio);
+                    }
+                } catch (error) {
+                    console.error("Error al obtener negocio:", error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+            fetchNegocio();
+        }, [negocioInicial.id_negocio])
+    );
 
     const handleModuloPress = (modulo: Modulo) => {
         console.log(`Navegando a ${modulo.nombre}`);
     };
+
+    if (loading) {
+        return (
+            <View style={[styles.container, styles.loadingContainer]}>
+                <ActivityIndicator size="large" color="#1976D2" />
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -114,6 +154,10 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#f7fafc",
         paddingTop: 10,
+    },
+    loadingContainer: {
+        justifyContent: "center",
+        alignItems: "center",
     },
     editModulesButton: {
         padding: 8,
