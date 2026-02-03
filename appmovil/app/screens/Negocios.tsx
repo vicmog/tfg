@@ -5,19 +5,12 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-nati
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
+import { Negocio } from "./types";
 
 type NegociosScreenProps = NativeStackScreenProps<
   NavigationScreenList,
   "Negocios"
 >;
-
-type Negocio = {
-  id_negocio: number;
-  nombre: string;
-  CIF: string;
-  plantilla: number;
-  rol: string;
-}
 
 const Negocios: React.FC<NegociosScreenProps> = ({ navigation }) => {
 
@@ -65,13 +58,18 @@ const Negocios: React.FC<NegociosScreenProps> = ({ navigation }) => {
       {negocios.length > 0 ?
         <ScrollView contentContainerStyle={styles.negociosContainer}>
           {negocios.map((negocio) => (
-            <View key={negocio.id_negocio} style={styles.negocioCard} testID={`business-${negocio.id_negocio}`}>
+            <TouchableOpacity 
+              key={negocio.id_negocio} 
+              style={styles.negocioCard} 
+              testID={`business-${negocio.id_negocio}`}
+              onPress={() => navigation.navigate("NegocioDetail", { negocio })}
+            >
               <MaterialIcons name="store" size={36} color="#1976D2" style={{ marginRight: 12 }} />
               <View style={styles.businessMeta}>
                 <Text style={styles.negocioText}>{negocio.nombre}</Text>
                 <Text style={styles.negocioSubtitle}>{negocio.rol}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </ScrollView>
         :

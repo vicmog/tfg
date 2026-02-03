@@ -8,6 +8,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import PersonalDataEdit from "./screens/PersonalDataEdit";
 import ValidateCode from "./screens/ValidateCode";
 import CrearNegocio from "./screens/CrearNegocio";
+import NegocioDetail from "./screens/NegocioDetail";
+import NegocioSettings from "./screens/NegocioSettings";
+import { Negocio } from "./screens/types";
+
+
 
 export type NavigationScreenList = {
   Home: undefined;
@@ -18,6 +23,8 @@ export type NavigationScreenList = {
   Negocios: undefined;
   EditarDatos: undefined;
   CrearNegocio: undefined;
+  NegocioDetail: { negocio: Negocio };
+  NegocioSettings: { negocio: Negocio };
 };
 
 const Stack = createNativeStackNavigator<NavigationScreenList>();
@@ -45,6 +52,8 @@ const App: React.FC = () => {
           <Stack.Screen name="Negocios" component={Negocios} />
           <Stack.Screen name="EditarDatos" children={(props) => <PersonalDataEdit {...props} setIsAuth={setIsAuth} />}/>
           <Stack.Screen name="CrearNegocio" component={CrearNegocio} />
+          <Stack.Screen name="NegocioDetail" component={NegocioDetail} />
+          <Stack.Screen name="NegocioSettings" component={NegocioSettings} />
         </>
       ) : (
         <>

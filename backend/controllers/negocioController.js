@@ -98,3 +98,84 @@ export const getNegocios = async (req, res) => {
         return res.status(500).json({ message: "Error en el servidor" });
     }
 };
+
+export const updateNegocio = async (req, res) => {
+    const { id } = req.params;
+    const { nombre } = req.body;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: "Usuario no autenticado" });
+    }
+
+    if (!nombre || !nombre.trim()) {
+        return res.status(400).json({ message: "El nombre del negocio es obligatorio" });
+    }
+
+    try {
+        const usuarioNegocio = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio: id }
+        });
+
+        if (!usuarioNegocio || (usuarioNegocio.rol !== "jefe" && usuarioNegocio.rol !== "admin")) {
+            return res.status(403).json({ message: "No tienes permisos para editar este negocio" });
+        }
+
+        const negocio = await Negocio.findByPk(id);
+        if (!negocio) {
+            return res.status(404).json({ message: "Negocio no encontrado" });
+        }
+
+        await negocio.update({ nombre: nombre.trim() });
+
+        return res.status(200).json({
+            message: "Negocio actualizado correctamente",
+            negocio: {
+                id_negocio: negocio.id_negocio,
+                nombre: negocio.nombre,
+                CIF: negocio.CIF,
+                plantilla: negocio.plantilla
+            }
+        });
+
+    } catch (error) {
+        console.error("Error al actualizar negocio:", error);
+        return res.status(500).json({ message: "Error en el servidor" });
+    }
+};
+
+export const deleteNegocio = async (req, res) => {
+    const { id } = req.params;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: "Usuario no autenticado" });
+    }
+
+    try {
+        const usuarioNegocio = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio: id }
+        });
+
+        if (!usuarioNegocio || (usuarioNegocio.rol !== "jefe" && usuarioNegocio.rol !== "admin")) {
+            return res.status(403).json({ message: "No tienes permisos para eliminar este negocio" });
+        }
+
+        const negocio = await Negocio.findByPk(id);
+        if (!negocio) {
+            return res.status(404).json({ message: "Negocio no encontrado" });
+        }
+
+        await UsuarioNegocio.destroy({
+            where: { id_negocio: id }
+        });
+
+        await negocio.destroy();
+
+        return res.status(200).json({ message: "Negocio eliminado correctamente" });
+
+    } catch (error) {
+        console.error("Error al eliminar negocio:", error);
+        return res.status(500).json({ message: "Error en el servidor" });
+    }
+};
