@@ -1,4 +1,4 @@
-import { createNegocio, getNegocios } from "../negocioController.js";
+import { createNegocio, getNegocios, getNegocioById, updateNegocio, deleteNegocio } from "../negocioController.js";
 import { Negocio } from "../../models/Negocio.js";
 import { UsuarioNegocio } from "../../models/UsuarioNegocio.js";
 
@@ -51,17 +51,16 @@ describe("NegocioController Unit Tests", () => {
         CIF: "B12345678",
         plantilla: 0,
       });
-      // Debe crear relación para el usuario creador y para el admin (id=1)
       expect(UsuarioNegocio.create).toHaveBeenCalledTimes(2);
       expect(UsuarioNegocio.create).toHaveBeenCalledWith({
         id_usuario: 2,
         id_negocio: 1,
-        rol: "Jefe",
+        rol: "jefe",
       });
       expect(UsuarioNegocio.create).toHaveBeenCalledWith({
         id_usuario: 1,
         id_negocio: 1,
-        rol: "Admin",
+        rol: "admin",
       });
     });
 
@@ -91,12 +90,11 @@ describe("NegocioController Unit Tests", () => {
       await createNegocio(req, res);
 
       expect(res.status).toHaveBeenCalledWith(201);
-      // Solo debe crear una relación (no duplicar admin)
       expect(UsuarioNegocio.create).toHaveBeenCalledTimes(1);
       expect(UsuarioNegocio.create).toHaveBeenCalledWith({
         id_usuario: 1,
         id_negocio: 1,
-        rol: "Jefe",
+        rol: "jefe",
       });
     });
 
@@ -205,8 +203,8 @@ describe("NegocioController Unit Tests", () => {
   describe("getNegocios", () => {
     it("debería obtener los negocios del usuario", async () => {
       (UsuarioNegocio.findAll).mockResolvedValue([
-        { id_usuario: 1, id_negocio: 1, rol: "Jefe" },
-        { id_usuario: 1, id_negocio: 2, rol: "Empleado" },
+        { id_usuario: 1, id_negocio: 1, rol: "jefe" },
+        { id_usuario: 1, id_negocio: 2, rol: "trabajador" },
       ]);
       (Negocio.findAll).mockResolvedValue([
         { id_negocio: 1, nombre: "Negocio 1", CIF: "A11111111", plantilla: 0 },
@@ -227,8 +225,8 @@ describe("NegocioController Unit Tests", () => {
       expect(res.status).toHaveBeenCalledWith(200);
       expect(jsonMock).toHaveBeenCalledWith({
         negocios: [
-          { id_negocio: 1, nombre: "Negocio 1", CIF: "A11111111", plantilla: 0, rol: "Jefe" },
-          { id_negocio: 2, nombre: "Negocio 2", CIF: "B22222222", plantilla: 0, rol: "Empleado" },
+          { id_negocio: 1, nombre: "Negocio 1", CIF: "A11111111", plantilla: 0, rol: "jefe" },
+          { id_negocio: 2, nombre: "Negocio 2", CIF: "B22222222", plantilla: 0, rol: "trabajador" },
         ],
       });
     });
@@ -283,6 +281,442 @@ describe("NegocioController Unit Tests", () => {
 
       const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
       await getNegocios(req, res);
+      consoleSpy.mockRestore();
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Error en el servidor",
+      });
+    });
+  });
+
+  describe("getNegocioById", () => {
+    it("debería obtener un negocio por ID correctamente", async () => {
+      (UsuarioNegocio.findOne).mockResolvedValue({ id_usuario: 1, id_negocio: 1, rol: "jefe" });
+      (Negocio.findByPk).mockResolvedValue({
+        id_negocio: 1,
+        nombre: "Mi Negocio",
+        CIF: "B12345678",
+        plantilla: 0,
+      });
+
+      const req = {
+        params: { id: "1" },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await getNegocioById(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith({
+        negocio: {
+          id_negocio: 1,
+          nombre: "Mi Negocio",
+          CIF: "B12345678",
+          plantilla: 0,
+          rol: "jefe",
+        },
+      });
+    });
+
+    it("debería fallar si el usuario no tiene acceso al negocio", async () => {
+      (UsuarioNegocio.findOne).mockResolvedValue(null);
+
+      const req = {
+        params: { id: "1" },
+        user: { id_usuario: 2 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await getNegocioById(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "No tienes acceso a este negocio",
+      });
+    });
+
+    it("debería fallar si el negocio no existe", async () => {
+      (UsuarioNegocio.findOne).mockResolvedValue({ id_usuario: 1, id_negocio: 1, rol: "jefe" });
+      (Negocio.findByPk).mockResolvedValue(null);
+
+      const req = {
+        params: { id: "999" },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await getNegocioById(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Negocio no encontrado",
+      });
+    });
+
+    it("debería fallar si el usuario no está autenticado", async () => {
+      const req = {
+        params: { id: "1" },
+        user: null,
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await getNegocioById(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Usuario no autenticado",
+      });
+    });
+
+    it("debería manejar errores del servidor", async () => {
+      (UsuarioNegocio.findOne).mockRejectedValue(new Error("DB error"));
+
+      const req = {
+        params: { id: "1" },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+      await getNegocioById(req, res);
+      consoleSpy.mockRestore();
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Error en el servidor",
+      });
+    });
+  });
+
+  describe("updateNegocio", () => {
+    it("debería actualizar el nombre del negocio correctamente", async () => {
+      (UsuarioNegocio.findOne).mockResolvedValue({ id_usuario: 1, id_negocio: 1, rol: "jefe" });
+      const mockNegocio = {
+        id_negocio: 1,
+        nombre: "Negocio Actualizado",
+        CIF: "B12345678",
+        plantilla: 0,
+        update: jest.fn().mockResolvedValue(true),
+      };
+      (Negocio.findByPk).mockResolvedValue(mockNegocio);
+
+      const req = {
+        params: { id: "1" },
+        body: { nombre: "Negocio Actualizado" },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await updateNegocio(req, res);
+
+      expect(mockNegocio.update).toHaveBeenCalledWith({ nombre: "Negocio Actualizado" });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Negocio actualizado correctamente",
+        negocio: {
+          id_negocio: 1,
+          nombre: "Negocio Actualizado",
+          CIF: "B12345678",
+          plantilla: 0,
+        },
+      });
+    });
+
+    it("debería permitir a admin actualizar el negocio", async () => {
+      (UsuarioNegocio.findOne).mockResolvedValue({ id_usuario: 1, id_negocio: 1, rol: "admin" });
+      const mockNegocio = {
+        id_negocio: 1,
+        nombre: "Negocio Admin",
+        CIF: "B12345678",
+        plantilla: 0,
+        update: jest.fn().mockResolvedValue(true),
+      };
+      (Negocio.findByPk).mockResolvedValue(mockNegocio);
+
+      const req = {
+        params: { id: "1" },
+        body: { nombre: "Negocio Admin" },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await updateNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it("debería fallar si el usuario no tiene permisos", async () => {
+      (UsuarioNegocio.findOne).mockResolvedValue({ id_usuario: 2, id_negocio: 1, rol: "trabajador" });
+
+      const req = {
+        params: { id: "1" },
+        body: { nombre: "Nuevo Nombre" },
+        user: { id_usuario: 2 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await updateNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "No tienes permisos para editar este negocio",
+      });
+    });
+
+    it("debería fallar si falta el nombre", async () => {
+      const req = {
+        params: { id: "1" },
+        body: {},
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await updateNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "El nombre del negocio es obligatorio",
+      });
+    });
+
+    it("debería fallar si el negocio no existe", async () => {
+      (UsuarioNegocio.findOne).mockResolvedValue({ id_usuario: 1, id_negocio: 1, rol: "jefe" });
+      (Negocio.findByPk).mockResolvedValue(null);
+
+      const req = {
+        params: { id: "999" },
+        body: { nombre: "Nuevo Nombre" },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await updateNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Negocio no encontrado",
+      });
+    });
+
+    it("debería fallar si el usuario no está autenticado", async () => {
+      const req = {
+        params: { id: "1" },
+        body: { nombre: "Nuevo Nombre" },
+        user: null,
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await updateNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Usuario no autenticado",
+      });
+    });
+
+    it("debería manejar errores del servidor", async () => {
+      (UsuarioNegocio.findOne).mockRejectedValue(new Error("DB error"));
+
+      const req = {
+        params: { id: "1" },
+        body: { nombre: "Nuevo Nombre" },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+      await updateNegocio(req, res);
+      consoleSpy.mockRestore();
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Error en el servidor",
+      });
+    });
+  });
+
+  describe("deleteNegocio", () => {
+    it("debería eliminar el negocio correctamente", async () => {
+      (UsuarioNegocio.findOne).mockResolvedValue({ id_usuario: 1, id_negocio: 1, rol: "jefe" });
+      (UsuarioNegocio.destroy).mockResolvedValue(1);
+      const mockNegocio = {
+        id_negocio: 1,
+        nombre: "Mi Negocio",
+        destroy: jest.fn().mockResolvedValue(true),
+      };
+      (Negocio.findByPk).mockResolvedValue(mockNegocio);
+
+      const req = {
+        params: { id: "1" },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await deleteNegocio(req, res);
+
+      expect(UsuarioNegocio.destroy).toHaveBeenCalledWith({ where: { id_negocio: "1" } });
+      expect(mockNegocio.destroy).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Negocio eliminado correctamente",
+      });
+    });
+
+    it("debería permitir a admin eliminar el negocio", async () => {
+      (UsuarioNegocio.findOne).mockResolvedValue({ id_usuario: 1, id_negocio: 1, rol: "admin" });
+      (UsuarioNegocio.destroy).mockResolvedValue(1);
+      const mockNegocio = {
+        id_negocio: 1,
+        destroy: jest.fn().mockResolvedValue(true),
+      };
+      (Negocio.findByPk).mockResolvedValue(mockNegocio);
+
+      const req = {
+        params: { id: "1" },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await deleteNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it("debería fallar si el usuario no tiene permisos", async () => {
+      (UsuarioNegocio.findOne).mockResolvedValue({ id_usuario: 2, id_negocio: 1, rol: "trabajador" });
+
+      const req = {
+        params: { id: "1" },
+        user: { id_usuario: 2 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await deleteNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "No tienes permisos para eliminar este negocio",
+      });
+    });
+
+    it("debería fallar si el negocio no existe", async () => {
+      (UsuarioNegocio.findOne).mockResolvedValue({ id_usuario: 1, id_negocio: 1, rol: "jefe" });
+      (Negocio.findByPk).mockResolvedValue(null);
+
+      const req = {
+        params: { id: "999" },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await deleteNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Negocio no encontrado",
+      });
+    });
+
+    it("debería fallar si el usuario no está autenticado", async () => {
+      const req = {
+        params: { id: "1" },
+        user: null,
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await deleteNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Usuario no autenticado",
+      });
+    });
+
+    it("debería manejar errores del servidor", async () => {
+      (UsuarioNegocio.findOne).mockRejectedValue(new Error("DB error"));
+
+      const req = {
+        params: { id: "1" },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+      await deleteNegocio(req, res);
       consoleSpy.mockRestore();
 
       expect(res.status).toHaveBeenCalledWith(500);
