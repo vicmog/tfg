@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 
 export async function up(queryInterface) {
-  await queryInterface.createTable("ServicioNormal", {
+  await queryInterface.createTable("Servicio", {
     id_servicio: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     id_negocio: {
       type: DataTypes.INTEGER,
@@ -18,5 +18,5 @@ export async function up(queryInterface) {
 }
 
 export async function down(queryInterface) {
-  await queryInterface.dropTable("ServicioNormal");
+  await queryInterface.dropTable("Servicio");
 }
