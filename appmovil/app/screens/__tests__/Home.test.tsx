@@ -2,6 +2,11 @@ import React from "react";
 import { render, fireEvent } from "@testing-library/react-native";
 import HomeScreen from "./../Home";
 
+jest.mock("@expo/vector-icons", () => ({
+  MaterialIcons: "MaterialIcons",
+  AntDesign: "AntDesign",
+}));
+
 const mockNavigate = jest.fn();
 
 const navigation = {

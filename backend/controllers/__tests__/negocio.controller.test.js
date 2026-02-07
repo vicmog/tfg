@@ -1,6 +1,7 @@
 import { createNegocio, getNegocios, getNegocioById, updateNegocio, deleteNegocio } from "../negocioController.js";
 import { Negocio } from "../../models/Negocio.js";
 import { UsuarioNegocio } from "../../models/UsuarioNegocio.js";
+import { Op } from "sequelize";
 
 jest.mock("../../models/Negocio.js");
 jest.mock("../../models/UsuarioNegocio.js");
@@ -79,7 +80,7 @@ describe("NegocioController Unit Tests", () => {
           nombre: "Mi Negocio",
           CIF: "B12345678",
         },
-        user: { id_usuario: 1 }, // El admin crea el negocio
+        user: { id_usuario: 1 },
       };
 
       const jsonMock = jest.fn();
@@ -226,6 +227,38 @@ describe("NegocioController Unit Tests", () => {
       expect(jsonMock).toHaveBeenCalledWith({
         negocios: [
           { id_negocio: 1, nombre: "Negocio 1", CIF: "A11111111", plantilla: 0, rol: "jefe" },
+          { id_negocio: 2, nombre: "Negocio 2", CIF: "B22222222", plantilla: 0, rol: "trabajador" },
+        ],
+      });
+    });
+
+    it("debería filtrar negocios por nombre o CIF", async () => {
+      (UsuarioNegocio.findAll).mockResolvedValue([
+        { id_usuario: 1, id_negocio: 1, rol: "jefe" },
+        { id_usuario: 1, id_negocio: 2, rol: "trabajador" },
+      ]);
+      (Negocio.findAll).mockResolvedValue([
+        { id_negocio: 2, nombre: "Negocio 2", CIF: "B22222222", plantilla: 0 },
+      ]);
+
+      const req = {
+        user: { id_usuario: 1 },
+        query: { search: "B22" },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await getNegocios(req, res);
+
+      const whereClause = (Negocio.findAll).mock.calls[0][0].where;
+      expect(whereClause[Op.or]).toHaveLength(2);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith({
+        negocios: [
           { id_negocio: 2, nombre: "Negocio 2", CIF: "B22222222", plantilla: 0, rol: "trabajador" },
         ],
       });

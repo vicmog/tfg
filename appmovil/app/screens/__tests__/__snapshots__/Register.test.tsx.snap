@@ -1,259 +1,495 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`RegisterScreen coincide con el snapshot 1`] = `
-<RCTScrollView
-  contentContainerStyle={
-    {
-      "backgroundColor": "#ffffff",
-      "flexGrow": 1,
-      "justifyContent": "center",
-      "paddingHorizontal": 20,
-      "paddingVertical": 40,
-    }
+<View
+  onLayout={[Function]}
+  style={
+    [
+      {
+        "backgroundColor": "#f7fafc",
+        "flex": 1,
+      },
+      {
+        "paddingBottom": 0,
+      },
+    ]
   }
 >
-  <View>
-    <Text
-      style={
-        {
-          "color": "#0D47A1",
-          "fontSize": 28,
-          "fontWeight": "bold",
-          "marginBottom": 30,
-          "textAlign": "center",
-        }
+  <RCTScrollView
+    contentContainerStyle={
+      {
+        "flexGrow": 1,
+        "paddingBottom": 30,
+        "paddingHorizontal": 20,
+        "paddingTop": 50,
       }
-    >
-      Registrate Gratis!
-    </Text>
-    <TextInput
-      onChangeText={[Function]}
-      placeholder="Usuario"
-      placeholderTextColor="#1976D2"
-      style={
-        {
-          "borderColor": "#1976D2",
-          "borderRadius": 10,
-          "borderWidth": 2,
-          "color": "#0D47A1",
-          "fontSize": 16,
-          "marginBottom": 20,
-          "paddingHorizontal": 15,
-          "paddingVertical": 12,
-        }
-      }
-      value=""
-    />
-    <TextInput
-      onChangeText={[Function]}
-      placeholder="Nombre completo"
-      placeholderTextColor="#1976D2"
-      style={
-        {
-          "borderColor": "#1976D2",
-          "borderRadius": 10,
-          "borderWidth": 2,
-          "color": "#0D47A1",
-          "fontSize": 16,
-          "marginBottom": 20,
-          "paddingHorizontal": 15,
-          "paddingVertical": 12,
-        }
-      }
-      value=""
-    />
-    <TextInput
-      onChangeText={[Function]}
-      placeholder="DNI/NIE"
-      placeholderTextColor="#1976D2"
-      style={
-        {
-          "borderColor": "#1976D2",
-          "borderRadius": 10,
-          "borderWidth": 2,
-          "color": "#0D47A1",
-          "fontSize": 16,
-          "marginBottom": 20,
-          "paddingHorizontal": 15,
-          "paddingVertical": 12,
-        }
-      }
-      value=""
-    />
-    <TextInput
-      autoCapitalize="none"
-      keyboardType="email-address"
-      onChangeText={[Function]}
-      placeholder="Email"
-      placeholderTextColor="#1976D2"
-      style={
-        {
-          "borderColor": "#1976D2",
-          "borderRadius": 10,
-          "borderWidth": 2,
-          "color": "#0D47A1",
-          "fontSize": 16,
-          "marginBottom": 20,
-          "paddingHorizontal": 15,
-          "paddingVertical": 12,
-        }
-      }
-      value=""
-    />
-    <TextInput
-      onChangeText={[Function]}
-      placeholder="Numero de Teléfono"
-      placeholderTextColor="#1976D2"
-      style={
-        {
-          "borderColor": "#1976D2",
-          "borderRadius": 10,
-          "borderWidth": 2,
-          "color": "#0D47A1",
-          "fontSize": 16,
-          "marginBottom": 20,
-          "paddingHorizontal": 15,
-          "paddingVertical": 12,
-        }
-      }
-      value=""
-    />
-    <TextInput
-      onChangeText={[Function]}
-      placeholder="Contraseña"
-      placeholderTextColor="#1976D2"
-      secureTextEntry={true}
-      style={
-        {
-          "borderColor": "#1976D2",
-          "borderRadius": 10,
-          "borderWidth": 2,
-          "color": "#0D47A1",
-          "fontSize": 16,
-          "marginBottom": 20,
-          "paddingHorizontal": 15,
-          "paddingVertical": 12,
-        }
-      }
-      value=""
-    />
-    <TextInput
-      onChangeText={[Function]}
-      placeholder="Confirmar contraseña"
-      placeholderTextColor="#1976D2"
-      secureTextEntry={true}
-      style={
-        {
-          "borderColor": "#1976D2",
-          "borderRadius": 10,
-          "borderWidth": 2,
-          "color": "#0D47A1",
-          "fontSize": 16,
-          "marginBottom": 20,
-          "paddingHorizontal": 15,
-          "paddingVertical": 12,
-        }
-      }
-      value=""
-    />
-    <View
-      accessibilityState={
-        {
-          "busy": undefined,
-          "checked": undefined,
-          "disabled": undefined,
-          "expanded": undefined,
-          "selected": undefined,
-        }
-      }
-      accessibilityValue={
-        {
-          "max": undefined,
-          "min": undefined,
-          "now": undefined,
-          "text": undefined,
-        }
-      }
-      accessible={true}
-      collapsable={false}
-      focusable={true}
-      onClick={[Function]}
-      onResponderGrant={[Function]}
-      onResponderMove={[Function]}
-      onResponderRelease={[Function]}
-      onResponderTerminate={[Function]}
-      onResponderTerminationRequest={[Function]}
-      onStartShouldSetResponder={[Function]}
-      style={
-        {
-          "alignItems": "center",
-          "backgroundColor": "#1976D2",
-          "borderRadius": 10,
-          "marginBottom": 15,
-          "opacity": 1,
-          "paddingVertical": 15,
-        }
-      }
-    >
-      <Text
+    }
+  >
+    <View>
+      <View
         style={
           {
-            "color": "#fff",
-            "fontSize": 18,
-            "fontWeight": "bold",
+            "alignItems": "center",
+            "flexDirection": "row",
+            "marginBottom": 30,
           }
         }
       >
-        Crear Cuenta
-      </Text>
-    </View>
-    <View
-      accessibilityState={
-        {
-          "busy": undefined,
-          "checked": undefined,
-          "disabled": undefined,
-          "expanded": undefined,
-          "selected": undefined,
-        }
-      }
-      accessibilityValue={
-        {
-          "max": undefined,
-          "min": undefined,
-          "now": undefined,
-          "text": undefined,
-        }
-      }
-      accessible={true}
-      collapsable={false}
-      focusable={true}
-      onClick={[Function]}
-      onResponderGrant={[Function]}
-      onResponderMove={[Function]}
-      onResponderRelease={[Function]}
-      onResponderTerminate={[Function]}
-      onResponderTerminationRequest={[Function]}
-      onStartShouldSetResponder={[Function]}
-      style={
-        {
-          "opacity": 1,
-        }
-      }
-    >
-      <Text
+        <View
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": undefined,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          collapsable={false}
+          focusable={true}
+          onClick={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            {
+              "marginRight": 10,
+              "opacity": 1,
+              "padding": 8,
+            }
+          }
+        >
+          <MaterialIcons
+            color="#1976D2"
+            name="arrow-back"
+            size={24}
+          />
+        </View>
+        <Text
+          style={
+            {
+              "color": "#0D47A1",
+              "fontSize": 24,
+              "fontWeight": "bold",
+            }
+          }
+        >
+          Crear Cuenta
+        </Text>
+      </View>
+      <View
         style={
           {
-            "color": "#1976D2",
-            "fontSize": 16,
-            "marginTop": 10,
-            "textAlign": "center",
+            "backgroundColor": "#fff",
+            "borderRadius": 12,
+            "elevation": 3,
+            "padding": 20,
+            "shadowColor": "#000",
+            "shadowOffset": {
+              "height": 2,
+              "width": 0,
+            },
+            "shadowOpacity": 0.08,
+            "shadowRadius": 8,
           }
         }
       >
-        ¿Ya tienes cuenta? Inicia sesión
-      </Text>
+        <View
+          style={
+            {
+              "marginBottom": 16,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#374151",
+                "fontSize": 14,
+                "fontWeight": "600",
+                "marginBottom": 8,
+              }
+            }
+          >
+            Usuario
+          </Text>
+          <TextInput
+            onChangeText={[Function]}
+            placeholder="Elige un nombre de usuario"
+            placeholderTextColor="#9ca3af"
+            style={
+              {
+                "backgroundColor": "#f9fafb",
+                "borderColor": "#d1d5db",
+                "borderRadius": 10,
+                "borderWidth": 1,
+                "color": "#111827",
+                "fontSize": 16,
+                "paddingHorizontal": 16,
+                "paddingVertical": 14,
+              }
+            }
+            value=""
+          />
+        </View>
+        <View
+          style={
+            {
+              "marginBottom": 16,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#374151",
+                "fontSize": 14,
+                "fontWeight": "600",
+                "marginBottom": 8,
+              }
+            }
+          >
+            Nombre completo
+          </Text>
+          <TextInput
+            onChangeText={[Function]}
+            placeholder="Tu nombre y apellidos"
+            placeholderTextColor="#9ca3af"
+            style={
+              {
+                "backgroundColor": "#f9fafb",
+                "borderColor": "#d1d5db",
+                "borderRadius": 10,
+                "borderWidth": 1,
+                "color": "#111827",
+                "fontSize": 16,
+                "paddingHorizontal": 16,
+                "paddingVertical": 14,
+              }
+            }
+            value=""
+          />
+        </View>
+        <View
+          style={
+            {
+              "marginBottom": 16,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#374151",
+                "fontSize": 14,
+                "fontWeight": "600",
+                "marginBottom": 8,
+              }
+            }
+          >
+            DNI/NIE
+          </Text>
+          <TextInput
+            onChangeText={[Function]}
+            placeholder="Ej: 12345678A"
+            placeholderTextColor="#9ca3af"
+            style={
+              {
+                "backgroundColor": "#f9fafb",
+                "borderColor": "#d1d5db",
+                "borderRadius": 10,
+                "borderWidth": 1,
+                "color": "#111827",
+                "fontSize": 16,
+                "paddingHorizontal": 16,
+                "paddingVertical": 14,
+              }
+            }
+            value=""
+          />
+        </View>
+        <View
+          style={
+            {
+              "marginBottom": 16,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#374151",
+                "fontSize": 14,
+                "fontWeight": "600",
+                "marginBottom": 8,
+              }
+            }
+          >
+            Email
+          </Text>
+          <TextInput
+            autoCapitalize="none"
+            keyboardType="email-address"
+            onChangeText={[Function]}
+            placeholder="tu@email.com"
+            placeholderTextColor="#9ca3af"
+            style={
+              {
+                "backgroundColor": "#f9fafb",
+                "borderColor": "#d1d5db",
+                "borderRadius": 10,
+                "borderWidth": 1,
+                "color": "#111827",
+                "fontSize": 16,
+                "paddingHorizontal": 16,
+                "paddingVertical": 14,
+              }
+            }
+            value=""
+          />
+        </View>
+        <View
+          style={
+            {
+              "marginBottom": 16,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#374151",
+                "fontSize": 14,
+                "fontWeight": "600",
+                "marginBottom": 8,
+              }
+            }
+          >
+            Número de teléfono
+          </Text>
+          <TextInput
+            keyboardType="phone-pad"
+            onChangeText={[Function]}
+            placeholder="Ej: 600123456"
+            placeholderTextColor="#9ca3af"
+            style={
+              {
+                "backgroundColor": "#f9fafb",
+                "borderColor": "#d1d5db",
+                "borderRadius": 10,
+                "borderWidth": 1,
+                "color": "#111827",
+                "fontSize": 16,
+                "paddingHorizontal": 16,
+                "paddingVertical": 14,
+              }
+            }
+            value=""
+          />
+        </View>
+        <View
+          style={
+            {
+              "marginBottom": 16,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#374151",
+                "fontSize": 14,
+                "fontWeight": "600",
+                "marginBottom": 8,
+              }
+            }
+          >
+            Contraseña
+          </Text>
+          <TextInput
+            onChangeText={[Function]}
+            placeholder="Mínimo 6 caracteres"
+            placeholderTextColor="#9ca3af"
+            secureTextEntry={true}
+            style={
+              {
+                "backgroundColor": "#f9fafb",
+                "borderColor": "#d1d5db",
+                "borderRadius": 10,
+                "borderWidth": 1,
+                "color": "#111827",
+                "fontSize": 16,
+                "paddingHorizontal": 16,
+                "paddingVertical": 14,
+              }
+            }
+            value=""
+          />
+        </View>
+        <View
+          style={
+            {
+              "marginBottom": 16,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#374151",
+                "fontSize": 14,
+                "fontWeight": "600",
+                "marginBottom": 8,
+              }
+            }
+          >
+            Confirmar contraseña
+          </Text>
+          <TextInput
+            onChangeText={[Function]}
+            placeholder="Repite la contraseña"
+            placeholderTextColor="#9ca3af"
+            secureTextEntry={true}
+            style={
+              {
+                "backgroundColor": "#f9fafb",
+                "borderColor": "#d1d5db",
+                "borderRadius": 10,
+                "borderWidth": 1,
+                "color": "#111827",
+                "fontSize": 16,
+                "paddingHorizontal": 16,
+                "paddingVertical": 14,
+              }
+            }
+            value=""
+          />
+        </View>
+        <View
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": undefined,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          collapsable={false}
+          focusable={true}
+          onClick={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            {
+              "alignItems": "center",
+              "backgroundColor": "#1976D2",
+              "borderRadius": 10,
+              "flexDirection": "row",
+              "justifyContent": "center",
+              "marginTop": 10,
+              "opacity": 1,
+              "paddingVertical": 16,
+            }
+          }
+        >
+          <MaterialIcons
+            color="#fff"
+            name="person-add"
+            size={20}
+            style={
+              {
+                "marginRight": 8,
+              }
+            }
+          />
+          <Text
+            style={
+              {
+                "color": "#fff",
+                "fontSize": 16,
+                "fontWeight": "bold",
+              }
+            }
+          >
+            Crear Cuenta
+          </Text>
+        </View>
+        <View
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": undefined,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          collapsable={false}
+          focusable={true}
+          onClick={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            {
+              "alignItems": "center",
+              "marginTop": 16,
+              "opacity": 1,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#1976D2",
+                "fontSize": 15,
+                "fontWeight": "500",
+              }
+            }
+          >
+            ¿Ya tienes cuenta? Inicia sesión
+          </Text>
+        </View>
+      </View>
     </View>
-  </View>
-</RCTScrollView>
+  </RCTScrollView>
+</View>
 `;

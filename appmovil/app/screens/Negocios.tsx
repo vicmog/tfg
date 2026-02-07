@@ -1,7 +1,7 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { NavigationScreenList } from "..";
-import React, { useCallback } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import React, { useCallback, useState,useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from "react-native";
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
@@ -14,24 +14,41 @@ type NegociosScreenProps = NativeStackScreenProps<
 
 const Negocios: React.FC<NegociosScreenProps> = ({ navigation }) => {
 
-  const [negocios, setNegocios] = React.useState<Negocio[]>([]);
+  const [negocios, setNegocios] = useState<Negocio[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [search, setSearch] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setSearch(searchTerm.trim());
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [searchTerm]);
   
   useFocusEffect(
     useCallback(() => {
       const fetchBusinesses = async () => {
-        const token = await AsyncStorage.getItem("token");
-        const response = await fetch("http://localhost:3000/v1/api/negocios", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setNegocios(data.negocios);
+        setIsLoading(true);
+        try {
+          const token = await AsyncStorage.getItem("token");
+          const query = search ? `?search=${encodeURIComponent(search)}` : "";
+          const response = await fetch(`http://localhost:3000/v1/api/negocios${query}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setNegocios(data.negocios);
+          }
+        } finally {
+          setIsLoading(false);
         }
       };
       fetchBusinesses();
-    }, [])
+    }, [search])
   );
 
   return (
@@ -55,6 +72,18 @@ const Negocios: React.FC<NegociosScreenProps> = ({ navigation }) => {
           <Text style={styles.addButtonText}>Añadir negocio</Text>
         </TouchableOpacity>
       </View>
+      <View style={styles.searchContainer}>
+        <MaterialIcons name="search" size={20} color="#6b7280" style={styles.searchIcon} />
+        <TextInput
+          placeholder="Buscar por nombre o CIF"
+          placeholderTextColor="#9ca3af"
+          value={searchTerm}
+          onChangeText={setSearchTerm}
+          style={styles.searchInput}
+          autoCapitalize="none"
+          testID="business-search-input"
+        />
+      </View>
       {negocios.length > 0 ?
         <ScrollView contentContainerStyle={styles.negociosContainer}>
           {negocios.map((negocio) => (
@@ -74,7 +103,13 @@ const Negocios: React.FC<NegociosScreenProps> = ({ navigation }) => {
         </ScrollView>
         :
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          <Text style={{ fontSize: 16, color: "#6b7280" }}>No tienes negocios asignados</Text>
+          <Text style={{ fontSize: 16, color: "#6b7280" }}>
+            {isLoading
+              ? "Cargando negocios..."
+              : search
+                ? "No se encontraron negocios"
+                : "No tienes negocios asignados"}
+          </Text>
         </View>
       }
     </View>
@@ -95,6 +130,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 10,
     marginBottom: 20,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    marginHorizontal: 10,
+    marginBottom: 16,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: "#111827",
+    paddingVertical: 6,
   },
   editButton: {
     display: "flex",

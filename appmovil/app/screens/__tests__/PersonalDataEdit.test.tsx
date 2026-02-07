@@ -3,6 +3,10 @@ import { render, fireEvent, waitFor, act } from "@testing-library/react-native";
 import PersonalDataEdit from "../PersonalDataEdit";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+jest.mock("@expo/vector-icons", () => ({
+  MaterialIcons: "MaterialIcons",
+  AntDesign: "AntDesign",
+}));
 global.fetch = jest.fn();
 
 jest.mock("@react-native-async-storage/async-storage", () => ({
@@ -14,6 +18,7 @@ const mockRoute = { params: { message: "REGISTER_SUCCESS" } } as any;
 
 describe("PersonalDataEdit", () => {
   const navigationMock = { navigate: jest.fn() } as any;
+  const setIsAuthMock = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -38,7 +43,11 @@ describe("PersonalDataEdit", () => {
     });
 
     const { getByTestId } = render(
-      <PersonalDataEdit navigation={navigationMock} route={mockRoute} />,
+      <PersonalDataEdit
+        navigation={navigationMock}
+        route={mockRoute}
+        setIsAuth={setIsAuthMock}
+      />,
     );
 
     await waitFor(() => {
@@ -78,7 +87,11 @@ describe("PersonalDataEdit", () => {
       });
 
     const { getByTestId, getByText } = render(
-      <PersonalDataEdit navigation={navigationMock} route={mockRoute} />,
+      <PersonalDataEdit
+        navigation={navigationMock}
+        route={mockRoute}
+        setIsAuth={setIsAuthMock}
+      />,
     );
 
     await waitFor(() => getByTestId("input-fullname"));

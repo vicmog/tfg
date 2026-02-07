@@ -1,5 +1,6 @@
 import { Negocio } from "../models/Negocio.js";
 import { UsuarioNegocio } from "../models/UsuarioNegocio.js";
+import { Op, fn, col, where } from "sequelize";
 
 export const createNegocio = async (req, res) => {
     const { nombre, CIF } = req.body;
@@ -61,6 +62,8 @@ export const createNegocio = async (req, res) => {
 
 export const getNegocios = async (req, res) => {
     const id_usuario = req.user?.id_usuario;
+    const search = typeof req.query?.search === "string" ? req.query.search.trim() : "";
+    const searchLower = search.toLowerCase();
 
     if (!id_usuario) {
         return res.status(401).json({ message: "Usuario no autenticado" });
@@ -76,8 +79,20 @@ export const getNegocios = async (req, res) => {
         }
 
         const negocioIds = usuarioNegocios.map(un => un.id_negocio);
+        const whereClause = {
+            id_negocio: negocioIds,
+            ...(search
+                ? {
+                    [Op.or]: [
+                        where(fn("lower", col("nombre")), { [Op.like]: `%${searchLower}%` }),
+                        where(fn("lower", col("CIF")), { [Op.like]: `%${searchLower}%` })
+                    ]
+                }
+                : {})
+        };
+
         const negocios = await Negocio.findAll({
-            where: { id_negocio: negocioIds }
+            where: whereClause
         });
 
         const negociosConRol = negocios.map(negocio => {

@@ -1,7 +1,7 @@
 import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
+import CrearNegocio from "./../CrearNegocio";
 jest.mock("@expo/vector-icons", () => ({
   MaterialIcons: "MaterialIcons",
 }));
@@ -11,8 +11,6 @@ jest.mock("@react-native-async-storage/async-storage", () => ({
   setItem: jest.fn(),
   removeItem: jest.fn(),
 }));
-
-import CrearNegocio from "./../CrearNegocio";
 
 const mockNavigate = jest.fn();
 const mockGoBack = jest.fn();
@@ -40,8 +38,8 @@ describe("CrearNegocio", () => {
     );
 
     expect(getByText("Crear Nuevo Negocio")).toBeTruthy();
-    expect(getByText("Nombre del negocio *")).toBeTruthy();
-    expect(getByText("CIF *")).toBeTruthy();
+    expect(getByText("Nombre del negocio")).toBeTruthy();
+    expect(getByText("CIF")).toBeTruthy();
     expect(getByTestId("nombre-input")).toBeTruthy();
     expect(getByTestId("cif-input")).toBeTruthy();
     expect(getByTestId("submit-button")).toBeTruthy();

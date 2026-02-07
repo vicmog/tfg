@@ -2,224 +2,379 @@
 
 exports[`LoginScreen coincide con el snapshot 1`] = `
 <View
+  onLayout={[Function]}
   style={
-    {
-      "backgroundColor": "#ffffff",
-      "flex": 1,
-      "justifyContent": "center",
-      "paddingHorizontal": 20,
-    }
+    [
+      {
+        "backgroundColor": "#f7fafc",
+        "flex": 1,
+      },
+      {
+        "paddingBottom": 0,
+      },
+    ]
   }
 >
-  <Text
-    style={
+  <RCTScrollView
+    contentContainerStyle={
       {
-        "backgroundColor": "#e3f2fd",
-        "borderRadius": 6,
-        "color": "#878e94",
-        "marginBottom": 10,
-        "padding": 10,
-        "textAlign": "center",
+        "flexGrow": 1,
+        "paddingBottom": 30,
+        "paddingHorizontal": 20,
+        "paddingTop": 50,
       }
     }
   >
-    Registrado Correctamente. Comprueba tu email para validar tu cuenta.
-  </Text>
-  <Text
-    style={
-      {
-        "color": "#0D47A1",
-        "fontSize": 28,
-        "fontWeight": "bold",
-        "marginBottom": 40,
-        "textAlign": "center",
-      }
-    }
-  >
-    Login
-  </Text>
-  <TextInput
-    autoCapitalize="none"
-    onChangeText={[Function]}
-    placeholder="Usuario"
-    placeholderTextColor="#1976D2"
-    style={
-      {
-        "borderColor": "#1976D2",
-        "borderRadius": 10,
-        "borderWidth": 2,
-        "color": "#0D47A1",
-        "fontSize": 16,
-        "marginBottom": 20,
-        "paddingHorizontal": 15,
-        "paddingVertical": 12,
-      }
-    }
-    value=""
-  />
-  <TextInput
-    onChangeText={[Function]}
-    placeholder="Contraseña"
-    placeholderTextColor="#1976D2"
-    secureTextEntry={true}
-    style={
-      {
-        "borderColor": "#1976D2",
-        "borderRadius": 10,
-        "borderWidth": 2,
-        "color": "#0D47A1",
-        "fontSize": 16,
-        "marginBottom": 20,
-        "paddingHorizontal": 15,
-        "paddingVertical": 12,
-      }
-    }
-    value=""
-  />
-  <View
-    accessibilityState={
-      {
-        "busy": undefined,
-        "checked": undefined,
-        "disabled": undefined,
-        "expanded": undefined,
-        "selected": undefined,
-      }
-    }
-    accessibilityValue={
-      {
-        "max": undefined,
-        "min": undefined,
-        "now": undefined,
-        "text": undefined,
-      }
-    }
-    accessible={true}
-    collapsable={false}
-    focusable={true}
-    onClick={[Function]}
-    onResponderGrant={[Function]}
-    onResponderMove={[Function]}
-    onResponderRelease={[Function]}
-    onResponderTerminate={[Function]}
-    onResponderTerminationRequest={[Function]}
-    onStartShouldSetResponder={[Function]}
-    style={
-      {
-        "alignItems": "center",
-        "backgroundColor": "#1976D2",
-        "borderRadius": 10,
-        "marginBottom": 15,
-        "opacity": 1,
-        "paddingVertical": 15,
-      }
-    }
-  >
-    <Text
-      style={
-        {
-          "color": "#fff",
-          "fontSize": 18,
-          "fontWeight": "bold",
+    <View>
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "marginBottom": 30,
+          }
         }
-      }
-    >
-      Iniciar Sesión
-    </Text>
-  </View>
-  <View
-    accessibilityState={
-      {
-        "busy": undefined,
-        "checked": undefined,
-        "disabled": undefined,
-        "expanded": undefined,
-        "selected": undefined,
-      }
-    }
-    accessibilityValue={
-      {
-        "max": undefined,
-        "min": undefined,
-        "now": undefined,
-        "text": undefined,
-      }
-    }
-    accessible={true}
-    collapsable={false}
-    focusable={true}
-    onClick={[Function]}
-    onResponderGrant={[Function]}
-    onResponderMove={[Function]}
-    onResponderRelease={[Function]}
-    onResponderTerminate={[Function]}
-    onResponderTerminationRequest={[Function]}
-    onStartShouldSetResponder={[Function]}
-    style={
-      {
-        "opacity": 1,
-      }
-    }
-  >
-    <Text
-      style={
-        {
-          "color": "#1976D2",
-          "fontSize": 16,
-          "marginTop": 10,
-          "textAlign": "center",
+      >
+        <View
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": undefined,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          collapsable={false}
+          focusable={true}
+          onClick={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            {
+              "marginRight": 10,
+              "opacity": 1,
+              "padding": 8,
+            }
+          }
+        >
+          <MaterialIcons
+            color="#1976D2"
+            name="arrow-back"
+            size={24}
+          />
+        </View>
+        <Text
+          style={
+            {
+              "color": "#0D47A1",
+              "fontSize": 24,
+              "fontWeight": "bold",
+            }
+          }
+        >
+          Iniciar Sesión
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "backgroundColor": "#fff",
+            "borderRadius": 12,
+            "elevation": 3,
+            "padding": 20,
+            "shadowColor": "#000",
+            "shadowOffset": {
+              "height": 2,
+              "width": 0,
+            },
+            "shadowOpacity": 0.08,
+            "shadowRadius": 8,
+          }
         }
-      }
-    >
-      ¿No tienes cuenta? Regístrate
-    </Text>
-  </View>
-  <View
-    accessibilityState={
-      {
-        "busy": undefined,
-        "checked": undefined,
-        "disabled": undefined,
-        "expanded": undefined,
-        "selected": undefined,
-      }
-    }
-    accessibilityValue={
-      {
-        "max": undefined,
-        "min": undefined,
-        "now": undefined,
-        "text": undefined,
-      }
-    }
-    accessible={true}
-    collapsable={false}
-    focusable={true}
-    onClick={[Function]}
-    onResponderGrant={[Function]}
-    onResponderMove={[Function]}
-    onResponderRelease={[Function]}
-    onResponderTerminate={[Function]}
-    onResponderTerminationRequest={[Function]}
-    onStartShouldSetResponder={[Function]}
-    style={
-      {
-        "opacity": 1,
-      }
-    }
-  >
-    <Text
-      style={
-        {
-          "color": "#1976D2",
-          "fontSize": 16,
-          "marginTop": 10,
-          "textAlign": "center",
-        }
-      }
-    >
-      ¿Olvidaste tu contraseña?
-    </Text>
-  </View>
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "backgroundColor": "#f0fdf4",
+              "borderRadius": 8,
+              "flexDirection": "row",
+              "marginBottom": 16,
+              "padding": 12,
+            }
+          }
+        >
+          <MaterialIcons
+            color="#16a34a"
+            name="check-circle"
+            size={20}
+          />
+          <Text
+            style={
+              {
+                "color": "#16a34a",
+                "flex": 1,
+                "fontSize": 14,
+                "marginLeft": 8,
+              }
+            }
+          >
+            Registrado correctamente. Comprueba tu email para validar tu cuenta.
+          </Text>
+        </View>
+        <View
+          style={
+            {
+              "marginBottom": 16,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#374151",
+                "fontSize": 14,
+                "fontWeight": "600",
+                "marginBottom": 8,
+              }
+            }
+          >
+            Usuario
+          </Text>
+          <TextInput
+            autoCapitalize="none"
+            onChangeText={[Function]}
+            placeholder="Introduce tu usuario"
+            placeholderTextColor="#9ca3af"
+            style={
+              {
+                "backgroundColor": "#f9fafb",
+                "borderColor": "#d1d5db",
+                "borderRadius": 10,
+                "borderWidth": 1,
+                "color": "#111827",
+                "fontSize": 16,
+                "paddingHorizontal": 16,
+                "paddingVertical": 14,
+              }
+            }
+            value=""
+          />
+        </View>
+        <View
+          style={
+            {
+              "marginBottom": 16,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#374151",
+                "fontSize": 14,
+                "fontWeight": "600",
+                "marginBottom": 8,
+              }
+            }
+          >
+            Contraseña
+          </Text>
+          <TextInput
+            onChangeText={[Function]}
+            placeholder="Introduce tu contraseña"
+            placeholderTextColor="#9ca3af"
+            secureTextEntry={true}
+            style={
+              {
+                "backgroundColor": "#f9fafb",
+                "borderColor": "#d1d5db",
+                "borderRadius": 10,
+                "borderWidth": 1,
+                "color": "#111827",
+                "fontSize": 16,
+                "paddingHorizontal": 16,
+                "paddingVertical": 14,
+              }
+            }
+            value=""
+          />
+        </View>
+        <View
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": undefined,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          collapsable={false}
+          focusable={true}
+          onClick={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            {
+              "alignItems": "center",
+              "backgroundColor": "#1976D2",
+              "borderRadius": 10,
+              "flexDirection": "row",
+              "justifyContent": "center",
+              "marginTop": 10,
+              "opacity": 1,
+              "paddingVertical": 16,
+            }
+          }
+        >
+          <MaterialIcons
+            color="#fff"
+            name="login"
+            size={20}
+            style={
+              {
+                "marginRight": 8,
+              }
+            }
+          />
+          <Text
+            style={
+              {
+                "color": "#fff",
+                "fontSize": 16,
+                "fontWeight": "bold",
+              }
+            }
+          >
+            Iniciar Sesión
+          </Text>
+        </View>
+        <View
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": undefined,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          collapsable={false}
+          focusable={true}
+          onClick={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            {
+              "alignItems": "center",
+              "marginTop": 16,
+              "opacity": 1,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#1976D2",
+                "fontSize": 15,
+                "fontWeight": "500",
+              }
+            }
+          >
+            ¿No tienes cuenta? Regístrate
+          </Text>
+        </View>
+        <View
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": undefined,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          collapsable={false}
+          focusable={true}
+          onClick={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            {
+              "alignItems": "center",
+              "marginTop": 16,
+              "opacity": 1,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#1976D2",
+                "fontSize": 15,
+                "fontWeight": "500",
+              }
+            }
+          >
+            ¿Olvidaste tu contraseña?
+          </Text>
+        </View>
+      </View>
+    </View>
+  </RCTScrollView>
 </View>
 `;
