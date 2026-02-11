@@ -1,6 +1,7 @@
 import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import NegocioDetail from "./../NegocioDetail";
 
 jest.mock("@expo/vector-icons", () => ({
     MaterialIcons: "MaterialIcons",
@@ -20,8 +21,6 @@ jest.mock("@react-navigation/native", () => ({
         }, []);
     },
 }));
-
-import NegocioDetail from "./../NegocioDetail";
 
 const mockNavigate = jest.fn();
 const mockGoBack = jest.fn();
@@ -157,6 +156,19 @@ describe("NegocioDetail", () => {
 
         fireEvent.press(getByTestId("settings-button"));
         expect(mockNavigate).toHaveBeenCalledWith("NegocioSettings", { negocio: mockNegocio });
+    });
+
+    it("navega a NegocioUsers al pulsar permissions-settings-button", async () => {
+        const { getByTestId } = render(
+            <NegocioDetail navigation={navigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("permissions-settings-button")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("permissions-settings-button"));
+        expect(mockNavigate).toHaveBeenCalledWith("NegocioUsers", { negocio: mockNegocio });
     });
 
     it("hace fetch de los datos del negocio al montar", async () => {
