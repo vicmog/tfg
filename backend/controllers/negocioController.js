@@ -1,5 +1,6 @@
 import { Negocio } from "../models/Negocio.js";
 import { UsuarioNegocio } from "../models/UsuarioNegocio.js";
+import { Usuario } from "../models/Usuario.js";
 import { Op, fn, col, where } from "sequelize";
 
 export const createNegocio = async (req, res) => {
@@ -229,6 +230,58 @@ export const getNegocioById = async (req, res) => {
 
     } catch (error) {
         console.error("Error al obtener negocio:", error);
+        return res.status(500).json({ message: "Error en el servidor" });
+    }
+};
+
+export const getUsersByNegocioId = async (req, res) => {
+    const { id } = req.params;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: "Usuario no autenticado" });
+    }
+
+    try {
+        const currentUser = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio: id }
+        });
+
+        if (!currentUser) {
+            return res.status(403).json({ message: "No tienes acceso a este negocio" });
+        }
+
+        if (currentUser.rol !== "jefe" && currentUser.rol !== "admin") {
+            return res.status(403).json({ message: "No tienes permisos para ver los usuarios de este negocio" });
+        }
+
+        const userNegocioData = await UsuarioNegocio.findAll({
+            where: { id_negocio: id }
+        });
+
+        const userIds = userNegocioData.map(un => un.id_usuario);
+        if (userIds.length === 0) {
+            return res.status(200).json({ usuarios: [] });
+        }
+
+        const usuarios = await Usuario.findAll({
+            where: { id_usuario: userIds }
+        });
+
+        const usersWithAccess = usuarios.map((usuario) => {
+            const userNegocio = userNegocioData.find(un => un.id_usuario === usuario.id_usuario);
+            return {
+                id_usuario: usuario.id_usuario,
+                nombre_usuario: usuario.nombre_usuario,
+                nombre: usuario.nombre,
+                rol: userNegocio?.rol || "trabajador"
+            };
+        });
+
+        return res.status(200).json({ usuarios: usersWithAccess });
+
+    } catch (error) {
+        console.error("Error al verificar permisos:", error);
         return res.status(500).json({ message: "Error en el servidor" });
     }
 };

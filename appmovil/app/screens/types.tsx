@@ -14,3 +14,10 @@ export type Negocio = {
     plantilla: number;
     rol: string;
 };
+
+export type UsuarioAcceso = {
+    id_usuario: number;
+    nombre_usuario: string;
+    nombre: string;
+    rol: string;
+};

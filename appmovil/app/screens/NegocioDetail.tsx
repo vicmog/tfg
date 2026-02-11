@@ -90,7 +90,7 @@ const NegocioDetail: React.FC<NegocioDetailProps> = ({ route, navigation }) => {
                             <TouchableOpacity
                                 style={styles.permissionsButton}
                                 onPress={() => {
-                                    console.log("Ajustes de permisos");
+                                    navigation.navigate("NegocioUsers", { negocio });
                                 }}
                                 testID="permissions-settings-button"
                             >
