@@ -1,5 +1,5 @@
 import express from "express";
-import { createNegocio, getNegocios, getNegocioById, updateNegocio, deleteNegocio, getUsersByNegocioId, addUserToNegocio } from "../controllers/negocioController.js";
+import { createNegocio, getNegocios, getNegocioById, updateNegocio, deleteNegocio, getUsersByNegocioId, addUserToNegocio } from "../controllers/negocio/negocioController.js";
 import { authenticateToken } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();

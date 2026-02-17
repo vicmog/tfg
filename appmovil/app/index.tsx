@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import HomeScreen from "./screens/Home";
-import LoginScreen from "./screens/Login";
-import RegisterScreen from "./screens/Register";
-import Negocios from "./screens/Negocios";
+import HomeScreen from "./screens/Home/Home";
+import LoginScreen from "./screens/Login/Login";
+import RegisterScreen from "./screens/Register/Register";
+import Negocios from "./screens/Negocios/Negocios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import PersonalDataEdit from "./screens/PersonalDataEdit";
-import ValidateCode from "./screens/ValidateCode";
-import CrearNegocio from "./screens/CrearNegocio";
-import NegocioDetail from "./screens/NegocioDetail";
-import NegocioSettings from "./screens/NegocioSettings";
-import NegocioUsers from "./screens/NegocioUsers";
+import PersonalDataEdit from "./screens/PersonalDataEdit/PersonalDataEdit";
+import ValidateCode from "./screens/ValidateCode/ValidateCode";
+import CrearNegocio from "./screens/CrearNegocio/CrearNegocio";
+import NegocioDetail from "./screens/NegocioDetail/NegocioDetail";
+import NegocioSettings from "./screens/NegocioSettings/NegocioSettings";
+import NegocioUsers from "./screens/NegocioUsers/NegocioUsers";
 import { Negocio } from "./screens/types";
 
 
@@ -63,7 +63,7 @@ const App: React.FC = () => {
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="Login" children={(props) => <LoginScreen {...props} setIsAuth={setIsAuth} />}/>
           <Stack.Screen name="ValidateCode" children={(props) => <ValidateCode {...props} setIsAuth={setIsAuth} />}/>
-          <Stack.Screen name="ResetPassword" component={require('./screens/ResetPassword').default} />
+          <Stack.Screen name="ResetPassword" component={require('./screens/ResetPassword/ResetPassword').default} />
           <Stack.Screen name="Register" component={RegisterScreen} />
         </>
       )}
