@@ -66,7 +66,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route, setIsAuth 
       
     } catch (error) {
       setError("No se pudo conectar con el servidor");
-      console.error(error);
     }
   };
 

@@ -1,4 +1,4 @@
-import { createNegocio, getNegocios, getNegocioById, updateNegocio, deleteNegocio, getUsersByNegocioId } from "../negocioController.js";
+import { createNegocio, getNegocios, getNegocioById, updateNegocio, deleteNegocio, getUsersByNegocioId, addUserToNegocio } from "../negocioController.js";
 import { Negocio } from "../../models/Negocio.js";
 import { UsuarioNegocio } from "../../models/UsuarioNegocio.js";
 import { Usuario } from "../../models/Usuario.js";
@@ -873,6 +873,194 @@ describe("NegocioController Unit Tests", () => {
 
       const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
       await getUsersByNegocioId(req, res);
+      consoleSpy.mockRestore();
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Error en el servidor",
+      });
+    });
+  });
+
+  describe("addUserToNegocio", () => {
+    it("debería añadir usuario con rol válido", async () => {
+      (UsuarioNegocio.findOne)
+        .mockResolvedValueOnce({ id_usuario: 1, id_negocio: 2, rol: "jefe" })
+        .mockResolvedValueOnce(null);
+      (Usuario.findOne).mockResolvedValue({ id_usuario: 8, nombre_usuario: "user8", nombre: "User Ocho" });
+      (UsuarioNegocio.create).mockResolvedValue({});
+
+      const req = {
+        params: { id: "2" },
+        body: { id_usuario: 8, rol: "trabajador" },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await addUserToNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Usuario añadido correctamente",
+        usuario: {
+          id_usuario: 8,
+          nombre_usuario: "user8",
+          nombre: "User Ocho",
+          rol: "trabajador",
+        },
+      });
+    });
+
+    it("debería fallar si el usuario no está autenticado", async () => {
+      const req = {
+        params: { id: "2" },
+        body: { id_usuario: 8, rol: "trabajador" },
+        user: null,
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await addUserToNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Usuario no autenticado",
+      });
+    });
+
+    it("debería fallar si falta el id de usuario", async () => {
+      const req = {
+        params: { id: "2" },
+        body: { rol: "trabajador" },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await addUserToNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Falta el id del usuario",
+      });
+    });
+
+    it("debería fallar si el rol es inválido", async () => {
+      const req = {
+        params: { id: "2" },
+        body: { id_usuario: 8, rol: "admin" },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await addUserToNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Rol inválido",
+      });
+    });
+
+    it("debería fallar si el solicitante no tiene permisos", async () => {
+      (UsuarioNegocio.findOne).mockResolvedValue({ id_usuario: 1, id_negocio: 2, rol: "trabajador" });
+
+      const req = {
+        params: { id: "2" },
+        body: { id_usuario: 8, rol: "trabajador" },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await addUserToNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "No tienes permisos para asignar usuarios",
+      });
+    });
+
+    it("debería fallar si el usuario objetivo no existe", async () => {
+      (UsuarioNegocio.findOne).mockResolvedValue({ id_usuario: 1, id_negocio: 2, rol: "jefe" });
+      (Usuario.findOne).mockResolvedValue(null);
+
+      const req = {
+        params: { id: "2" },
+        body: { id_usuario: 8, rol: "trabajador" },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await addUserToNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "El usuario no existe",
+      });
+    });
+
+    it("debería fallar si el usuario ya tiene acceso", async () => {
+      (UsuarioNegocio.findOne)
+        .mockResolvedValueOnce({ id_usuario: 1, id_negocio: 2, rol: "jefe" })
+        .mockResolvedValueOnce({ id_usuario: 8, id_negocio: 2, rol: "trabajador" });
+      (Usuario.findOne).mockResolvedValue({ id_usuario: 8, nombre_usuario: "user8", nombre: "User Ocho" });
+
+      const req = {
+        params: { id: "2" },
+        body: { id_usuario: 8, rol: "trabajador" },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await addUserToNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "El usuario ya tiene acceso a este negocio",
+      });
+    });
+
+    it("debería manejar errores del servidor", async () => {
+      (UsuarioNegocio.findOne).mockRejectedValue(new Error("DB error"));
+
+      const req = {
+        params: { id: "2" },
+        body: { id_usuario: 8, rol: "trabajador" },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+      await addUserToNegocio(req, res);
       consoleSpy.mockRestore();
 
       expect(res.status).toHaveBeenCalledWith(500);

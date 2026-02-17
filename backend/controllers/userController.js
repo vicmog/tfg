@@ -1,4 +1,5 @@
 import { Usuario } from "../models/Usuario.js";
+import { Op, fn, col, where } from "sequelize";
 import bcrypt from "bcrypt";
 
 export const getUserInfo = async (req, res) => {
@@ -23,7 +24,6 @@ export const getUserInfo = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
         return res.status(500).json({ message: "Error en el servidor" });
     }
 };
@@ -80,7 +80,36 @@ export const updateUser = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
+        return res.status(500).json({ message: "Error en el servidor" });
+    }
+};
+
+export const searchUsers = async (req, res) => {
+    const search = typeof req.query?.search === "string" ? req.query.search.trim() : "";
+    const searchLower = search.toLowerCase();
+
+    if (!search) {
+        return res.status(200).json({ usuarios: [] });
+    }
+
+    try {
+        const usuarios = await Usuario.findAll({
+            where: {
+                [Op.or]: [
+                    where(fn("lower", col("nombre")), { [Op.like]: `%${searchLower}%` }),
+                    where(fn("lower", col("nombre_usuario")), { [Op.like]: `%${searchLower}%` })
+                ]
+            }
+        });
+
+        const usuariosCompact = usuarios.map((usuario) => ({
+            id_usuario: usuario.id_usuario,
+            nombre_usuario: usuario.nombre_usuario,
+            nombre: usuario.nombre,
+        }));
+
+        return res.status(200).json({ usuarios: usuariosCompact });
+    } catch (error) {
         return res.status(500).json({ message: "Error en el servidor" });
     }
 };

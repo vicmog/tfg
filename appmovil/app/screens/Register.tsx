@@ -85,7 +85,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       }, 1500);
     } catch (error) {
       setError("No se pudo conectar con el servidor");
-      console.error(error);
     }
   };
 

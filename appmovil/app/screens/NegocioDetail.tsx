@@ -58,7 +58,6 @@ const NegocioDetail: React.FC<NegocioDetailProps> = ({ route, navigation }) => {
     );
 
     const handleModuloPress = (modulo: Modulo) => {
-        console.log(`Navegando a ${modulo.nombre}`);
     };
 
     if (loading) {

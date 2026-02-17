@@ -55,7 +55,6 @@ const PersonalDataEdit: React.FC<PersonalDataEditProps> = ({ navigation, route, 
         setDni(data.dni);
         setPhone(data.numero_telefono);
       } catch (error) {
-        console.error(error);
       }
     };
     loadUserData();
@@ -102,7 +101,6 @@ const PersonalDataEdit: React.FC<PersonalDataEditProps> = ({ navigation, route, 
         setNewPassword("");
       }
     } catch (error) {
-      console.error(error);
       setMessage("Error: No se pudo actualizar el usuario");
       setIsError(true);
     } finally {

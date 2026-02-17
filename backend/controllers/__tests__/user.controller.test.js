@@ -1,4 +1,4 @@
-import { getUserInfo, updateUser } from "../../controllers/userController.js";
+import { getUserInfo, updateUser, searchUsers } from "../../controllers/userController.js";
 import { Usuario } from "../../models/Usuario.js";
 import bcrypt from "bcrypt";
 
@@ -201,6 +201,45 @@ describe("User Controller", () => {
           numero_telefono: "600",
         }
       });
+    });
+  });
+
+  describe("searchUsers", () => {
+    it("should return empty list when search is empty", async () => {
+      req.query = { search: "" };
+
+      await searchUsers(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ usuarios: [] });
+    });
+
+    it("should return matching users", async () => {
+      req.query = { search: "ana" };
+      Usuario.findAll.mockResolvedValue([
+        { id_usuario: 1, nombre_usuario: "ana1", nombre: "Ana" },
+        { id_usuario: 2, nombre_usuario: "anabel", nombre: "Anabel" },
+      ]);
+
+      await searchUsers(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        usuarios: [
+          { id_usuario: 1, nombre_usuario: "ana1", nombre: "Ana" },
+          { id_usuario: 2, nombre_usuario: "anabel", nombre: "Anabel" },
+        ]
+      });
+    });
+
+    it("should handle server errors", async () => {
+      req.query = { search: "ana" };
+      Usuario.findAll.mockRejectedValue(new Error("DB error"));
+
+      await searchUsers(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ message: "Error en el servidor" });
     });
   });
 });

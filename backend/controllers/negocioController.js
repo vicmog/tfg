@@ -285,3 +285,70 @@ export const getUsersByNegocioId = async (req, res) => {
         return res.status(500).json({ message: "Error en el servidor" });
     }
 };
+
+export const addUserToNegocio = async (req, res) => {
+    const { id } = req.params;
+    const { id_usuario: targetUserId, rol } = req.body;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: "Usuario no autenticado" });
+    }
+
+    if (!targetUserId) {
+        return res.status(400).json({ message: "Falta el id del usuario" });
+    }
+
+    if (rol !== "trabajador" && rol !== "jefe") {
+        return res.status(400).json({ message: "Rol inválido" });
+    }
+
+    try {
+        const currentUser = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio: id }
+        });
+
+        if (!currentUser) {
+            return res.status(403).json({ message: "No tienes acceso a este negocio" });
+        }
+
+        if (currentUser.rol !== "jefe" && currentUser.rol !== "admin") {
+            return res.status(403).json({ message: "No tienes permisos para asignar usuarios" });
+        }
+
+        const targetUser = await Usuario.findOne({
+            where: { id_usuario: targetUserId }
+        });
+
+        if (!targetUser) {
+            return res.status(404).json({ message: "El usuario no existe" });
+        }
+
+        const existingAccess = await UsuarioNegocio.findOne({
+            where: { id_usuario: targetUserId, id_negocio: id }
+        });
+
+        if (existingAccess) {
+            return res.status(400).json({ message: "El usuario ya tiene acceso a este negocio" });
+        }
+
+        await UsuarioNegocio.create({
+            id_usuario: targetUserId,
+            id_negocio: id,
+            rol
+        });
+
+        return res.status(201).json({
+            message: "Usuario añadido correctamente",
+            usuario: {
+                id_usuario: targetUser.id_usuario,
+                nombre_usuario: targetUser.nombre_usuario,
+                nombre: targetUser.nombre,
+                rol
+            }
+        });
+    } catch (error) {
+        console.error("Error al asignar usuario:", error);
+        return res.status(500).json({ message: "Error en el servidor" });
+    }
+};
