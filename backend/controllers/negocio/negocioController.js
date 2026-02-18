@@ -359,3 +359,62 @@ export const addUserToNegocio = async (req, res) => {
         return res.status(500).json({ message: NEGOCIO_ERRORS.SERVER_ERROR });
     }
 };
+
+export const updateUserRoleInNegocio = async (req, res) => {
+    const { id } = req.params;
+    const { id_usuario: targetUserId, rol } = req.body;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: NEGOCIO_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (!targetUserId) {
+        return res.status(400).json({ message: NEGOCIO_ERRORS.USER_ID_REQUIRED });
+    }
+
+    if (rol !== NEGOCIO_ROLES.TRABAJADOR && rol !== NEGOCIO_ROLES.JEFE) {
+        return res.status(400).json({ message: NEGOCIO_ERRORS.INVALID_ROLE });
+    }
+
+    try {
+        const currentUser = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio: id }
+        });
+
+        if (!currentUser) {
+            return res.status(403).json({ message: NEGOCIO_ERRORS.NO_ACCESS });
+        }
+
+        if (currentUser.rol !== NEGOCIO_ROLES.JEFE && currentUser.rol !== NEGOCIO_ROLES.ADMIN) {
+            return res.status(403).json({ message: NEGOCIO_ERRORS.NO_EDIT_USER_ROLE_PERMISSION });
+        }
+
+        const targetAccess = await UsuarioNegocio.findOne({
+            where: { id_usuario: targetUserId, id_negocio: id }
+        });
+
+        if (!targetAccess) {
+            return res.status(404).json({ message: NEGOCIO_ERRORS.USER_ACCESS_NOT_FOUND });
+        }
+
+        if (targetAccess.rol === NEGOCIO_ROLES.ADMIN) {
+            return res.status(403).json({ message: NEGOCIO_ERRORS.CANNOT_EDIT_ADMIN_ROLE });
+        }
+
+        await targetAccess.update({ rol });
+
+        return res.status(200).json({
+            message: NEGOCIO_MESSAGES.USER_ROLE_UPDATED,
+            usuario: {
+                id_usuario: targetUserId,
+                nombre_usuario: targetAccess.nombre_usuario,
+                nombre: targetAccess.nombre,
+                rol,
+            }
+        });
+    } catch (error) {
+        console.error("Error al editar rol de usuario:", error);
+        return res.status(500).json({ message: NEGOCIO_ERRORS.SERVER_ERROR });
+    }
+};

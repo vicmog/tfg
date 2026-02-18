@@ -16,11 +16,17 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { UsuarioAcceso } from "../types";
 import {
+    ADMIN_ROLE,
+    CANNOT_EDIT_ADMIN_ROLE_MESSAGE,
     CONNECTION_ERROR,
     DEFAULT_FETCH_USERS_ERROR,
     DEFAULT_GRANT_ACCESS_ERROR,
     DEFAULT_SEARCH_USERS_ERROR,
+    DEFAULT_UPDATE_ROLE_ERROR,
+    JEFE_ROLE,
     SEARCH_DEBOUNCE_MS,
+    TRABAJADOR_ROLE,
+    negocioUserRoleByIdRoute,
     negocioUsersByIdRoute,
     searchUsersRoute,
 } from "./constants";
@@ -38,6 +44,13 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
     const [modalError, setModalError] = useState("");
     const [selectedRole, setSelectedRole] = useState<"trabajador" | "jefe">("trabajador");
     const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+    const [roleModalVisible, setRoleModalVisible] = useState(false);
+    const [selectedUserForRole, setSelectedUserForRole] = useState<UsuarioAcceso | null>(null);
+    const [roleToUpdate, setRoleToUpdate] = useState<"trabajador" | "jefe">("trabajador");
+    const [roleUpdateError, setRoleUpdateError] = useState("");
+    const [updatingRole, setUpdatingRole] = useState(false);
+
+    const canManageRoles = negocio.rol === JEFE_ROLE || negocio.rol === ADMIN_ROLE;
 
     const fetchUsuarios = useCallback(async () => {
         setLoading(true);
@@ -128,12 +141,12 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
         setSearchResults([]);
         setModalError("");
         setSelectedUserId(null);
-        setSelectedRole("trabajador");
+        setSelectedRole(TRABAJADOR_ROLE);
     };
 
     const handleGrantAccess = async () => {
         if (!selectedUserId) {
-            Alert.alert("Selecciona un usuario", "Elige un usuario para asignar acceso.");
+            setModalError("Selecciona un usuario.Elige un usuario para asignar acceso.");
             return;
         }
 
@@ -167,14 +180,80 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
         }
     };
 
+    const handleOpenRoleModal = (user: UsuarioAcceso) => {
+        if (user.rol === "admin") {
+            return;
+        }
+
+        setSelectedUserForRole(user);
+        setRoleToUpdate(user.rol === JEFE_ROLE ? JEFE_ROLE : TRABAJADOR_ROLE);
+        setRoleUpdateError("");
+        setRoleModalVisible(true);
+    };
+
+    const handleCloseRoleModal = () => {
+        setRoleModalVisible(false);
+        setSelectedUserForRole(null);
+        setRoleUpdateError("");
+        setUpdatingRole(false);
+    };
+
+    const handleUpdateRole = async () => {
+        if (!selectedUserForRole) {
+            return;
+        }
+
+        setUpdatingRole(true);
+        setRoleUpdateError("");
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(negocioUserRoleByIdRoute(negocio.id_negocio), {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    id_usuario: selectedUserForRole.id_usuario,
+                    rol: roleToUpdate,
+                }),
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setRoleUpdateError(data.message || DEFAULT_UPDATE_ROLE_ERROR);
+                setUpdatingRole(false);
+                return;
+            }
+
+            handleCloseRoleModal();
+            await fetchUsuarios();
+        } catch (error) {
+            setRoleUpdateError(CONNECTION_ERROR);
+            setUpdatingRole(false);
+        }
+    };
+
     const renderItem = ({ item }: { item: UsuarioAcceso }) => (
         <View style={styles.userCard} testID={`user-item-${item.id_usuario}`}>
             <View style={styles.userInfo}>
                 <Text style={styles.userName}>{item.nombre}</Text>
                 <Text style={styles.userUsername}>@{item.nombre_usuario}</Text>
             </View>
-            <View style={styles.roleBadge}>
-                <Text style={styles.roleText}>{item.rol}</Text>
+            <View style={styles.userActionsContainer}>
+                <View style={styles.roleBadge}>
+                    <Text style={styles.roleText}>{item.rol}</Text>
+                </View>
+                {canManageRoles && item.rol !== "admin" ? (
+                    <TouchableOpacity
+                        style={styles.editRoleButton}
+                        onPress={() => handleOpenRoleModal(item)}
+                        testID={`change-role-button-${item.id_usuario}`}
+                    >
+                        <MaterialIcons name="manage-accounts" size={16} color="#1976D2" />
+                    </TouchableOpacity>
+                ) : null}
             </View>
         </View>
     );
@@ -354,6 +433,80 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
                     </View>
                 </View>
             </Modal>
+
+            <Modal
+                visible={roleModalVisible}
+                animationType="fade"
+                transparent
+                onRequestClose={handleCloseRoleModal}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.roleModalContent}>
+                        <Text style={styles.modalTitle}>Editar rol</Text>
+                        <Text style={styles.roleModalSubtitle}>
+                            {selectedUserForRole ? `${selectedUserForRole.nombre} (@${selectedUserForRole.nombre_usuario})` : ""}
+                        </Text>
+
+                        <View style={styles.roleSelector}>
+                            <TouchableOpacity
+                                style={[
+                                    styles.roleOption,
+                                    roleToUpdate === "trabajador" && styles.roleOptionActive,
+                                ]}
+                                onPress={() => setRoleToUpdate("trabajador")}
+                                testID="edit-role-trabajador-button"
+                            >
+                                <Text
+                                    style={[
+                                        styles.roleOptionText,
+                                        roleToUpdate === "trabajador" && styles.roleOptionTextActive,
+                                    ]}
+                                >
+                                    trabajador
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[
+                                    styles.roleOption,
+                                    roleToUpdate === "jefe" && styles.roleOptionActive,
+                                ]}
+                                onPress={() => setRoleToUpdate("jefe")}
+                                testID="edit-role-jefe-button"
+                            >
+                                <Text
+                                    style={[
+                                        styles.roleOptionText,
+                                        roleToUpdate === "jefe" && styles.roleOptionTextActive,
+                                    ]}
+                                >
+                                    jefe
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {roleUpdateError ? <Text style={styles.modalError}>{roleUpdateError}</Text> : null}
+
+                        <View style={styles.roleModalActions}>
+                            <TouchableOpacity
+                                style={styles.cancelRoleButton}
+                                onPress={handleCloseRoleModal}
+                                testID="cancel-edit-role-button"
+                            >
+                                <Text style={styles.cancelRoleButtonText}>Cancelar</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.confirmRoleButton}
+                                onPress={handleUpdateRole}
+                                disabled={updatingRole}
+                                testID="confirm-edit-role-button"
+                            >
+                                <Text style={styles.confirmRoleButtonText}>{updatingRole ? "Guardando..." : "Guardar rol"}</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -480,6 +633,22 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         fontSize: 12,
         textTransform: "capitalize",
+    },
+    userActionsContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        marginLeft: 12,
+    },
+    editRoleButton: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        borderWidth: 1,
+        borderColor: "#bfdbfe",
+        backgroundColor: "#eff6ff",
+        justifyContent: "center",
+        alignItems: "center",
     },
     modalOverlay: {
         flex: 1,
@@ -616,5 +785,44 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontWeight: "700",
         fontSize: 15,
+    },
+    roleModalContent: {
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        padding: 20,
+        width: "100%",
+        maxWidth: 360,
+    },
+    roleModalSubtitle: {
+        color: "#6b7280",
+        marginTop: 4,
+        marginBottom: 12,
+        fontSize: 13,
+    },
+    roleModalActions: {
+        flexDirection: "row",
+        justifyContent: "flex-end",
+        gap: 10,
+        marginTop: 8,
+    },
+    cancelRoleButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        backgroundColor: "#f3f4f6",
+    },
+    cancelRoleButtonText: {
+        color: "#374151",
+        fontWeight: "600",
+    },
+    confirmRoleButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        backgroundColor: "#1976D2",
+    },
+    confirmRoleButtonText: {
+        color: "#fff",
+        fontWeight: "700",
     },
 });

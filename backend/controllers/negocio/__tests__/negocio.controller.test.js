@@ -1,4 +1,4 @@
-import { createNegocio, getNegocios, getNegocioById, updateNegocio, deleteNegocio, getUsersByNegocioId, addUserToNegocio } from "../negocioController.js";
+import { createNegocio, getNegocios, getNegocioById, updateNegocio, deleteNegocio, getUsersByNegocioId, addUserToNegocio, updateUserRoleInNegocio } from "../negocioController.js";
 import { Negocio } from "../../../models/Negocio.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
 import { Usuario } from "../../../models/Usuario.js";
@@ -1066,6 +1066,122 @@ describe("NegocioController Unit Tests", () => {
       expect(res.status).toHaveBeenCalledWith(500);
       expect(jsonMock).toHaveBeenCalledWith({
         message: "Error en el servidor",
+      });
+    });
+  });
+
+  describe("updateUserRoleInNegocio", () => {
+    it("debería actualizar el rol de un usuario con acceso", async () => {
+      const targetAccess = {
+        id_usuario: 8,
+        id_negocio: 2,
+        rol: "trabajador",
+        update: jest.fn().mockResolvedValue(true),
+      };
+
+      (UsuarioNegocio.findOne)
+        .mockResolvedValueOnce({ id_usuario: 1, id_negocio: 2, rol: "jefe" })
+        .mockResolvedValueOnce(targetAccess);
+
+      (Usuario.findOne).mockResolvedValue({
+        id_usuario: 8,
+        nombre_usuario: "user8",
+        nombre: "User Ocho",
+      });
+
+      const req = {
+        params: { id: "2" },
+        body: { id_usuario: 8, rol: "jefe" },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await updateUserRoleInNegocio(req, res);
+
+      expect(targetAccess.update).toHaveBeenCalledWith({ rol: "jefe" });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Rol actualizado correctamente",
+        usuario: {
+          id_usuario: 8,
+          nombre_usuario: "user8",
+          nombre: "User Ocho",
+          rol: "jefe",
+        },
+      });
+    });
+
+    it("debería fallar si el solicitante no es jefe/admin", async () => {
+      (UsuarioNegocio.findOne).mockResolvedValueOnce({ id_usuario: 3, id_negocio: 2, rol: "trabajador" });
+
+      const req = {
+        params: { id: "2" },
+        body: { id_usuario: 8, rol: "jefe" },
+        user: { id_usuario: 3 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await updateUserRoleInNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "No tienes permisos para editar roles de usuarios",
+      });
+    });
+
+    it("debería fallar si el usuario objetivo no tiene acceso al negocio", async () => {
+      (UsuarioNegocio.findOne)
+        .mockResolvedValueOnce({ id_usuario: 1, id_negocio: 2, rol: "admin" })
+        .mockResolvedValueOnce(null);
+
+      const req = {
+        params: { id: "2" },
+        body: { id_usuario: 9, rol: "trabajador" },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await updateUserRoleInNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "El usuario no tiene acceso a este negocio",
+      });
+    });
+
+    it("debería fallar si se intenta editar un administrador", async () => {
+      (UsuarioNegocio.findOne)
+        .mockResolvedValueOnce({ id_usuario: 1, id_negocio: 2, rol: "admin" })
+        .mockResolvedValueOnce({ id_usuario: 8, id_negocio: 2, rol: "admin" });
+
+      const req = {
+        params: { id: "2" },
+        body: { id_usuario: 8, rol: "jefe" },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await updateUserRoleInNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "No se puede modificar el rol de un administrador",
       });
     });
   });

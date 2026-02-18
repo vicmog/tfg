@@ -10,6 +10,7 @@ export const API_ROUTES = {
   negocios: `${API_BASE_URL}${API_PREFIX}/negocios`,
   negocioById: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/negocios/${idNegocio}`,
   negocioUsersById: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/negocios/users/${idNegocio}`,
+  putNegocioUserRoleById: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/negocios/users/${idNegocio}`,
   users: `${API_BASE_URL}${API_PREFIX}/users`,
   userById: (idUsuario: string | number) => `${API_BASE_URL}${API_PREFIX}/users/user/${idUsuario}`,
 } as const;

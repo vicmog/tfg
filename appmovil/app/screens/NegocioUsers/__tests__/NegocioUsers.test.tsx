@@ -193,4 +193,62 @@ describe("NegocioUsers", () => {
             );
         });
     });
+
+    it("permite cambiar rol desde la lista y refresca usuarios", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    usuarios: [
+                        { id_usuario: 10, nombre_usuario: "user10", nombre: "Usuario 10", rol: "trabajador" },
+                    ],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    message: "Rol actualizado correctamente",
+                    usuario: { id_usuario: 10, rol: "jefe" },
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    usuarios: [
+                        { id_usuario: 10, nombre_usuario: "user10", nombre: "Usuario 10", rol: "jefe" },
+                    ],
+                }),
+            });
+
+        const { getByTestId } = render(
+            <NegocioUsers navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("change-role-button-10")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("change-role-button-10"));
+        fireEvent.press(getByTestId("edit-role-jefe-button"));
+        fireEvent.press(getByTestId("confirm-edit-role-button"));
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.putNegocioUserRoleById(2),
+                expect.objectContaining({
+                    method: "PUT",
+                    body: JSON.stringify({ id_usuario: 10, rol: "jefe" }),
+                })
+            );
+        });
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.negocioUsersById(2),
+                expect.objectContaining({
+                    headers: { Authorization: "Bearer mock-token" },
+                })
+            );
+        });
+    });
 });
