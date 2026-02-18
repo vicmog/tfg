@@ -16,16 +16,28 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { UsuarioAcceso } from "../types";
 import {
+    ADD_BUTTON_TEXT,
     ADMIN_ROLE,
+    ARROBA_SYMBOL,
+    CANCEL_BUTTON_TEXT,
     CANNOT_EDIT_ADMIN_ROLE_MESSAGE,
     CONNECTION_ERROR,
     DEFAULT_FETCH_USERS_ERROR,
     DEFAULT_GRANT_ACCESS_ERROR,
     DEFAULT_SEARCH_USERS_ERROR,
     DEFAULT_UPDATE_ROLE_ERROR,
+    ERR_NO_SELECTED,
+    GRANT_ACCESS_TITLE,
     JEFE_ROLE,
+    LOADING_USERS_TEXT,
+    NEGOCIO_LABEL,
+    NO_AVALIABLE_USERS_TEXT,
+    NO_RESULTS_TEXT,
+    SAVE_ROLE_BUTTON_TEXT,
+    SAVING_TEXT,
     SEARCH_DEBOUNCE_MS,
     TRABAJADOR_ROLE,
+    USER_WITH_ACCESS,
     negocioUserRoleByIdRoute,
     negocioUsersByIdRoute,
     searchUsersRoute,
@@ -146,7 +158,7 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
 
     const handleGrantAccess = async () => {
         if (!selectedUserId) {
-            setModalError("Selecciona un usuario.Elige un usuario para asignar acceso.");
+            setModalError(ERR_NO_SELECTED);
             return;
         }
 
@@ -181,7 +193,7 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
     };
 
     const handleOpenRoleModal = (user: UsuarioAcceso) => {
-        if (user.rol === "admin") {
+        if (user.rol === ADMIN_ROLE) {
             return;
         }
 
@@ -245,7 +257,7 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
                 <View style={styles.roleBadge}>
                     <Text style={styles.roleText}>{item.rol}</Text>
                 </View>
-                {canManageRoles && item.rol !== "admin" ? (
+                {canManageRoles && item.rol !== ADMIN_ROLE ? (
                     <TouchableOpacity
                         style={styles.editRoleButton}
                         onPress={() => handleOpenRoleModal(item)}
@@ -270,26 +282,26 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
                 >
                     <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Usuarios con acceso</Text>
+                <Text style={styles.headerTitle}>{USER_WITH_ACCESS}</Text>
                 <TouchableOpacity
                     style={styles.addButton}
                     onPress={handleAddUser}
                     testID="add-user-button"
                 >
                     <MaterialIcons name="person-add" size={20} color="#fff" />
-                    <Text style={styles.addButtonText}>Añadir</Text>
+                    <Text style={styles.addButtonText}>{ADD_BUTTON_TEXT}</Text>
                 </TouchableOpacity>
             </View>
 
             <View style={styles.content}>
                 <Text style={styles.subtitle}>
-                    Negocio: {negocio.nombre}
+                     {NEGOCIO_LABEL} {negocio.nombre}
                 </Text>
 
                 {loading ? (
                     <View style={styles.loadingContainer}>
                         <ActivityIndicator size="large" color="#1976D2" />
-                        <Text style={styles.loadingText}>Cargando usuarios...</Text>
+                        <Text style={styles.loadingText}>{LOADING_USERS_TEXT}</Text>
                     </View>
                 ) : error ? (
                     <View style={styles.emptyContainer}>
@@ -297,7 +309,7 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
                     </View>
                 ) : usuarios.length === 0 ? (
                     <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>No hay usuarios con acceso</Text>
+                        <Text style={styles.emptyText}>{NO_AVALIABLE_USERS_TEXT}</Text>
                     </View>
                 ) : (
                     <FlatList
@@ -318,7 +330,7 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Dar permiso a usuario</Text>
+                            <Text style={styles.modalTitle}>{GRANT_ACCESS_TITLE}</Text>
                             <TouchableOpacity
                                 style={styles.modalCloseButton}
                                 onPress={handleCloseModal}
@@ -341,15 +353,15 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
                             <TouchableOpacity
                                 style={[
                                     styles.roleOption,
-                                    selectedRole === "trabajador" && styles.roleOptionActive,
+                                    selectedRole === TRABAJADOR_ROLE && styles.roleOptionActive,
                                 ]}
-                                onPress={() => setSelectedRole("trabajador")}
+                                onPress={() => setSelectedRole(TRABAJADOR_ROLE)}
                                 testID="role-trabajador-button"
                             >
                                 <Text
                                     style={[
                                         styles.roleOptionText,
-                                        selectedRole === "trabajador" && styles.roleOptionTextActive,
+                                        selectedRole === TRABAJADOR_ROLE && styles.roleOptionTextActive,
                                     ]}
                                 >
                                     trabajador
@@ -358,15 +370,15 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
                             <TouchableOpacity
                                 style={[
                                     styles.roleOption,
-                                    selectedRole === "jefe" && styles.roleOptionActive,
+                                    selectedRole === JEFE_ROLE && styles.roleOptionActive,
                                 ]}
-                                onPress={() => setSelectedRole("jefe")}
+                                onPress={() => setSelectedRole(JEFE_ROLE)}
                                 testID="role-jefe-button"
                             >
                                 <Text
                                     style={[
                                         styles.roleOptionText,
-                                        selectedRole === "jefe" && styles.roleOptionTextActive,
+                                        selectedRole === JEFE_ROLE && styles.roleOptionTextActive,
                                     ]}
                                 >
                                     jefe
@@ -384,7 +396,7 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
                                     <ActivityIndicator size="small" color="#1976D2" />
                                 </View>
                             ) : searchResults.length === 0 ? (
-                                <Text style={styles.emptySearchText}>Sin resultados</Text>
+                                <Text style={styles.emptySearchText}>{NO_RESULTS_TEXT}</Text>
                             ) : (
                                 <ScrollView>
                                     {searchResults.map((user) => {
@@ -408,7 +420,7 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
                                             >
                                                 <View>
                                                     <Text style={styles.searchResultName}>{user.nombre}</Text>
-                                                    <Text style={styles.searchResultUsername}>@{user.nombre_usuario}</Text>
+                                                    <Text style={styles.searchResultUsername}>{ARROBA_SYMBOL}{user.nombre_usuario}</Text>
                                                     {alreadyAdded ? (
                                                         <Text style={styles.searchResultHint}>Ya tiene acceso</Text>
                                                     ) : null}
@@ -444,22 +456,22 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
                     <View style={styles.roleModalContent}>
                         <Text style={styles.modalTitle}>Editar rol</Text>
                         <Text style={styles.roleModalSubtitle}>
-                            {selectedUserForRole ? `${selectedUserForRole.nombre} (@${selectedUserForRole.nombre_usuario})` : ""}
+                            {selectedUserForRole ? `${selectedUserForRole.nombre} (${ARROBA_SYMBOL}${selectedUserForRole.nombre_usuario})` : ""}
                         </Text>
 
                         <View style={styles.roleSelector}>
                             <TouchableOpacity
                                 style={[
                                     styles.roleOption,
-                                    roleToUpdate === "trabajador" && styles.roleOptionActive,
+                                    roleToUpdate === TRABAJADOR_ROLE && styles.roleOptionActive,
                                 ]}
-                                onPress={() => setRoleToUpdate("trabajador")}
+                                onPress={() => setRoleToUpdate(TRABAJADOR_ROLE)}
                                 testID="edit-role-trabajador-button"
                             >
                                 <Text
                                     style={[
                                         styles.roleOptionText,
-                                        roleToUpdate === "trabajador" && styles.roleOptionTextActive,
+                                        roleToUpdate === TRABAJADOR_ROLE && styles.roleOptionTextActive,
                                     ]}
                                 >
                                     trabajador
@@ -468,18 +480,18 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
                             <TouchableOpacity
                                 style={[
                                     styles.roleOption,
-                                    roleToUpdate === "jefe" && styles.roleOptionActive,
+                                    roleToUpdate === JEFE_ROLE && styles.roleOptionActive,
                                 ]}
-                                onPress={() => setRoleToUpdate("jefe")}
+                                onPress={() => setRoleToUpdate(JEFE_ROLE)}
                                 testID="edit-role-jefe-button"
                             >
                                 <Text
                                     style={[
                                         styles.roleOptionText,
-                                        roleToUpdate === "jefe" && styles.roleOptionTextActive,
+                                        roleToUpdate === JEFE_ROLE && styles.roleOptionTextActive,
                                     ]}
                                 >
-                                    jefe
+                                    {JEFE_ROLE}
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -492,7 +504,7 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
                                 onPress={handleCloseRoleModal}
                                 testID="cancel-edit-role-button"
                             >
-                                <Text style={styles.cancelRoleButtonText}>Cancelar</Text>
+                                <Text style={styles.cancelRoleButtonText}>{CANCEL_BUTTON_TEXT}</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
@@ -501,7 +513,7 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
                                 disabled={updatingRole}
                                 testID="confirm-edit-role-button"
                             >
-                                <Text style={styles.confirmRoleButtonText}>{updatingRole ? "Guardando..." : "Guardar rol"}</Text>
+                                <Text style={styles.confirmRoleButtonText}>{updatingRole ? SAVING_TEXT : SAVE_ROLE_BUTTON_TEXT}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
