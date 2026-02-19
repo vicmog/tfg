@@ -295,7 +295,7 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
         return (
         <View style={styles.userCard} testID={`user-item-${item.id_usuario}`}>
             <View style={styles.userInfo}>
-                <Text style={styles.userName}>{item.nombre}</Text>
+                <Text style={item.id_usuario === currentUserId ? styles.currentUserText : styles.userName}>{item.nombre}</Text>
                 <Text style={styles.userUsername}>@{item.nombre_usuario}</Text>
             </View>
             <View style={styles.userActionsContainer}>
@@ -901,5 +901,10 @@ const styles = StyleSheet.create({
     confirmRoleButtonText: {
         color: "#fff",
         fontWeight: "700",
+    },
+    currentUserText: {
+        fontSize: 20,
+        fontWeight: "700",
+        color: "#000000",
     },
 });
