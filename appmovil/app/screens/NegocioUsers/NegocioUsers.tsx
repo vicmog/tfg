@@ -63,6 +63,7 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
     const [roleToUpdate, setRoleToUpdate] = useState<"trabajador" | "jefe">("trabajador");
     const [roleUpdateError, setRoleUpdateError] = useState("");
     const [updatingRole, setUpdatingRole] = useState(false);
+    const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 
     const canManageRoles = negocio.rol === JEFE_ROLE || negocio.rol === ADMIN_ROLE;
 
@@ -99,6 +100,17 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
             fetchUsuarios();
         }, [fetchUsuarios])
     );
+
+    useEffect(() => {
+        const loadCurrentUser = async () => {
+            const storedUserId = await AsyncStorage.getItem("id_usuario");
+            if (storedUserId) {
+                setCurrentUserId(Number(storedUserId));
+            }
+        };
+
+        loadCurrentUser();
+    }, []);
 
     useEffect(() => {
         if (!modalVisible) {
@@ -277,7 +289,10 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
         }
     };
 
-    const renderItem = ({ item }: { item: UsuarioAcceso }) => (
+    const renderItem = ({ item }: { item: UsuarioAcceso }) => {
+        const canDeleteAccess = canManageRoles && item.rol !== ADMIN_ROLE && item.id_usuario !== currentUserId;
+
+        return (
         <View style={styles.userCard} testID={`user-item-${item.id_usuario}`}>
             <View style={styles.userInfo}>
                 <Text style={styles.userName}>{item.nombre}</Text>
@@ -295,17 +310,20 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
                     >
                         <MaterialIcons name="manage-accounts" size={16} color="#1976D2" />
                     </TouchableOpacity>
+                    {canDeleteAccess ? (
                         <TouchableOpacity
                             style={styles.deleteRoleButton}
                             onPress={() => handleDeleteAccess(item)}
                             testID={`delete-access-button-${item.id_usuario}`}
                         >
                             <MaterialIcons name="delete" size={16} color="#f44336" />
-                        </TouchableOpacity></>
+                        </TouchableOpacity>
+                    ) : null}</>
                 ) : null}
             </View>
         </View>
-    );
+        );
+    };
 
     const existingUserIds = new Set(usuarios.map((user) => user.id_usuario));
 

@@ -1076,6 +1076,8 @@ describe("NegocioController Unit Tests", () => {
         id_usuario: 8,
         id_negocio: 2,
         rol: "trabajador",
+        nombre_usuario: "user8",
+        nombre: "User Ocho",
         update: jest.fn().mockResolvedValue(true),
       };
 
@@ -1187,6 +1189,28 @@ describe("NegocioController Unit Tests", () => {
   });
 
   describe("removeUserFromNegocio", () => {
+    it("debería fallar si intenta eliminar sus propios permisos", async () => {
+      const req = {
+        params: { id: "2" },
+        body: { id_usuario: 1 },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await removeUserFromNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "No te puedes eliminar tus propios permisos",
+      });
+      expect(UsuarioNegocio.findOne).not.toHaveBeenCalled();
+      expect(UsuarioNegocio.destroy).not.toHaveBeenCalled();
+    });
+
     it("debería eliminar el acceso de un usuario", async () => {
       (UsuarioNegocio.findOne)
         .mockResolvedValueOnce({ id_usuario: 1, id_negocio: 2, rol: "jefe" })
@@ -1207,7 +1231,7 @@ describe("NegocioController Unit Tests", () => {
       await removeUserFromNegocio(req, res);
 
       expect(UsuarioNegocio.destroy).toHaveBeenCalledWith({
-        where: { id_usuario: 8, id_negocio: 2 },
+        where: { id_usuario: 8, id_negocio: "2" },
       });
       expect(res.status).toHaveBeenCalledWith(200);
       expect(jsonMock).toHaveBeenCalledWith({

@@ -17,6 +17,7 @@ export const NEGOCIO_ERRORS = {
   USER_ALREADY_HAS_ACCESS: "El usuario ya tiene acceso a este negocio",
   CANNOT_EDIT_ADMIN_ROLE: "No se puede modificar el rol de un administrador",
   CANNOT_REMOVE_ADMIN_ACCESS: "No se puede eliminar el acceso de un administrador",
+  CANNOT_REMOVE_OWN_ACCESS: "No te puedes eliminar tus propios permisos",
   NEGOCIO_NOT_FOUND: "Negocio no encontrado",
   SERVER_ERROR: "Error en el servidor",
 };

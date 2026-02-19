@@ -433,6 +433,10 @@ export const removeUserFromNegocio = async (req, res) => {
         return res.status(400).json({ message: NEGOCIO_ERRORS.USER_ID_REQUIRED });
     }
 
+    if (Number(targetUserId) === Number(id_usuario)) {
+        return res.status(403).json({ message: NEGOCIO_ERRORS.CANNOT_REMOVE_OWN_ACCESS });
+    }
+
     try {
         const currentUser = await UsuarioNegocio.findOne({
             where: { id_usuario, id_negocio: id }

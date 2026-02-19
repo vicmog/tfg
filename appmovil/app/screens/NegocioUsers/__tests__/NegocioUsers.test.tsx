@@ -1,5 +1,6 @@
 import React from "react";
 import { render, fireEvent, waitFor, act } from "@testing-library/react-native";
+import { Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NegocioUsers from "../NegocioUsers";
 import { API_ROUTES } from "@/app/constants/apiRoutes";
@@ -34,7 +35,17 @@ global.fetch = jest.fn();
 describe("NegocioUsers", () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        (AsyncStorage.getItem as jest.Mock).mockResolvedValue("mock-token");
+        (AsyncStorage.getItem as jest.Mock).mockImplementation((key: string) => {
+            if (key === "token") {
+                return Promise.resolve("mock-token");
+            }
+
+            if (key === "id_usuario") {
+                return Promise.resolve("1");
+            }
+
+            return Promise.resolve(null);
+        });
     });
 
     afterEach(() => {
@@ -253,6 +264,12 @@ describe("NegocioUsers", () => {
     });
 
     it("permite eliminar acceso desde la lista y refresca usuarios", async () => {
+        const alertSpy = jest.spyOn(Alert, "alert").mockImplementation((title, message, buttons) => {
+            const confirmButton = (buttons as any[])?.find((button) => button?.style === "destructive");
+            if (confirmButton?.onPress) {
+                confirmButton.onPress();
+            }
+        });
 
         (fetch as jest.Mock)
             .mockResolvedValueOnce({
@@ -300,5 +317,34 @@ describe("NegocioUsers", () => {
                 })
             );
         });
+
+        alertSpy.mockRestore();
+    });
+
+    it("no muestra botón eliminar para el usuario actual ni para admin", async () => {
+        (fetch as jest.Mock).mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+                usuarios: [
+                    { id_usuario: 1, nombre_usuario: "yo", nombre: "Yo", rol: "jefe" },
+                    { id_usuario: 2, nombre_usuario: "admin", nombre: "Admin", rol: "admin" },
+                    { id_usuario: 10, nombre_usuario: "user10", nombre: "Usuario 10", rol: "trabajador" },
+                ],
+            }),
+        });
+
+        const { queryByTestId, getByTestId } = render(
+            <NegocioUsers navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("user-item-1")).toBeTruthy();
+            expect(getByTestId("user-item-2")).toBeTruthy();
+            expect(getByTestId("user-item-10")).toBeTruthy();
+        });
+
+        expect(queryByTestId("delete-access-button-1")).toBeNull();
+        expect(queryByTestId("delete-access-button-2")).toBeNull();
+        expect(queryByTestId("delete-access-button-10")).toBeTruthy();
     });
 });
