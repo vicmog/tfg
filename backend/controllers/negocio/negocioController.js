@@ -418,3 +418,54 @@ export const updateUserRoleInNegocio = async (req, res) => {
         return res.status(500).json({ message: NEGOCIO_ERRORS.SERVER_ERROR });
     }
 };
+
+
+export const removeUserFromNegocio = async (req, res) => {
+    const { id } = req.params;
+    const { id_usuario: targetUserId } = req.body;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: NEGOCIO_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (!targetUserId) {
+        return res.status(400).json({ message: NEGOCIO_ERRORS.USER_ID_REQUIRED });
+    }
+
+    try {
+        const currentUser = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio: id }
+        });
+
+        if (!currentUser) {
+            return res.status(403).json({ message: NEGOCIO_ERRORS.NO_ACCESS });
+        }
+
+        if (currentUser.rol !== NEGOCIO_ROLES.JEFE && currentUser.rol !== NEGOCIO_ROLES.ADMIN) {
+            return res.status(403).json({ message: NEGOCIO_ERRORS.NO_REMOVE_USER_PERMISSION });
+        }
+
+        const targetAccess = await UsuarioNegocio.findOne({
+            where: { id_usuario: targetUserId, id_negocio: id }
+        });
+
+        if (!targetAccess) {
+            return res.status(404).json({ message: NEGOCIO_ERRORS.USER_ACCESS_NOT_FOUND });
+        }
+
+        if (targetAccess.rol === NEGOCIO_ROLES.ADMIN) {
+            return res.status(403).json({ message: NEGOCIO_ERRORS.CANNOT_REMOVE_ADMIN_ACCESS });
+        }
+
+        await UsuarioNegocio.destroy({
+            where: { id_usuario: targetUserId, id_negocio: id }
+        });
+
+        return res.status(200).json({ message: NEGOCIO_MESSAGES.USER_REMOVED });
+    } catch (error) {
+        console.error("Error al eliminar acceso de usuario:", error);
+        return res.status(500).json({ message: NEGOCIO_ERRORS.SERVER_ERROR });
+    }
+};
+

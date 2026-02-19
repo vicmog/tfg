@@ -23,6 +23,7 @@ import {
     CANNOT_EDIT_ADMIN_ROLE_MESSAGE,
     CONNECTION_ERROR,
     DEFAULT_FETCH_USERS_ERROR,
+    DEFAULT_DELETE_ACCESS_ERROR,
     DEFAULT_GRANT_ACCESS_ERROR,
     DEFAULT_SEARCH_USERS_ERROR,
     DEFAULT_UPDATE_ROLE_ERROR,
@@ -39,6 +40,7 @@ import {
     TRABAJADOR_ROLE,
     USER_WITH_ACCESS,
     negocioUserRoleByIdRoute,
+    negocioDeleteUserByIdRoute,
     negocioUsersByIdRoute,
     searchUsersRoute,
 } from "./constants";
@@ -156,6 +158,34 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
         setSelectedRole(TRABAJADOR_ROLE);
     };
 
+    const handleDeleteAccess = async (user: UsuarioAcceso) => {
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(
+                negocioDeleteUserByIdRoute(negocio.id_negocio),
+                {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                        id_usuario: user.id_usuario,
+                    }),
+                }
+            );
+
+            if (response.ok) {
+                await fetchUsuarios();
+            } else {
+                const data = await response.json();
+                setError(data.message || DEFAULT_DELETE_ACCESS_ERROR);
+            }
+        } catch (err) {
+            setError(CONNECTION_ERROR);
+        }
+    };
+
     const handleGrantAccess = async () => {
         if (!selectedUserId) {
             setModalError(ERR_NO_SELECTED);
@@ -258,13 +288,20 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
                     <Text style={styles.roleText}>{item.rol}</Text>
                 </View>
                 {canManageRoles && item.rol !== ADMIN_ROLE ? (
-                    <TouchableOpacity
+                    <><TouchableOpacity
                         style={styles.editRoleButton}
                         onPress={() => handleOpenRoleModal(item)}
                         testID={`change-role-button-${item.id_usuario}`}
                     >
                         <MaterialIcons name="manage-accounts" size={16} color="#1976D2" />
                     </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.deleteRoleButton}
+                            onPress={() => handleDeleteAccess(item)}
+                            testID={`delete-access-button-${item.id_usuario}`}
+                        >
+                            <MaterialIcons name="delete" size={16} color="#f44336" />
+                        </TouchableOpacity></>
                 ) : null}
             </View>
         </View>
@@ -295,7 +332,7 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
 
             <View style={styles.content}>
                 <Text style={styles.subtitle}>
-                     {NEGOCIO_LABEL} {negocio.nombre}
+                    {NEGOCIO_LABEL} {negocio.nombre}
                 </Text>
 
                 {loading ? (
@@ -540,6 +577,16 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         borderBottomWidth: 1,
         borderBottomColor: "#e5e7eb",
+    },
+    deleteRoleButton: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        borderWidth: 1,
+        borderColor: "#f44336",
+        backgroundColor: "#ffebee",
+        justifyContent: "center",
+        alignItems: "center",
     },
     iconButton: {
         padding: 8,

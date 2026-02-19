@@ -1,4 +1,4 @@
-import { createNegocio, getNegocios, getNegocioById, updateNegocio, deleteNegocio, getUsersByNegocioId, addUserToNegocio, updateUserRoleInNegocio } from "../negocioController.js";
+import { createNegocio, getNegocios, getNegocioById, updateNegocio, deleteNegocio, getUsersByNegocioId, addUserToNegocio, updateUserRoleInNegocio, removeUserFromNegocio } from "../negocioController.js";
 import { Negocio } from "../../../models/Negocio.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
 import { Usuario } from "../../../models/Usuario.js";
@@ -1182,6 +1182,106 @@ describe("NegocioController Unit Tests", () => {
       expect(res.status).toHaveBeenCalledWith(403);
       expect(jsonMock).toHaveBeenCalledWith({
         message: "No se puede modificar el rol de un administrador",
+      });
+    });
+  });
+
+  describe("removeUserFromNegocio", () => {
+    it("debería eliminar el acceso de un usuario", async () => {
+      (UsuarioNegocio.findOne)
+        .mockResolvedValueOnce({ id_usuario: 1, id_negocio: 2, rol: "jefe" })
+        .mockResolvedValueOnce({ id_usuario: 8, id_negocio: 2, rol: "trabajador" });
+      (UsuarioNegocio.destroy).mockResolvedValue(1);
+
+      const req = {
+        params: { id: "2" },
+        body: { id_usuario: 8 },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await removeUserFromNegocio(req, res);
+
+      expect(UsuarioNegocio.destroy).toHaveBeenCalledWith({
+        where: { id_usuario: 8, id_negocio: 2 },
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Acceso de usuario eliminado correctamente",
+      });
+    });
+
+    it("debería fallar si el solicitante no es jefe/admin", async () => {
+      (UsuarioNegocio.findOne).mockResolvedValueOnce({ id_usuario: 3, id_negocio: 2, rol: "trabajador" });
+
+      const req = {
+        params: { id: "2" },
+        body: { id_usuario: 8 },
+        user: { id_usuario: 3 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await removeUserFromNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "No tienes permisos para eliminar usuarios",
+      });
+    });
+
+    it("debería fallar si se intenta eliminar a un administrador", async () => {
+      (UsuarioNegocio.findOne)
+        .mockResolvedValueOnce({ id_usuario: 1, id_negocio: 2, rol: "admin" })
+        .mockResolvedValueOnce({ id_usuario: 8, id_negocio: 2, rol: "admin" });
+
+      const req = {
+        params: { id: 2 },
+        body: { id_usuario: 8 },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await removeUserFromNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "No se puede eliminar el acceso de un administrador",
+      });
+    });
+
+    it("debería fallar si el usuario objetivo no tiene acceso", async () => {
+      (UsuarioNegocio.findOne)
+        .mockResolvedValueOnce({ id_usuario: 1, id_negocio: 2, rol: "jefe" })
+        .mockResolvedValueOnce(null);
+
+      const req = {
+        params: { id: 2 },
+        body: { id_usuario: 99 },
+        user: { id_usuario: 1 },
+      };
+
+      const jsonMock = jest.fn();
+      const res = {
+        status: jest.fn(() => ({ json: jsonMock })),
+      };
+
+      await removeUserFromNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "El usuario no tiene acceso a este negocio",
       });
     });
   });

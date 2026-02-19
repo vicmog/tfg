@@ -1,5 +1,5 @@
 import express from "express";
-import { createNegocio, getNegocios, getNegocioById, updateNegocio, deleteNegocio, getUsersByNegocioId, addUserToNegocio, updateUserRoleInNegocio } from "../controllers/negocio/negocioController.js";
+import { createNegocio, getNegocios, getNegocioById, updateNegocio, deleteNegocio, getUsersByNegocioId, addUserToNegocio, updateUserRoleInNegocio, removeUserFromNegocio } from "../controllers/negocio/negocioController.js";
 import { authenticateToken } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
@@ -9,6 +9,7 @@ router.get("/", authenticateToken, getNegocios);
 router.get("/users/:id", authenticateToken, getUsersByNegocioId);
 router.post("/users/:id", authenticateToken, addUserToNegocio);
 router.put("/users/:id", authenticateToken, updateUserRoleInNegocio);
+router.delete("/users/:id", authenticateToken, removeUserFromNegocio);
 router.get("/:id", authenticateToken, getNegocioById);
 router.put("/:id", authenticateToken, updateNegocio);
 router.delete("/:id", authenticateToken, deleteNegocio);

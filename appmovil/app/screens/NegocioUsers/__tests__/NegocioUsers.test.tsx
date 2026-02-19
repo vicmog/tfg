@@ -251,4 +251,54 @@ describe("NegocioUsers", () => {
             );
         });
     });
+
+    it("permite eliminar acceso desde la lista y refresca usuarios", async () => {
+
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    usuarios: [
+                        { id_usuario: 10, nombre_usuario: "user10", nombre: "Usuario 10", rol: "trabajador" },
+                    ],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ message: "Acceso de usuario eliminado correctamente" }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ usuarios: [] }),
+            });
+
+        const { getByTestId } = render(
+            <NegocioUsers navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("delete-access-button-10")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("delete-access-button-10"));
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.deleteNegocioUserById(2),
+                expect.objectContaining({
+                    method: "DELETE",
+                    body: JSON.stringify({ id_usuario: 10 }),
+                })
+            );
+        });
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.negocioUsersById(2),
+                expect.objectContaining({
+                    headers: { Authorization: "Bearer mock-token" },
+                })
+            );
+        });
+    });
 });
