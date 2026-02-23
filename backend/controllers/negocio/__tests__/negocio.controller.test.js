@@ -3,6 +3,7 @@ import { Negocio } from "../../../models/Negocio.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
 import { Usuario } from "../../../models/Usuario.js";
 import { Op } from "sequelize";
+import { buildRes } from "./data.js";
 
 jest.mock("../../../models/Negocio.js");
 jest.mock("../../../models/UsuarioNegocio.js");
@@ -32,10 +33,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 2 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await createNegocio(req, res);
 
@@ -85,10 +83,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await createNegocio(req, res);
 
@@ -107,10 +102,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await createNegocio(req, res);
 
@@ -126,10 +118,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await createNegocio(req, res);
 
@@ -145,10 +134,7 @@ describe("NegocioController Unit Tests", () => {
         user: null,
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await createNegocio(req, res);
 
@@ -166,10 +152,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await createNegocio(req, res);
 
@@ -187,10 +170,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
       await createNegocio(req, res);
@@ -218,10 +198,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await getNegocios(req, res);
 
@@ -248,10 +225,7 @@ describe("NegocioController Unit Tests", () => {
         query: { search: "B22" },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await getNegocios(req, res);
 
@@ -273,10 +247,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await getNegocios(req, res);
 
@@ -289,10 +260,7 @@ describe("NegocioController Unit Tests", () => {
         user: null,
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await getNegocios(req, res);
 
@@ -309,10 +277,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
       await getNegocios(req, res);
@@ -340,10 +305,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await getNegocioById(req, res);
 
@@ -367,10 +329,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 2 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await getNegocioById(req, res);
 
@@ -389,10 +348,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await getNegocioById(req, res);
 
@@ -408,10 +364,7 @@ describe("NegocioController Unit Tests", () => {
         user: null,
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await getNegocioById(req, res);
 
@@ -429,10 +382,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
       await getNegocioById(req, res);
@@ -463,10 +413,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await updateNegocio(req, res);
 
@@ -500,10 +447,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await updateNegocio(req, res);
 
@@ -519,10 +463,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 2 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await updateNegocio(req, res);
 
@@ -539,10 +480,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await updateNegocio(req, res);
 
@@ -562,10 +500,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await updateNegocio(req, res);
 
@@ -582,10 +517,7 @@ describe("NegocioController Unit Tests", () => {
         user: null,
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await updateNegocio(req, res);
 
@@ -604,10 +536,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
       await updateNegocio(req, res);
@@ -636,10 +565,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await deleteNegocio(req, res);
 
@@ -665,10 +591,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await deleteNegocio(req, res);
 
@@ -683,10 +606,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 2 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await deleteNegocio(req, res);
 
@@ -705,10 +625,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await deleteNegocio(req, res);
 
@@ -724,10 +641,7 @@ describe("NegocioController Unit Tests", () => {
         user: null,
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await deleteNegocio(req, res);
 
@@ -745,10 +659,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
       await deleteNegocio(req, res);
@@ -780,10 +691,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 10 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await getUsersByNegocioId(req, res);
 
@@ -803,10 +711,7 @@ describe("NegocioController Unit Tests", () => {
         user: null,
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await getUsersByNegocioId(req, res);
 
@@ -824,10 +729,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 99 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await getUsersByNegocioId(req, res);
 
@@ -845,10 +747,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 5 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await getUsersByNegocioId(req, res);
 
@@ -866,10 +765,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
       await getUsersByNegocioId(req, res);
@@ -896,10 +792,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await addUserToNegocio(req, res);
 
@@ -922,10 +815,7 @@ describe("NegocioController Unit Tests", () => {
         user: null,
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await addUserToNegocio(req, res);
 
@@ -942,10 +832,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await addUserToNegocio(req, res);
 
@@ -962,10 +849,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await addUserToNegocio(req, res);
 
@@ -984,10 +868,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await addUserToNegocio(req, res);
 
@@ -1007,10 +888,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await addUserToNegocio(req, res);
 
@@ -1032,10 +910,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await addUserToNegocio(req, res);
 
@@ -1054,10 +929,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
       await addUserToNegocio(req, res);
@@ -1097,10 +969,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await updateUserRoleInNegocio(req, res);
 
@@ -1126,10 +995,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 3 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await updateUserRoleInNegocio(req, res);
 
@@ -1150,10 +1016,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await updateUserRoleInNegocio(req, res);
 
@@ -1174,10 +1037,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await updateUserRoleInNegocio(req, res);
 
@@ -1196,10 +1056,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await removeUserFromNegocio(req, res);
 
@@ -1223,10 +1080,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await removeUserFromNegocio(req, res);
 
@@ -1248,10 +1102,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 3 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await removeUserFromNegocio(req, res);
 
@@ -1272,10 +1123,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await removeUserFromNegocio(req, res);
 
@@ -1296,10 +1144,7 @@ describe("NegocioController Unit Tests", () => {
         user: { id_usuario: 1 },
       };
 
-      const jsonMock = jest.fn();
-      const res = {
-        status: jest.fn(() => ({ json: jsonMock })),
-      };
+      const { res, jsonMock } = buildRes();
 
       await removeUserFromNegocio(req, res);
 
@@ -1310,3 +1155,4 @@ describe("NegocioController Unit Tests", () => {
     });
   });
 });
+

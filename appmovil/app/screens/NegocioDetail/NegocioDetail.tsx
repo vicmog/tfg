@@ -41,6 +41,9 @@ const NegocioDetail: React.FC<NegocioDetailProps> = ({ route, navigation }) => {
     );
 
     const handleModuloPress = (modulo: Modulo) => {
+        if (modulo.id === "clientes") {
+            navigation.navigate("Clientes", { negocio });
+        }
     };
 
     if (loading) {

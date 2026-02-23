@@ -1,7 +1,15 @@
 import { getUserInfo, updateUser, searchUsers } from "../userController.js";
 import { Usuario } from "../../../models/Usuario.js";
 import bcrypt from "bcrypt";
-import { baseUser, buildRes } from "./data.js";
+import {
+  baseUser,
+  buildReq,
+  buildRes,
+  emailTakenUser,
+  mockUserWithUpdate,
+  searchUsersResult,
+  updatedUserPayload,
+} from "./data.js";
 
 jest.mock("../../../models/Usuario.js");
 jest.mock("bcrypt");
@@ -12,7 +20,7 @@ describe("User Controller", () => {
 
   beforeEach(() => {
     res = buildRes();
-    req = { params: {}, body: {} };
+    req = buildReq();
     jest.clearAllMocks();
   });
 
@@ -66,7 +74,7 @@ describe("User Controller", () => {
       req.params.id_usuario = 1;
       req.body.email = "taken@test.com";
 
-      const mockUser = { id_usuario: 1, email: "old@test.com", update: jest.fn() };
+      const mockUser = emailTakenUser;
     
       Usuario.findOne
         .mockResolvedValueOnce(mockUser)
@@ -83,11 +91,7 @@ describe("User Controller", () => {
       req.body.contrasena = "wrong";
       req.body.nuevacontrasena = "newpass";
 
-      const mockUser = { 
-        id_usuario: 1, 
-        contrasena: "hashedpass", 
-        update: jest.fn()
-      };
+      const mockUser = mockUserWithUpdate({ contrasena: "hashedpass" });
 
       Usuario.findOne.mockResolvedValue(mockUser);
       bcrypt.compare.mockResolvedValue(false);
@@ -107,23 +111,8 @@ describe("User Controller", () => {
         email: "new@test.com"
       };
 
-      const mockUser = { 
-        id_usuario: 1,
-        nombre_usuario: "user",
-        nombre: "old",
-        dni: "123",
-        email: "old@test.com",
-        numero_telefono: "600",
-        contrasena: "hashedpass",
-        update: jest.fn().mockResolvedValue({
-          id_usuario: 1,
-          nombre_usuario: "user",
-          nombre: "NuevoNombre",
-          dni: "123",
-          email: "new@test.com",
-          numero_telefono: "600"
-        })
-      };
+      const mockUser = mockUserWithUpdate();
+      mockUser.update.mockResolvedValue(updatedUserPayload);
 
       Usuario.findOne
         .mockResolvedValueOnce(mockUser) 
@@ -156,23 +145,8 @@ describe("User Controller", () => {
         email: "new@test.com"
       };
 
-      const mockUser = { 
-        id_usuario: 1,
-        nombre_usuario: "user",
-        nombre: "old",
-        dni: "123",
-        email: "old@test.com",
-        numero_telefono: "600",
-        contrasena: "hashedpass",
-        update: jest.fn().mockResolvedValue({
-          id_usuario: 1,
-          nombre_usuario: "user",
-          nombre: "NuevoNombre",
-          dni: "123",
-          email: "new@test.com",
-          numero_telefono: "600"
-        })
-      };
+      const mockUser = mockUserWithUpdate();
+      mockUser.update.mockResolvedValue(updatedUserPayload);
 
       Usuario.findOne
         .mockResolvedValueOnce(mockUser)
@@ -207,19 +181,13 @@ describe("User Controller", () => {
 
     it("should return matching users", async () => {
       req.query = { search: "ana" };
-      Usuario.findAll.mockResolvedValue([
-        { id_usuario: 1, nombre_usuario: "ana1", nombre: "Ana" },
-        { id_usuario: 2, nombre_usuario: "anabel", nombre: "Anabel" },
-      ]);
+      Usuario.findAll.mockResolvedValue(searchUsersResult);
 
       await searchUsers(req, res);
 
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
-        usuarios: [
-          { id_usuario: 1, nombre_usuario: "ana1", nombre: "Ana" },
-          { id_usuario: 2, nombre_usuario: "anabel", nombre: "Anabel" },
-        ]
+        usuarios: searchUsersResult,
       });
     });
 

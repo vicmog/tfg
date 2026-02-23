@@ -21,3 +21,14 @@ export type UsuarioAcceso = {
     nombre: string;
     rol: string;
 };
+
+export type Cliente = {
+    id_cliente: number;
+    id_negocio: number;
+    nombre: string;
+    apellido1: string;
+    apellido2?: string | null;
+    email?: string | null;
+    numero_telefono?: string | null;
+    bloqueado: boolean;
+};
