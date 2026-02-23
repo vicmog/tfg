@@ -122,7 +122,38 @@ export const getClientesByNegocio = async (req, res) => {
 
         return res.status(200).json({ clientes: compactClientes });
     } catch (error) {
-        console.error("Error al obtener clientes:", error);
+        return res.status(500).json({ message: CLIENTE_ERRORS.SERVER_ERROR });
+    }
+};
+
+export const deleteCliente = async (req, res) => {
+    const { id_cliente } = req.params;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: CLIENTE_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (!id_cliente) {
+        return res.status(400).json({ message: CLIENTE_ERRORS.CLIENTE_ID_REQUIRED });
+    }
+
+    try {
+        const cliente = await Cliente.findByPk(id_cliente);
+        if (!cliente) {
+            return res.status(404).json({ message: CLIENTE_ERRORS.CLIENTE_NOT_FOUND });
+        }
+
+        const hasAccess = await hasAccessToNegocio(id_usuario, cliente.id_negocio);
+        if (!hasAccess) {
+            return res.status(403).json({ message: CLIENTE_ERRORS.NO_ACCESS_TO_NEGOCIO });
+        }
+
+        await cliente.destroy();
+
+        return res.status(200).json({ message: CLIENTE_MESSAGES.CLIENTE_DELETED });
+    } catch (error) {
+        console.error("Error al eliminar cliente:", error);
         return res.status(500).json({ message: CLIENTE_ERRORS.SERVER_ERROR });
     }
 };

@@ -144,4 +144,67 @@ describe("Clientes", () => {
       expect(getByText("Juan Pérez")).toBeTruthy();
     });
   });
+
+  it("elimina cliente tras confirmación y refresca la lista", async () => {
+    (fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          clientes: [
+            {
+              id_cliente: 12,
+              id_negocio: 1,
+              nombre: "Juan",
+              apellido1: "Pérez",
+              apellido2: null,
+              email: "juan@mail.com",
+              numero_telefono: "600123123",
+              bloqueado: false,
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ message: "Cliente eliminado correctamente" }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ clientes: [] }),
+      });
+
+    const { getByTestId, queryByText } = render(
+      <Clientes navigation={mockNavigation} route={mockRoute} />
+    );
+
+    await waitFor(() => {
+      expect(getByTestId("cliente-delete-button-12")).toBeTruthy();
+    });
+
+    fireEvent.press(getByTestId("cliente-delete-button-12"));
+
+    await waitFor(() => {
+      expect(getByTestId("cliente-delete-confirm-12")).toBeTruthy();
+    });
+
+    fireEvent.press(getByTestId("cliente-delete-confirm-button-12"));
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        API_ROUTES.deleteClienteById(12),
+        expect.objectContaining({
+          method: "DELETE",
+          headers: expect.objectContaining({
+            Authorization: "Bearer mock-token",
+          }),
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(queryByText("Juan Pérez")).toBeNull();
+    });
+
+    expect(queryByText("Cliente eliminado correctamente")).toBeTruthy();
+  });
 });

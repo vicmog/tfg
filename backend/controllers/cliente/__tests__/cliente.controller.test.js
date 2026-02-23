@@ -1,4 +1,4 @@
-import { createCliente, getClientesByNegocio } from "../clienteController.js";
+import { createCliente, deleteCliente, getClientesByNegocio } from "../clienteController.js";
 import { Cliente } from "../../../models/Cliente.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
 import {
@@ -6,7 +6,10 @@ import {
   createClienteReq,
   createClienteReqSinAcceso,
   createClienteReqSinContacto,
+  deleteClienteReq,
+  deleteClienteReqSinAuth,
   getClientesReq,
+  mockClienteConDestroy,
   mockClienteData,
   mockClienteListado,
   mockUsuarioEncontrado,
@@ -95,6 +98,62 @@ describe("ClienteController Unit Tests", () => {
         clientes: [
           mockClienteListado,
         ],
+      });
+    });
+  });
+
+  describe("deleteCliente", () => {
+    it("debería eliminar cliente correctamente", async () => {
+      (Cliente.findByPk).mockResolvedValue(mockClienteConDestroy);
+      (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioEncontrado);
+
+      const { res, jsonMock } = buildRes();
+
+      await deleteCliente(deleteClienteReq, res);
+
+      expect(Cliente.findByPk).toHaveBeenCalledWith("1");
+      expect(mockClienteConDestroy.destroy).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Cliente eliminado correctamente",
+      });
+    });
+
+    it("debería fallar si el usuario no está autenticado", async () => {
+      const { res, jsonMock } = buildRes();
+
+      await deleteCliente(deleteClienteReqSinAuth, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Usuario no autenticado",
+      });
+    });
+
+    it("debería fallar si el cliente no existe", async () => {
+      (Cliente.findByPk).mockResolvedValue(null);
+
+      const { res, jsonMock } = buildRes();
+
+      await deleteCliente(deleteClienteReq, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Cliente no encontrado",
+      });
+    });
+
+    it("debería fallar si no tiene acceso al negocio del cliente", async () => {
+      (Cliente.findByPk).mockResolvedValue(mockClienteConDestroy);
+      (UsuarioNegocio.findOne).mockResolvedValue(null);
+
+      const { res, jsonMock } = buildRes();
+
+      await deleteCliente(deleteClienteReq, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "No tienes acceso a este negocio",
       });
     });
   });

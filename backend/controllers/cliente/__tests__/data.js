@@ -45,6 +45,16 @@ export const getClientesReq = {
     user: { id_usuario: 1 },
 };
 
+export const deleteClienteReq = {
+    params: { id_cliente: "1" },
+    user: { id_usuario: 1 },
+};
+
+export const deleteClienteReqSinAuth = {
+    params: { id_cliente: "1" },
+    user: null,
+};
+
 export const mockClienteListado = {
     id_cliente: 1,
     id_negocio: 10,
@@ -54,6 +64,11 @@ export const mockClienteListado = {
     email: null,
     numero_telefono: "600111222",
     bloqueado: false,
+};
+
+export const mockClienteConDestroy = {
+    ...mockClienteListado,
+    destroy: jest.fn(),
 };
 
 export const buildRes = () => {

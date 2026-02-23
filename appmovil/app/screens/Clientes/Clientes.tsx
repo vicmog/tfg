@@ -16,9 +16,18 @@ import { Cliente } from "../types";
 import {
     ADD_CLIENT_BUTTON,
     CONNECTION_ERROR,
+    CONFIRM_DELETE_ACCEPT,
+    CONFIRM_DELETE_CANCEL,
+    CONFIRM_DELETE_MESSAGE,
+    CONFIRM_DELETE_TITLE,
     CONTACT_REQUIRED_ERROR,
     createClienteRoute,
     clientesByNegocioRoute,
+    deleteClienteByIdRoute,
+    DELETE_BUTTON_TEXT,
+    DELETING_BUTTON_TEXT,
+    DELETE_SUCCESS_MESSAGE,
+    DEFAULT_DELETE_ERROR,
     DEFAULT_CREATE_ERROR,
     DEFAULT_FETCH_ERROR,
     EMAIL_REGEX,
@@ -32,6 +41,7 @@ import {
     EMPTY_CLIENTS_MESSAGE,
     NO_EMAIL_MESSAGE,
     NO_TELEFONO_MESSAGE,
+    NEW_CLIENT_PLACEHOLDER,
 } from "./constants";
 import { ClientesProps } from "./types";
 
@@ -42,6 +52,7 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [listError, setListError] = useState("");
+    const [listSuccess, setListSuccess] = useState("");
     const [modalError, setModalError] = useState("");
     const [modalSuccess, setModalSuccess] = useState("");
 
@@ -51,6 +62,8 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
     const [email, setEmail] = useState("");
     const [telefono, setTelefono] = useState("");
     const [modalVisible, setModalVisible] = useState(false);
+    const [deletingClienteId, setDeletingClienteId] = useState<number | null>(null);
+    const [confirmDeleteClienteId, setConfirmDeleteClienteId] = useState<number | null>(null);
 
     const fetchClientes = useCallback(async () => {
         setLoading(true);
@@ -168,6 +181,47 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
         setModalSuccess("");
     };
 
+    const handleDeleteCliente = async (idCliente: number) => {
+        setListError("");
+        setListSuccess("");
+        setDeletingClienteId(idCliente);
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(deleteClienteByIdRoute(idCliente), {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setListError(data.message || DEFAULT_DELETE_ERROR);
+                return;
+            }
+
+            setListError("");
+            setListSuccess(DELETE_SUCCESS_MESSAGE);
+            setModalSuccess("");
+            setConfirmDeleteClienteId(null);
+            await fetchClientes();
+        } catch (error) {
+            setListError(CONNECTION_ERROR);
+        } finally {
+            setDeletingClienteId(null);
+        }
+    };
+
+    const handleAskDeleteCliente = (idCliente: number) => {
+        setListError("");
+        setListSuccess("");
+        setConfirmDeleteClienteId(idCliente);
+    };
+
+    const handleCancelDeleteCliente = () => {
+        setConfirmDeleteClienteId(null);
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -199,7 +253,7 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
                 <View style={styles.modalBackdrop}>
                     <View style={styles.formContainer}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Nuevo cliente</Text>
+                            <Text style={styles.modalTitle}>{NEW_CLIENT_PLACEHOLDER}</Text>
                             <TouchableOpacity onPress={handleToggleModal} testID="close-client-form-button">
                                 <MaterialIcons name="close" size={22} color="#6b7280" />
                             </TouchableOpacity>
@@ -275,6 +329,12 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
                 </View>
             ) : null}
 
+            {listSuccess ? (
+                <View style={styles.feedbackSuccess} testID="clientes-list-success-message">
+                    <Text style={styles.feedbackSuccessText}>{listSuccess}</Text>
+                </View>
+            ) : null}
+
             {loading ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color="#1976D2" />
@@ -291,6 +351,41 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
                                 </Text>
                                 <Text style={styles.clientMeta}>{cliente.email || NO_EMAIL_MESSAGE}</Text>
                                 <Text style={styles.clientMeta}>{cliente.numero_telefono || NO_TELEFONO_MESSAGE}</Text>
+                                <TouchableOpacity
+                                    style={styles.deleteButton}
+                                    onPress={() => handleAskDeleteCliente(cliente.id_cliente)}
+                                    disabled={deletingClienteId === cliente.id_cliente}
+                                    testID={`cliente-delete-button-${cliente.id_cliente}`}
+                                >
+                                    <MaterialIcons name="delete" size={16} color="#fff" style={{ marginRight: 6 }} />
+                                    <Text style={styles.deleteButtonText}>
+                                        {deletingClienteId === cliente.id_cliente ? DELETING_BUTTON_TEXT : DELETE_BUTTON_TEXT}
+                                    </Text>
+                                </TouchableOpacity>
+
+                                {confirmDeleteClienteId === cliente.id_cliente ? (
+                                    <View style={styles.confirmBox} testID={`cliente-delete-confirm-${cliente.id_cliente}`}>
+                                        <Text style={styles.confirmTitle}>{CONFIRM_DELETE_TITLE}</Text>
+                                        <Text style={styles.confirmMessage}>{CONFIRM_DELETE_MESSAGE}</Text>
+                                        <View style={styles.confirmActions}>
+                                            <TouchableOpacity
+                                                style={styles.confirmCancelButton}
+                                                onPress={handleCancelDeleteCliente}
+                                                testID={`cliente-delete-cancel-${cliente.id_cliente}`}
+                                            >
+                                                <Text style={styles.confirmCancelText}>{CONFIRM_DELETE_CANCEL}</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={styles.confirmDeleteButton}
+                                                onPress={() => handleDeleteCliente(cliente.id_cliente)}
+                                                disabled={deletingClienteId === cliente.id_cliente}
+                                                testID={`cliente-delete-confirm-button-${cliente.id_cliente}`}
+                                            >
+                                                <Text style={styles.confirmDeleteText}>{CONFIRM_DELETE_ACCEPT}</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                ) : null}
                             </View>
                         ))
                     )}
@@ -433,6 +528,61 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         padding: 12,
         marginBottom: 10,
+    },
+    deleteButton: {
+        marginTop: 10,
+        alignSelf: "flex-start",
+        backgroundColor: "#dc2626",
+        borderRadius: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 10,
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    deleteButtonText: {
+        color: "#fff",
+        fontWeight: "600",
+        fontSize: 13,
+    },
+    confirmBox: {
+        marginTop: 10,
+        borderWidth: 1,
+        borderColor: "#fecaca",
+        backgroundColor: "#fff1f2",
+        borderRadius: 8,
+        padding: 10,
+    },
+    confirmTitle: {
+        color: "#991b1b",
+        fontWeight: "700",
+        marginBottom: 4,
+    },
+    confirmMessage: {
+        color: "#7f1d1d",
+        marginBottom: 8,
+    },
+    confirmActions: {
+        flexDirection: "row",
+        justifyContent: "flex-end",
+    },
+    confirmCancelButton: {
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        marginRight: 8,
+    },
+    confirmCancelText: {
+        color: "#6b7280",
+        fontWeight: "600",
+    },
+    confirmDeleteButton: {
+        backgroundColor: "#dc2626",
+        borderRadius: 6,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+    },
+    confirmDeleteText: {
+        color: "#fff",
+        fontWeight: "700",
     },
     clientName: {
         fontWeight: "700",
