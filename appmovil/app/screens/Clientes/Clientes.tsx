@@ -7,6 +7,7 @@ import {
     TextInput,
     ActivityIndicator,
     ScrollView,
+    Modal,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -48,7 +49,7 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
     const [apellido2, setApellido2] = useState("");
     const [email, setEmail] = useState("");
     const [telefono, setTelefono] = useState("");
-    const [showForm, setShowForm] = useState(false);
+    const [modalVisible, setModalVisible] = useState(false);
 
     const fetchClientes = useCallback(async () => {
         setLoading(true);
@@ -151,13 +152,19 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
 
             setSuccess(SUCCESS_MESSAGE);
             resetForm();
-            setShowForm(false);
+            setModalVisible(false);
             await fetchClientes();
         } catch (err) {
             setError(CONNECTION_ERROR);
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleToggleModal = () => {
+        setModalVisible(!modalVisible);
+        setError("");
+        setSuccess("");
     };
 
     return (
@@ -173,11 +180,7 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
                 <Text style={styles.title}>{SCREEN_TITLE}</Text>
                 <TouchableOpacity
                     style={styles.addButton}
-                    onPress={() => {
-                        setShowForm(!showForm);
-                        setError("");
-                        setSuccess("");
-                    }}
+                    onPress={handleToggleModal}
                     testID="toggle-client-form-button"
                 >
                     <MaterialIcons name="person-add" size={18} color="#fff" style={{ marginRight: 6 }} />
@@ -185,57 +188,72 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
                 </TouchableOpacity>
             </View>
 
-            {showForm ? (
-                <View style={styles.formContainer}>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Nombre"
-                        value={nombre}
-                        onChangeText={setNombre}
-                        testID="cliente-nombre-input"
-                    />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Primer apellido"
-                        value={apellido1}
-                        onChangeText={setApellido1}
-                        testID="cliente-apellido1-input"
-                    />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Segundo apellido (opcional)"
-                        value={apellido2}
-                        onChangeText={setApellido2}
-                        testID="cliente-apellido2-input"
-                    />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Email"
-                        value={email}
-                        onChangeText={setEmail}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        testID="cliente-email-input"
-                    />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Teléfono"
-                        value={telefono}
-                        onChangeText={setTelefono}
-                        keyboardType="phone-pad"
-                        testID="cliente-telefono-input"
-                    />
-                    <TouchableOpacity
-                        style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-                        onPress={handleSave}
-                        disabled={saving}
-                        testID="cliente-save-button"
-                    >
-                        {saving ? <ActivityIndicator size="small" color="#fff" /> : null}
-                        <Text style={styles.saveButtonText}>{saving ? SAVING_BUTTON_TEXT : SAVE_BUTTON_TEXT}</Text>
-                    </TouchableOpacity>
+            <Modal
+                visible={modalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={handleToggleModal}
+                testID="cliente-form-modal"
+            >
+                <View style={styles.modalBackdrop}>
+                    <View style={styles.formContainer}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Nuevo cliente</Text>
+                            <TouchableOpacity onPress={handleToggleModal} testID="close-client-form-button">
+                                <MaterialIcons name="close" size={22} color="#6b7280" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Nombre"
+                            value={nombre}
+                            onChangeText={setNombre}
+                            testID="cliente-nombre-input"
+                        />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Primer apellido"
+                            value={apellido1}
+                            onChangeText={setApellido1}
+                            testID="cliente-apellido1-input"
+                        />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Segundo apellido (opcional)"
+                            value={apellido2}
+                            onChangeText={setApellido2}
+                            testID="cliente-apellido2-input"
+                        />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Email"
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            testID="cliente-email-input"
+                        />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Teléfono"
+                            value={telefono}
+                            onChangeText={setTelefono}
+                            keyboardType="phone-pad"
+                            testID="cliente-telefono-input"
+                        />
+                        <TouchableOpacity
+                            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                            onPress={handleSave}
+                            disabled={saving}
+                            testID="cliente-save-button"
+                        >
+                            {saving ? <ActivityIndicator size="small" color="#fff" /> : null}
+                            <Text style={styles.saveButtonText}>{saving ? SAVING_BUTTON_TEXT : SAVE_BUTTON_TEXT}</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
-            ) : null}
+            </Modal>
 
             {error ? (
                 <View style={styles.feedbackError} testID="cliente-error-message">
@@ -318,12 +336,31 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         marginHorizontal: 12,
         padding: 12,
-        marginBottom: 10,
+        width: "90%",
+        maxWidth: 420,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.08,
         shadowRadius: 8,
         elevation: 3,
+    },
+    modalBackdrop: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.35)",
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 12,
+    },
+    modalHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 8,
+    },
+    modalTitle: {
+        color: "#0D47A1",
+        fontSize: 18,
+        fontWeight: "700",
     },
     input: {
         borderWidth: 1,
