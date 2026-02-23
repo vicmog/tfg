@@ -41,8 +41,9 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
     const [clientes, setClientes] = useState<Cliente[]>([]);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
+    const [listError, setListError] = useState("");
+    const [modalError, setModalError] = useState("");
+    const [modalSuccess, setModalSuccess] = useState("");
 
     const [nombre, setNombre] = useState("");
     const [apellido1, setApellido1] = useState("");
@@ -53,7 +54,7 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
 
     const fetchClientes = useCallback(async () => {
         setLoading(true);
-        setError("");
+        setListError("");
         try {
             const token = await AsyncStorage.getItem("token");
             const response = await fetch(clientesByNegocioRoute(negocio.id_negocio), {
@@ -64,7 +65,7 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
 
             if (!response.ok) {
                 const data = await response.json();
-                setError(data.message || DEFAULT_FETCH_ERROR);
+                setListError(data.message || DEFAULT_FETCH_ERROR);
                 setClientes([]);
                 return;
             }
@@ -72,7 +73,7 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
             const data = await response.json();
             setClientes(data.clientes || []);
         } catch (err) {
-            setError(CONNECTION_ERROR);
+            setListError(CONNECTION_ERROR);
             setClientes([]);
         } finally {
             setLoading(false);
@@ -95,22 +96,22 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
 
     const validateForm = () => {
         if (!nombre.trim()) {
-            setError(EMPTY_NOMBRE_ERROR);
+            setModalError(EMPTY_NOMBRE_ERROR);
             return false;
         }
 
         if (!apellido1.trim()) {
-            setError(EMPTY_APELLIDO1_ERROR);
+            setModalError(EMPTY_APELLIDO1_ERROR);
             return false;
         }
 
         if (!email.trim() && !telefono.trim()) {
-            setError(CONTACT_REQUIRED_ERROR);
+            setModalError(CONTACT_REQUIRED_ERROR);
             return false;
         }
 
         if (email.trim() && !EMAIL_REGEX.test(email.trim())) {
-            setError(INVALID_EMAIL_ERROR);
+            setModalError(INVALID_EMAIL_ERROR);
             return false;
         }
 
@@ -118,8 +119,8 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
     };
 
     const handleSave = async () => {
-        setError("");
-        setSuccess("");
+        setModalError("");
+        setModalSuccess("");
 
         if (!validateForm()) {
             return;
@@ -146,16 +147,16 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
 
             if (!response.ok) {
                 const data = await response.json();
-                setError(data.message || DEFAULT_CREATE_ERROR);
+                setModalError(data.message || DEFAULT_CREATE_ERROR);
                 return;
             }
 
-            setSuccess(SUCCESS_MESSAGE);
+            setModalSuccess(SUCCESS_MESSAGE);
             resetForm();
-            setModalVisible(false);
+            setModalVisible(!modalVisible);
             await fetchClientes();
         } catch (err) {
-            setError(CONNECTION_ERROR);
+            setModalError(CONNECTION_ERROR);
         } finally {
             setSaving(false);
         }
@@ -163,8 +164,8 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
 
     const handleToggleModal = () => {
         setModalVisible(!modalVisible);
-        setError("");
-        setSuccess("");
+        setModalError("");
+        setModalSuccess("");
     };
 
     return (
@@ -242,6 +243,19 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
                             keyboardType="phone-pad"
                             testID="cliente-telefono-input"
                         />
+
+                        {modalError ? (
+                            <View style={styles.feedbackError} testID="cliente-error-message">
+                                <Text style={styles.feedbackErrorText}>{modalError}</Text>
+                            </View>
+                        ) : null}
+
+                        {modalSuccess ? (
+                            <View style={styles.feedbackSuccess} testID="cliente-success-message">
+                                <Text style={styles.feedbackSuccessText}>{modalSuccess}</Text>
+                            </View>
+                        ) : null}
+
                         <TouchableOpacity
                             style={[styles.saveButton, saving && styles.saveButtonDisabled]}
                             onPress={handleSave}
@@ -255,15 +269,9 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
                 </View>
             </Modal>
 
-            {error ? (
-                <View style={styles.feedbackError} testID="cliente-error-message">
-                    <Text style={styles.feedbackErrorText}>{error}</Text>
-                </View>
-            ) : null}
-
-            {success ? (
-                <View style={styles.feedbackSuccess} testID="cliente-success-message">
-                    <Text style={styles.feedbackSuccessText}>{success}</Text>
+            {listError ? (
+                <View style={styles.feedbackError} testID="clientes-list-error-message">
+                    <Text style={styles.feedbackErrorText}>{listError}</Text>
                 </View>
             ) : null}
 
