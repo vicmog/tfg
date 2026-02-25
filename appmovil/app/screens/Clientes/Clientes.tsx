@@ -29,15 +29,22 @@ import {
     DELETE_SUCCESS_MESSAGE,
     DEFAULT_DELETE_ERROR,
     DEFAULT_CREATE_ERROR,
+    DEFAULT_UPDATE_ERROR,
     DEFAULT_FETCH_ERROR,
     EMAIL_REGEX,
+    EDIT_BUTTON_TEXT,
+    EDIT_CLIENT_PLACEHOLDER,
     EMPTY_APELLIDO1_ERROR,
     EMPTY_NOMBRE_ERROR,
     INVALID_EMAIL_ERROR,
     SAVE_BUTTON_TEXT,
+    SAVE_CHANGES_BUTTON_TEXT,
     SAVING_BUTTON_TEXT,
+    SAVING_CHANGES_BUTTON_TEXT,
     SCREEN_TITLE,
     SUCCESS_MESSAGE,
+    UPDATE_SUCCESS_MESSAGE,
+    updateClienteByIdRoute,
     EMPTY_CLIENTS_MESSAGE,
     NO_EMAIL_MESSAGE,
     NO_TELEFONO_MESSAGE,
@@ -62,6 +69,7 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
     const [email, setEmail] = useState("");
     const [telefono, setTelefono] = useState("");
     const [modalVisible, setModalVisible] = useState(false);
+    const [editingClienteId, setEditingClienteId] = useState<number | null>(null);
     const [deletingClienteId, setDeletingClienteId] = useState<number | null>(null);
     const [confirmDeleteClienteId, setConfirmDeleteClienteId] = useState<number | null>(null);
 
@@ -105,6 +113,7 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
         setApellido2("");
         setEmail("");
         setTelefono("");
+        setEditingClienteId(null);
     };
 
     const validateForm = () => {
@@ -142,8 +151,11 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
         setSaving(true);
         try {
             const token = await AsyncStorage.getItem("token");
-            const response = await fetch(createClienteRoute, {
-                method: "POST",
+            const isEditing = !!editingClienteId;
+            const route = isEditing ? updateClienteByIdRoute(editingClienteId) : createClienteRoute;
+            const method = isEditing ? "PUT" : "POST";
+            const response = await fetch(route, {
+                method,
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
@@ -160,13 +172,13 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
 
             if (!response.ok) {
                 const data = await response.json();
-                setModalError(data.message || DEFAULT_CREATE_ERROR);
+                setModalError(data.message || (isEditing ? DEFAULT_UPDATE_ERROR : DEFAULT_CREATE_ERROR));
                 return;
             }
 
-            setModalSuccess(SUCCESS_MESSAGE);
+            setModalSuccess(isEditing ? UPDATE_SUCCESS_MESSAGE : SUCCESS_MESSAGE);
             resetForm();
-            setModalVisible(!modalVisible);
+            setModalVisible(false);
             await fetchClientes();
         } catch (err) {
             setModalError(CONNECTION_ERROR);
@@ -179,6 +191,28 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
         setModalVisible(!modalVisible);
         setModalError("");
         setModalSuccess("");
+        if (modalVisible) {
+            resetForm();
+        }
+    };
+
+    const handleOpenCreateModal = () => {
+        resetForm();
+        setModalError("");
+        setModalSuccess("");
+        setModalVisible(true);
+    };
+
+    const handleOpenEditModal = (cliente: Cliente) => {
+        setNombre(cliente.nombre || "");
+        setApellido1(cliente.apellido1 || "");
+        setApellido2(cliente.apellido2 || "");
+        setEmail(cliente.email || "");
+        setTelefono(cliente.numero_telefono || "");
+        setEditingClienteId(cliente.id_cliente);
+        setModalError("");
+        setModalSuccess("");
+        setModalVisible(true);
     };
 
     const handleDeleteCliente = async (idCliente: number) => {
@@ -235,7 +269,7 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
                 <Text style={styles.title}>{SCREEN_TITLE}</Text>
                 <TouchableOpacity
                     style={styles.addButton}
-                    onPress={handleToggleModal}
+                    onPress={handleOpenCreateModal}
                     testID="toggle-client-form-button"
                 >
                     <MaterialIcons name="person-add" size={18} color="#fff" style={{ marginRight: 6 }} />
@@ -253,7 +287,7 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
                 <View style={styles.modalBackdrop}>
                     <View style={styles.formContainer}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>{NEW_CLIENT_PLACEHOLDER}</Text>
+                            <Text style={styles.modalTitle}>{editingClienteId ? EDIT_CLIENT_PLACEHOLDER : NEW_CLIENT_PLACEHOLDER}</Text>
                             <TouchableOpacity onPress={handleToggleModal} testID="close-client-form-button">
                                 <MaterialIcons name="close" size={22} color="#6b7280" />
                             </TouchableOpacity>
@@ -317,7 +351,11 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
                             testID="cliente-save-button"
                         >
                             {saving ? <ActivityIndicator size="small" color="#fff" /> : null}
-                            <Text style={styles.saveButtonText}>{saving ? SAVING_BUTTON_TEXT : SAVE_BUTTON_TEXT}</Text>
+                            <Text style={styles.saveButtonText}>
+                                {saving
+                                    ? (editingClienteId ? SAVING_CHANGES_BUTTON_TEXT : SAVING_BUTTON_TEXT)
+                                    : (editingClienteId ? SAVE_CHANGES_BUTTON_TEXT : SAVE_BUTTON_TEXT)}
+                            </Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -346,22 +384,36 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
                     ) : (
                         clientes.map((cliente) => (
                             <View key={cliente.id_cliente} style={styles.card} testID={`cliente-item-${cliente.id_cliente}`}>
-                                <Text style={styles.clientName}>
-                                    {cliente.nombre} {cliente.apellido1} {cliente.apellido2 || ""}
-                                </Text>
-                                <Text style={styles.clientMeta}>{cliente.email || NO_EMAIL_MESSAGE}</Text>
-                                <Text style={styles.clientMeta}>{cliente.numero_telefono || NO_TELEFONO_MESSAGE}</Text>
-                                <TouchableOpacity
-                                    style={styles.deleteButton}
-                                    onPress={() => handleAskDeleteCliente(cliente.id_cliente)}
-                                    disabled={deletingClienteId === cliente.id_cliente}
-                                    testID={`cliente-delete-button-${cliente.id_cliente}`}
-                                >
-                                    <MaterialIcons name="delete" size={16} color="#fff" style={{ marginRight: 6 }} />
-                                    <Text style={styles.deleteButtonText}>
-                                        {deletingClienteId === cliente.id_cliente ? DELETING_BUTTON_TEXT : DELETE_BUTTON_TEXT}
-                                    </Text>
-                                </TouchableOpacity>
+                                <View style={styles.cardContent}>
+                                    <View style={styles.clientInfo}>
+                                        <Text style={styles.clientName}>
+                                            {cliente.nombre} {cliente.apellido1} {cliente.apellido2 || ""}
+                                        </Text>
+                                        <Text style={styles.clientMeta}>{cliente.email || NO_EMAIL_MESSAGE}</Text>
+                                        <Text style={styles.clientMeta}>{cliente.numero_telefono || NO_TELEFONO_MESSAGE}</Text>
+                                    </View>
+                                    <View style={styles.actionsRow}>
+                                        <TouchableOpacity
+                                            style={[styles.actionButton, styles.editButton]}
+                                            onPress={() => handleOpenEditModal(cliente)}
+                                            testID={`cliente-edit-button-${cliente.id_cliente}`}
+                                        >
+                                            <MaterialIcons name="edit" size={16} color="#fff" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={[styles.actionButton, styles.deleteButton]}
+                                            onPress={() => handleAskDeleteCliente(cliente.id_cliente)}
+                                            disabled={deletingClienteId === cliente.id_cliente}
+                                            testID={`cliente-delete-button-${cliente.id_cliente}`}
+                                        >
+                                            {deletingClienteId === cliente.id_cliente ? (
+                                                <ActivityIndicator size="small" color="#fff" />
+                                            ) : (
+                                                <MaterialIcons name="delete" size={16} color="#fff" />
+                                            )}
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
 
                                 {confirmDeleteClienteId === cliente.id_cliente ? (
                                     <View style={styles.confirmBox} testID={`cliente-delete-confirm-${cliente.id_cliente}`}>
@@ -529,20 +581,40 @@ const styles = StyleSheet.create({
         padding: 12,
         marginBottom: 10,
     },
-    deleteButton: {
-        marginTop: 10,
-        alignSelf: "flex-start",
-        backgroundColor: "#dc2626",
-        borderRadius: 8,
-        paddingVertical: 8,
-        paddingHorizontal: 10,
+    cardContent: {
         flexDirection: "row",
         alignItems: "center",
+        justifyContent: "space-between",
+    },
+    clientInfo: {
+        flex: 1,
+        paddingRight: 10,
+    },
+    actionButton: {
+        height: 34,
+        width: 34,
+        borderRadius: 10,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    deleteButton: {
+        backgroundColor: "#dc2626",
     },
     deleteButtonText: {
         color: "#fff",
         fontWeight: "600",
-        fontSize: 13,
+        fontSize: 12,
+    },
+    actionsRow: {
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        alignSelf: "center",
+    },
+    editButton: {
+        backgroundColor: "#1976D2",
+        marginBottom: 8,
     },
     confirmBox: {
         marginTop: 10,

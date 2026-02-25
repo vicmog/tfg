@@ -13,6 +13,7 @@ export const CLIENTE_ERRORS = {
 
 export const CLIENTE_MESSAGES = {
   CLIENTE_CREATED: "Cliente creado correctamente",
+  CLIENTE_UPDATED: "Cliente actualizado correctamente",
   CLIENTE_DELETED: "Cliente eliminado correctamente",
 };
 

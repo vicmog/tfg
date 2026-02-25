@@ -55,6 +55,29 @@ export const deleteClienteReqSinAuth = {
     user: null,
 };
 
+export const updateClienteReq = {
+    params: { id_cliente: "1" },
+    body: {
+        nombre: "María",
+        apellido1: "Ruiz",
+        apellido2: "Gil",
+        email: "maria@mail.com",
+        numero_telefono: "600111222",
+    },
+    user: { id_usuario: 1 },
+};
+
+export const updateClienteReqSinContacto = {
+    params: { id_cliente: "1" },
+    body: {
+        nombre: "María",
+        apellido1: "Ruiz",
+        email: "",
+        numero_telefono: "",
+    },
+    user: { id_usuario: 1 },
+};
+
 export const mockClienteListado = {
     id_cliente: 1,
     id_negocio: 10,
@@ -69,6 +92,11 @@ export const mockClienteListado = {
 export const mockClienteConDestroy = {
     ...mockClienteListado,
     destroy: jest.fn(),
+};
+
+export const mockClienteConUpdate = {
+    ...mockClienteListado,
+    update: jest.fn().mockResolvedValue(true),
 };
 
 export const buildRes = () => {

@@ -207,4 +207,77 @@ describe("Clientes", () => {
 
     expect(queryByText("Cliente eliminado correctamente")).toBeTruthy();
   });
+
+  it("edita cliente y guarda cambios", async () => {
+    (fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          clientes: [
+            {
+              id_cliente: 12,
+              id_negocio: 1,
+              nombre: "Juan",
+              apellido1: "Pérez",
+              apellido2: null,
+              email: "juan@mail.com",
+              numero_telefono: "600123123",
+              bloqueado: false,
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          message: "Cliente actualizado correctamente",
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          clientes: [
+            {
+              id_cliente: 12,
+              id_negocio: 1,
+              nombre: "Juan Carlos",
+              apellido1: "Pérez",
+              apellido2: null,
+              email: "juan@mail.com",
+              numero_telefono: "600123123",
+              bloqueado: false,
+            },
+          ],
+        }),
+      });
+
+    const { getByTestId, getByDisplayValue, getByText } = render(
+      <Clientes navigation={mockNavigation} route={mockRoute} />
+    );
+
+    await waitFor(() => {
+      expect(getByTestId("cliente-edit-button-12")).toBeTruthy();
+    });
+
+    fireEvent.press(getByTestId("cliente-edit-button-12"));
+    fireEvent.changeText(getByDisplayValue("Juan"), "Juan Carlos");
+    fireEvent.press(getByTestId("cliente-save-button"));
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        API_ROUTES.updateClienteById(12),
+        expect.objectContaining({
+          method: "PUT",
+          headers: expect.objectContaining({
+            "Content-Type": "application/json",
+            Authorization: "Bearer mock-token",
+          }),
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(getByText("Juan Carlos Pérez")).toBeTruthy();
+    });
+  });
 });

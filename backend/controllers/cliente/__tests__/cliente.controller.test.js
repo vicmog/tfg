@@ -1,4 +1,4 @@
-import { createCliente, deleteCliente, getClientesByNegocio } from "../clienteController.js";
+import { createCliente, deleteCliente, getClientesByNegocio, updateCliente } from "../clienteController.js";
 import { Cliente } from "../../../models/Cliente.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
 import {
@@ -10,9 +10,12 @@ import {
   deleteClienteReqSinAuth,
   getClientesReq,
   mockClienteConDestroy,
+  mockClienteConUpdate,
   mockClienteData,
   mockClienteListado,
   mockUsuarioEncontrado,
+  updateClienteReq,
+  updateClienteReqSinContacto,
 } from "./data.js";
 
 jest.mock("../../../models/Cliente.js");
@@ -154,6 +157,51 @@ describe("ClienteController Unit Tests", () => {
       expect(res.status).toHaveBeenCalledWith(403);
       expect(jsonMock).toHaveBeenCalledWith({
         message: "No tienes acceso a este negocio",
+      });
+    });
+  });
+
+  describe("updateCliente", () => {
+    it("debería actualizar cliente correctamente", async () => {
+      (Cliente.findByPk).mockResolvedValue(mockClienteConUpdate);
+      (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioEncontrado);
+
+      const { res, jsonMock } = buildRes();
+
+      await updateCliente(updateClienteReq, res);
+
+      expect(Cliente.findByPk).toHaveBeenCalledWith("1");
+      expect(mockClienteConUpdate.update).toHaveBeenCalledWith({
+        nombre: "María",
+        apellido1: "Ruiz",
+        apellido2: "Gil",
+        email: "maria@mail.com",
+        numero_telefono: "600111222",
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Cliente actualizado correctamente",
+        cliente: {
+          id_cliente: 1,
+          id_negocio: 10,
+          nombre: "María",
+          apellido1: "Ruiz",
+          apellido2: "Gil",
+          email: null,
+          numero_telefono: "600111222",
+          bloqueado: false,
+        },
+      });
+    });
+
+    it("debería fallar si no hay contacto en actualización", async () => {
+      const { res, jsonMock } = buildRes();
+
+      await updateCliente(updateClienteReqSinContacto, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Debes indicar email o teléfono",
       });
     });
   });
