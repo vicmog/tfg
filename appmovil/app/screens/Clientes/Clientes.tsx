@@ -110,7 +110,7 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
         setListError("");
         try {
             const token = await AsyncStorage.getItem("token");
-            const searchRoute = searchClientByNameOrPhoneRoute.replace(":idNegocio", negocio.id_negocio.toString()).replace(":search", searchText);
+            const searchRoute = searchClientByNameOrPhoneRoute(negocio.id_negocio, searchText);
             const response = await fetch(searchRoute, {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -128,8 +128,10 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
             setClientes(data.clientes || []);
         }catch (err) {
             setListError(CONNECTION_ERROR);
+        } finally {
+            setLoading(false);
         }
-    }, [searchText]);
+    }, [negocio.id_negocio, searchText]);
         
 
 
@@ -140,7 +142,7 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
             }else{
                 fetchSearchClientes();
             }
-        }, [fetchClientes, searchText])
+        }, [fetchClientes, fetchSearchClientes, searchText])
     );
 
     const resetForm = () => {

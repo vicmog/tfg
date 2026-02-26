@@ -1,5 +1,6 @@
 import { Cliente } from "../../models/Cliente.js";
 import { UsuarioNegocio } from "../../models/UsuarioNegocio.js";
+import { Op } from "sequelize";
 import {
     CLIENTE_ERRORS,
     CLIENTE_MESSAGES,
@@ -81,7 +82,6 @@ export const createCliente = async (req, res) => {
             },
         });
     } catch (error) {
-        console.error("Error al crear cliente:", error);
         return res.status(500).json({ message: CLIENTE_ERRORS.SERVER_ERROR });
     }
 };
@@ -197,7 +197,6 @@ export const updateCliente = async (req, res) => {
             },
         });
     } catch (error) {
-        console.error("Error al actualizar cliente:", error);
         return res.status(500).json({ message: CLIENTE_ERRORS.SERVER_ERROR });
     }
 };
@@ -208,10 +207,6 @@ export const deleteCliente = async (req, res) => {
 
     if (!id_usuario) {
         return res.status(401).json({ message: CLIENTE_ERRORS.USER_NOT_AUTHENTICATED });
-    }
-
-    if (!id_cliente) {
-        return res.status(400).json({ message: CLIENTE_ERRORS.CLIENTE_ID_REQUIRED });
     }
 
     try {
@@ -229,7 +224,45 @@ export const deleteCliente = async (req, res) => {
 
         return res.status(200).json({ message: CLIENTE_MESSAGES.CLIENTE_DELETED });
     } catch (error) {
-        console.error("Error al eliminar cliente:", error);
+        return res.status(500).json({ message: CLIENTE_ERRORS.SERVER_ERROR });
+    }
+};
+
+export const searchClientes = async (req, res) => {
+    const { id_negocio } = req.params;
+    const searchTerm = typeof req.query.searchTerm === "string" ? req.query.searchTerm.trim() : "";
+    const id_usuario = req.user?.id_usuario || "";
+
+    if(!id_negocio){
+        return res.status(400).json({ message: CLIENTE_ERRORS.NEGOCIO_ID_REQUIRED });
+    }
+
+    if(!id_usuario){
+        return res.status(401).json({ message: CLIENTE_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    try {
+        const hasAccess = await hasAccessToNegocio(id_usuario, id_negocio);
+        if (!hasAccess) {
+            return res.status(403).json({ message: CLIENTE_ERRORS.NO_ACCESS_TO_NEGOCIO });
+        }
+
+        if (!searchTerm) {
+            return res.status(200).json({ clientes: [] });
+        }
+
+        const clientes = await Cliente.findAll({
+            where: {
+                id_negocio: id_negocio,
+                [Op.or]:[
+                    {nombre:{[Op.like]: `%${searchTerm}%`}},
+                    {numero_telefono:{[Op.like]: `%${searchTerm}%`}}
+                ]
+            },
+        });
+
+        return res.status(200).json({ clientes });
+    } catch (error) {
         return res.status(500).json({ message: CLIENTE_ERRORS.SERVER_ERROR });
     }
 };

@@ -4,7 +4,8 @@ export const clientesByNegocioRoute = (idNegocio: number) => API_ROUTES.clientes
 export const createClienteRoute = API_ROUTES.clientes;
 export const updateClienteByIdRoute = (idCliente: number) => API_ROUTES.updateClienteById(idCliente);
 export const deleteClienteByIdRoute = (idCliente: number) => API_ROUTES.deleteClienteById(idCliente);
-export const searchClientByNameOrPhoneRoute = API_ROUTES.searchClientByNameOrPhone;
+export const searchClientByNameOrPhoneRoute = (idNegocio: number, search: string) =>
+	API_ROUTES.searchClientByNameOrPhone(idNegocio, search);
 
 export const SCREEN_TITLE = "Clientes";
 export const ADD_CLIENT_BUTTON = "Añadir cliente";
@@ -39,6 +40,6 @@ export const NO_TELEFONO_MESSAGE = "Sin teléfono";
 export const NEW_CLIENT_PLACEHOLDER = "Nuevo cliente";
 export const EDIT_CLIENT_PLACEHOLDER = "Editar cliente";
 
-export const SEARCH_PHONE_NAME = "Buscar por nombre o CIF";
+export const SEARCH_PHONE_NAME = "Buscar por nombre o teléfono";
 
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
