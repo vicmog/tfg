@@ -1,4 +1,4 @@
-import { createCliente, deleteCliente, getClientesByNegocio, updateCliente } from "../clienteController.js";
+import { createCliente, deleteCliente, getClientesByNegocio, searchClientes, updateCliente } from "../clienteController.js";
 import { Cliente } from "../../../models/Cliente.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
 import {
@@ -12,8 +12,13 @@ import {
   mockClienteConDestroy,
   mockClienteConUpdate,
   mockClienteData,
+  mockClientesBusqueda,
   mockClienteListado,
   mockUsuarioEncontrado,
+  searchClientesReq,
+  searchClientesReqSinAcceso,
+  searchClientesReqSinAuth,
+  searchClientesReqSinTermino,
   updateClienteReq,
   updateClienteReqSinContacto,
 } from "./data.js";
@@ -202,6 +207,62 @@ describe("ClienteController Unit Tests", () => {
       expect(res.status).toHaveBeenCalledWith(400);
       expect(jsonMock).toHaveBeenCalledWith({
         message: "Debes indicar email o teléfono",
+      });
+    });
+  });
+
+  describe("searchClientes", () => {
+    it("debería devolver clientes por nombre o teléfono", async () => {
+      (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioEncontrado);
+      (Cliente.findAll).mockResolvedValue(mockClientesBusqueda);
+
+      const { res, jsonMock } = buildRes();
+
+      await searchClientes(searchClientesReq, res);
+
+      expect(UsuarioNegocio.findOne).toHaveBeenCalledWith({
+        where: { id_usuario: 1, id_negocio: "10" },
+      });
+      expect(Cliente.findAll).toHaveBeenCalledTimes(1);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith({
+        clientes: mockClientesBusqueda,
+      });
+    });
+
+    it("debería devolver lista vacía si el término está vacío", async () => {
+      (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioEncontrado);
+      const { res, jsonMock } = buildRes();
+
+      await searchClientes(searchClientesReqSinTermino, res);
+
+      expect(Cliente.findAll).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith({ clientes: [] });
+    });
+
+    it("debería fallar si el usuario no está autenticado", async () => {
+      const { res, jsonMock } = buildRes();
+
+      await searchClientes(searchClientesReqSinAuth, res);
+
+      expect(UsuarioNegocio.findOne).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Usuario no autenticado",
+      });
+    });
+
+    it("debería fallar si no tiene acceso al negocio", async () => {
+      (UsuarioNegocio.findOne).mockResolvedValue(null);
+      const { res, jsonMock } = buildRes();
+
+      await searchClientes(searchClientesReqSinAcceso, res);
+
+      expect(Cliente.findAll).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "No tienes acceso a este negocio",
       });
     });
   });

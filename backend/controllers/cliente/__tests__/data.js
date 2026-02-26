@@ -78,6 +78,30 @@ export const updateClienteReqSinContacto = {
     user: { id_usuario: 1 },
 };
 
+export const searchClientesReq = {
+    params: { id_negocio: "10" },
+    query: { searchTerm: "Mar" },
+    user: { id_usuario: 1 },
+};
+
+export const searchClientesReqSinTermino = {
+    params: { id_negocio: "10" },
+    query: { searchTerm: "   " },
+    user: { id_usuario: 1 },
+};
+
+export const searchClientesReqSinAuth = {
+    params: { id_negocio: "10" },
+    query: { searchTerm: "Mar" },
+    user: null,
+};
+
+export const searchClientesReqSinAcceso = {
+    params: { id_negocio: "10" },
+    query: { searchTerm: "Mar" },
+    user: { id_usuario: 2 },
+};
+
 export const mockClienteListado = {
     id_cliente: 1,
     id_negocio: 10,
@@ -98,6 +122,19 @@ export const mockClienteConUpdate = {
     ...mockClienteListado,
     update: jest.fn().mockResolvedValue(true),
 };
+
+export const mockClientesBusqueda = [
+    {
+        id_cliente: 7,
+        id_negocio: 10,
+        nombre: "Mario",
+        apellido1: "Sanz",
+        apellido2: null,
+        email: null,
+        numero_telefono: "600111222",
+        bloqueado: false,
+    },
+];
 
 export const buildRes = () => {
     const jsonMock = jest.fn();

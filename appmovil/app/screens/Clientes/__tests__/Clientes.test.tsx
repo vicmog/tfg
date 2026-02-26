@@ -280,4 +280,114 @@ describe("Clientes", () => {
       expect(getByText("Juan Carlos Pérez")).toBeTruthy();
     });
   });
+
+  it("busca clientes al escribir en el buscador", async () => {
+    (fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          clientes: [
+            {
+              id_cliente: 12,
+              id_negocio: 1,
+              nombre: "Juan",
+              apellido1: "Pérez",
+              apellido2: null,
+              email: "juan@mail.com",
+              numero_telefono: "600123123",
+              bloqueado: false,
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          clientes: [
+            {
+              id_cliente: 13,
+              id_negocio: 1,
+              nombre: "María",
+              apellido1: "Gómez",
+              apellido2: null,
+              email: "maria@mail.com",
+              numero_telefono: "611111111",
+              bloqueado: false,
+            },
+          ],
+        }),
+      });
+
+    const { getByTestId, getByText } = render(
+      <Clientes navigation={mockNavigation} route={mockRoute} />
+    );
+
+    await waitFor(() => {
+      expect(getByText("Juan Pérez")).toBeTruthy();
+    });
+
+    fireEvent.changeText(getByTestId("business-search-input"), "Mar");
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        API_ROUTES.searchClientByNameOrPhone(1, "Mar"),
+        expect.objectContaining({
+          headers: { Authorization: "Bearer mock-token" },
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(getByText("María Gómez")).toBeTruthy();
+    });
+  });
+
+  it("finaliza loading tras buscar y muestra vacío si no hay resultados", async () => {
+    (fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          clientes: [
+            {
+              id_cliente: 12,
+              id_negocio: 1,
+              nombre: "Juan",
+              apellido1: "Pérez",
+              apellido2: null,
+              email: "juan@mail.com",
+              numero_telefono: "600123123",
+              bloqueado: false,
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ clientes: [] }),
+      });
+
+    const { getByTestId, getByText, queryByText } = render(
+      <Clientes navigation={mockNavigation} route={mockRoute} />
+    );
+
+    await waitFor(() => {
+      expect(getByText("Juan Pérez")).toBeTruthy();
+    });
+
+    fireEvent.changeText(getByTestId("business-search-input"), "Zzz");
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        API_ROUTES.searchClientByNameOrPhone(1, "Zzz"),
+        expect.objectContaining({
+          headers: { Authorization: "Bearer mock-token" },
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(queryByText("Juan Pérez")).toBeNull();
+      expect(getByText("No hay clientes registrados")).toBeTruthy();
+    });
+  });
 });
