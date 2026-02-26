@@ -62,7 +62,7 @@ describe("Clientes", () => {
       json: async () => ({ clientes: [] }),
     });
 
-    const { getByTestId, getByText } = render(
+    const { getByTestId, getByText, getAllByText } = render(
       <Clientes navigation={mockNavigation} route={mockRoute} />
     );
 
@@ -116,7 +116,7 @@ describe("Clientes", () => {
         }),
       });
 
-    const { getByTestId, getByText } = render(
+    const { getByTestId, getByText, getAllByText } = render(
       <Clientes navigation={mockNavigation} route={mockRoute} />
     );
 
@@ -318,7 +318,7 @@ describe("Clientes", () => {
         }),
       });
 
-    const { getByTestId, getByText } = render(
+    const { getByTestId, getByText, getAllByText } = render(
       <Clientes navigation={mockNavigation} route={mockRoute} />
     );
 
@@ -388,6 +388,84 @@ describe("Clientes", () => {
     await waitFor(() => {
       expect(queryByText("Juan Pérez")).toBeNull();
       expect(getByText("No hay clientes registrados")).toBeTruthy();
+    });
+  });
+
+  it("abre el modal de detalle al pulsar un cliente", async () => {
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        clientes: [
+          {
+            id_cliente: 12,
+            id_negocio: 1,
+            nombre: "Juan",
+            apellido1: "Pérez",
+            apellido2: null,
+            email: "juan@mail.com",
+            numero_telefono: "600123123",
+            bloqueado: false,
+          },
+        ],
+      }),
+    });
+
+    const { getByTestId, getByText, getAllByText } = render(
+      <Clientes navigation={mockNavigation} route={mockRoute} />
+    );
+
+    await waitFor(() => {
+      expect(getByTestId("cliente-open-detail-12")).toBeTruthy();
+    });
+
+    fireEvent.press(getByTestId("cliente-open-detail-12"));
+
+    await waitFor(() => {
+      expect(getByTestId("cliente-detail-modal")).toBeTruthy();
+      expect(getByText("Detalle del cliente")).toBeTruthy();
+      expect(getAllByText("Juan Pérez").length).toBeGreaterThan(0);
+      expect(getAllByText("juan@mail.com").length).toBeGreaterThan(0);
+      expect(getAllByText("600123123").length).toBeGreaterThan(0);
+    });
+  });
+
+  it("cierra el modal de detalle del cliente", async () => {
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        clientes: [
+          {
+            id_cliente: 12,
+            id_negocio: 1,
+            nombre: "Juan",
+            apellido1: "Pérez",
+            apellido2: null,
+            email: "juan@mail.com",
+            numero_telefono: "600123123",
+            bloqueado: false,
+          },
+        ],
+      }),
+    });
+
+    const { getByTestId, queryByText } = render(
+      <Clientes navigation={mockNavigation} route={mockRoute} />
+    );
+
+    await waitFor(() => {
+      expect(getByTestId("cliente-open-detail-12")).toBeTruthy();
+    });
+
+    fireEvent.press(getByTestId("cliente-open-detail-12"));
+
+    await waitFor(() => {
+      expect(getByTestId("cliente-detail-close-button")).toBeTruthy();
+    });
+
+    fireEvent.press(getByTestId("cliente-detail-close-button"));
+
+    await waitFor(() => {
+      expect(queryByText("Detalle del cliente")).toBeNull();
     });
   });
 });

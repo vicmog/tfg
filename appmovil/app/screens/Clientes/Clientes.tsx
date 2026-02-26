@@ -27,6 +27,11 @@ import {
     DELETE_BUTTON_TEXT,
     DELETING_BUTTON_TEXT,
     DELETE_SUCCESS_MESSAGE,
+    DETAIL_CLIENT_TITLE,
+    DETAIL_CLOSE_BUTTON,
+    DETAIL_EMAIL_LABEL,
+    DETAIL_NAME_LABEL,
+    DETAIL_PHONE_LABEL,
     DEFAULT_DELETE_ERROR,
     DEFAULT_CREATE_ERROR,
     DEFAULT_UPDATE_ERROR,
@@ -76,6 +81,7 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
     const [confirmDeleteClienteId, setConfirmDeleteClienteId] = useState<number | null>(null);
 
     const [searchText, setSearchText] = useState<string>("");
+    const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
 
     const fetchClientes = useCallback(async () => {
         setLoading(true);
@@ -295,6 +301,14 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
         setConfirmDeleteClienteId(null);
     };
 
+    const handleOpenClienteDetail = (cliente: Cliente) => {
+        setSelectedCliente(cliente);
+    };
+
+    const handleCloseClienteDetail = () => {
+        setSelectedCliente(null);
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -331,7 +345,7 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
             <Modal
                 visible={modalVisible}
                 transparent
-                animationType="fade"
+                animationType="none"
                 onRequestClose={handleToggleModal}
                 testID="cliente-form-modal"
             >
@@ -412,6 +426,50 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
                 </View>
             </Modal>
 
+            <Modal
+                visible={!!selectedCliente}
+                transparent
+                animationType="none"
+                onRequestClose={handleCloseClienteDetail}
+                testID="cliente-detail-modal"
+            >
+                <View style={styles.modalBackdrop}>
+                    <View style={styles.formContainer}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>{DETAIL_CLIENT_TITLE}</Text>
+                            <TouchableOpacity onPress={handleCloseClienteDetail} testID="cliente-detail-close-button">
+                                <MaterialIcons name="close" size={22} color="#6b7280" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>{DETAIL_NAME_LABEL}</Text>
+                            <Text style={styles.detailValue}>
+                                {selectedCliente?.nombre} {selectedCliente?.apellido1} {selectedCliente?.apellido2 || ""}
+                            </Text>
+                        </View>
+
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>{DETAIL_EMAIL_LABEL}</Text>
+                            <Text style={styles.detailValue}>{selectedCliente?.email || NO_EMAIL_MESSAGE}</Text>
+                        </View>
+
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>{DETAIL_PHONE_LABEL}</Text>
+                            <Text style={styles.detailValue}>{selectedCliente?.numero_telefono || NO_TELEFONO_MESSAGE}</Text>
+                        </View>
+
+                        <TouchableOpacity
+                            style={styles.closeDetailButton}
+                            onPress={handleCloseClienteDetail}
+                            testID="cliente-detail-close-action"
+                        >
+                            <Text style={styles.closeDetailButtonText}>{DETAIL_CLOSE_BUTTON}</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
             {listError ? (
                 <View style={styles.feedbackError} testID="clientes-list-error-message">
                     <Text style={styles.feedbackErrorText}>{listError}</Text>
@@ -436,13 +494,17 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
                         clientes.map((cliente) => (
                             <View key={cliente.id_cliente} style={styles.card} testID={`cliente-item-${cliente.id_cliente}`}>
                                 <View style={styles.cardContent}>
-                                    <View style={styles.clientInfo}>
+                                    <TouchableOpacity
+                                        style={styles.clientInfo}
+                                        onPress={() => handleOpenClienteDetail(cliente)}
+                                        testID={`cliente-open-detail-${cliente.id_cliente}`}
+                                    >
                                         <Text style={styles.clientName}>
                                             {cliente.nombre} {cliente.apellido1} {cliente.apellido2 || ""}
                                         </Text>
                                         <Text style={styles.clientMeta}>{cliente.email || NO_EMAIL_MESSAGE}</Text>
                                         <Text style={styles.clientMeta}>{cliente.numero_telefono || NO_TELEFONO_MESSAGE}</Text>
-                                    </View>
+                                    </TouchableOpacity>
                                     <View style={styles.actionsRow}>
                                         <TouchableOpacity
                                             style={[styles.actionButton, styles.editButton]}
@@ -737,5 +799,29 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: "#01050e",
         paddingVertical: 6,
+    },
+    detailRow: {
+        marginBottom: 12,
+    },
+    detailLabel: {
+        color: "#6b7280",
+        fontSize: 13,
+        marginBottom: 4,
+    },
+    detailValue: {
+        color: "#111827",
+        fontSize: 15,
+        fontWeight: "600",
+    },
+    closeDetailButton: {
+        marginTop: 8,
+        backgroundColor: "#1976D2",
+        borderRadius: 10,
+        paddingVertical: 10,
+        alignItems: "center",
+    },
+    closeDetailButtonText: {
+        color: "#fff",
+        fontWeight: "700",
     },
 });

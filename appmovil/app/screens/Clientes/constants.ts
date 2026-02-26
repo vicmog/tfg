@@ -39,6 +39,11 @@ export const NO_EMAIL_MESSAGE = "Sin email";
 export const NO_TELEFONO_MESSAGE = "Sin teléfono";
 export const NEW_CLIENT_PLACEHOLDER = "Nuevo cliente";
 export const EDIT_CLIENT_PLACEHOLDER = "Editar cliente";
+export const DETAIL_CLIENT_TITLE = "Detalle del cliente";
+export const DETAIL_CLOSE_BUTTON = "Cerrar";
+export const DETAIL_NAME_LABEL = "Nombre";
+export const DETAIL_EMAIL_LABEL = "Email";
+export const DETAIL_PHONE_LABEL = "Teléfono";
 
 export const SEARCH_PHONE_NAME = "Buscar por nombre o teléfono";
 
