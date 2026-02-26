@@ -49,6 +49,8 @@ import {
     NO_EMAIL_MESSAGE,
     NO_TELEFONO_MESSAGE,
     NEW_CLIENT_PLACEHOLDER,
+    SEARCH_PHONE_NAME,
+    searchClientByNameOrPhoneRoute,
 } from "./constants";
 import { ClientesProps } from "./types";
 
@@ -72,6 +74,8 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
     const [editingClienteId, setEditingClienteId] = useState<number | null>(null);
     const [deletingClienteId, setDeletingClienteId] = useState<number | null>(null);
     const [confirmDeleteClienteId, setConfirmDeleteClienteId] = useState<number | null>(null);
+
+    const [searchText, setSearchText] = useState<string>("");
 
     const fetchClientes = useCallback(async () => {
         setLoading(true);
@@ -101,10 +105,42 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
         }
     }, [negocio.id_negocio]);
 
+    const fetchSearchClientes = useCallback(async () => {
+        setLoading(true);
+        setListError("");
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const searchRoute = searchClientByNameOrPhoneRoute.replace(":idNegocio", negocio.id_negocio.toString()).replace(":search", searchText);
+            const response = await fetch(searchRoute, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setListError(data.message || DEFAULT_FETCH_ERROR);
+                setClientes([]);
+                return;
+            }
+
+            const data = await response.json();
+            setClientes(data.clientes || []);
+        }catch (err) {
+            setListError(CONNECTION_ERROR);
+        }
+    }, [searchText]);
+        
+
+
     useFocusEffect(
         useCallback(() => {
-            fetchClientes();
-        }, [fetchClientes])
+            if(searchText==="") {
+                fetchClientes();
+            }else{
+                fetchSearchClientes();
+            }
+        }, [fetchClientes, searchText])
     );
 
     const resetForm = () => {
@@ -246,6 +282,7 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
         }
     };
 
+
     const handleAskDeleteCliente = (idCliente: number) => {
         setListError("");
         setListSuccess("");
@@ -275,6 +312,18 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
                     <MaterialIcons name="person-add" size={18} color="#fff" style={{ marginRight: 6 }} />
                     <Text style={styles.addButtonText}>{ADD_CLIENT_BUTTON}</Text>
                 </TouchableOpacity>
+            </View>
+            <View style={styles.searchContainer}>
+                <MaterialIcons name="search" size={20} color="#6b7280" style={styles.searchIcon} />
+                <TextInput
+                    placeholder={SEARCH_PHONE_NAME}
+                    placeholderTextColor="#000000"
+                    value={searchText || ""}
+                    onChangeText={setSearchText}
+                    style={styles.searchInput}
+                    autoCapitalize="none"
+                    testID="business-search-input"
+                />
             </View>
 
             <Modal
@@ -450,6 +499,18 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
 export default Clientes;
 
 const styles = StyleSheet.create({
+    searchContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#fff",
+        marginHorizontal: 12,
+        marginBottom: 12,
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+    },
     container: {
         flex: 1,
         backgroundColor: "#f7fafc",
@@ -665,5 +726,14 @@ const styles = StyleSheet.create({
     clientMeta: {
         color: "#4b5563",
         fontSize: 13,
+    },
+    searchIcon: {
+        marginRight: 8,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 15,
+        color: "#01050e",
+        paddingVertical: 6,
     },
 });
