@@ -24,8 +24,6 @@ import {
     createClienteRoute,
     clientesByNegocioRoute,
     deleteClienteByIdRoute,
-    DELETE_BUTTON_TEXT,
-    DELETING_BUTTON_TEXT,
     DELETE_SUCCESS_MESSAGE,
     DETAIL_CLIENT_TITLE,
     DETAIL_CLOSE_BUTTON,
