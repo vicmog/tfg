@@ -897,12 +897,12 @@ const styles = StyleSheet.create({
         padding: 10,
     },
     confirmTitle: {
-        color: "#991b1b",
+        color: "#03045E",
         fontWeight: "700",
         marginBottom: 4,
     },
     confirmMessage: {
-        color: "#7f1d1d",
+        color: "#03045E",
         marginBottom: 8,
     },
     confirmActions: {
@@ -925,7 +925,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
     },
     confirmBanActionButton: {
-        backgroundColor: "#dc2626",
+        backgroundColor: "#03045E",
         borderRadius: 6,
         paddingVertical: 6,
         paddingHorizontal: 10,
@@ -999,7 +999,7 @@ const styles = StyleSheet.create({
     },
     banDetailButton: {
         marginTop: 8,
-        backgroundColor: "#dc2626",
+        backgroundColor: "#03045E",
         borderRadius: 10,
         paddingVertical: 10,
         alignItems: "center",
