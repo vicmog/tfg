@@ -15,7 +15,16 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Cliente } from "../types";
 import {
     ADD_CLIENT_BUTTON,
+    ADMIN_ROLE,
+    BAN_SUCCESS_MESSAGE,
     CONNECTION_ERROR,
+    CONFIRM_BAN_ACCEPT,
+    CONFIRM_BAN_CANCEL,
+    CONFIRM_BAN_MESSAGE,
+    CONFIRM_BAN_TITLE,
+    CONFIRM_UNBAN_ACCEPT,
+    CONFIRM_UNBAN_MESSAGE,
+    CONFIRM_UNBAN_TITLE,
     CONFIRM_DELETE_ACCEPT,
     CONFIRM_DELETE_CANCEL,
     CONFIRM_DELETE_MESSAGE,
@@ -26,10 +35,17 @@ import {
     deleteClienteByIdRoute,
     DELETE_SUCCESS_MESSAGE,
     DETAIL_CLIENT_TITLE,
+    DETAIL_BAN_BUTTON,
+    DETAIL_UNBAN_BUTTON,
     DETAIL_CLOSE_BUTTON,
     DETAIL_EMAIL_LABEL,
     DETAIL_NAME_LABEL,
     DETAIL_PHONE_LABEL,
+    DETAIL_STATUS_ACTIVE,
+    DETAIL_STATUS_BLOCKED,
+    DETAIL_STATUS_LABEL,
+    DEFAULT_BAN_ERROR,
+    DEFAULT_UNBAN_ERROR,
     DEFAULT_DELETE_ERROR,
     DEFAULT_CREATE_ERROR,
     DEFAULT_UPDATE_ERROR,
@@ -47,6 +63,7 @@ import {
     SCREEN_TITLE,
     SUCCESS_MESSAGE,
     UPDATE_SUCCESS_MESSAGE,
+    UNBAN_SUCCESS_MESSAGE,
     updateClienteByIdRoute,
     EMPTY_CLIENTS_MESSAGE,
     NO_EMAIL_MESSAGE,
@@ -54,6 +71,8 @@ import {
     NEW_CLIENT_PLACEHOLDER,
     SEARCH_PHONE_NAME,
     searchClientByNameOrPhoneRoute,
+    JEFE_ROLE,
+    BLOCKED_BADGE_TEXT,
 } from "./constants";
 import { ClientesProps } from "./types";
 
@@ -77,9 +96,13 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
     const [editingClienteId, setEditingClienteId] = useState<number | null>(null);
     const [deletingClienteId, setDeletingClienteId] = useState<number | null>(null);
     const [confirmDeleteClienteId, setConfirmDeleteClienteId] = useState<number | null>(null);
+    const [banningClienteId, setBanningClienteId] = useState<number | null>(null);
+    const [confirmBanClienteId, setConfirmBanClienteId] = useState<number | null>(null);
 
     const [searchText, setSearchText] = useState<string>("");
     const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
+    const normalizedRole = (negocio.rol || "").toLowerCase();
+    const canBanClientes = normalizedRole === JEFE_ROLE || normalizedRole === ADMIN_ROLE;
 
     const fetchClientes = useCallback(async () => {
         setLoading(true);
@@ -305,6 +328,60 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
 
     const handleCloseClienteDetail = () => {
         setSelectedCliente(null);
+        setConfirmBanClienteId(null);
+    };
+
+    const handleToggleBanCliente = async (cliente: Cliente) => {
+        const shouldBlockCliente = !cliente.bloqueado;
+        setListError("");
+        setListSuccess("");
+        setBanningClienteId(cliente.id_cliente);
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(updateClienteByIdRoute(cliente.id_cliente), {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    bloqueado: shouldBlockCliente,
+                }),
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setListError(data.message || (shouldBlockCliente ? DEFAULT_BAN_ERROR : DEFAULT_UNBAN_ERROR));
+                return;
+            }
+
+            setSelectedCliente((prevCliente) => {
+                if (!prevCliente || prevCliente.id_cliente !== cliente.id_cliente) {
+                    return prevCliente;
+                }
+
+                return {
+                    ...prevCliente,
+                    bloqueado: shouldBlockCliente,
+                };
+            });
+
+            setListSuccess(shouldBlockCliente ? BAN_SUCCESS_MESSAGE : UNBAN_SUCCESS_MESSAGE);
+            await fetchClientes();
+        } catch (error) {
+            setListError(CONNECTION_ERROR);
+        } finally {
+            setBanningClienteId(null);
+        }
+    };
+
+    const handleAskBanCliente = (cliente: Cliente) => {
+        setConfirmBanClienteId(cliente.id_cliente);
+    };
+
+    const handleCancelBanCliente = () => {
+        setConfirmBanClienteId(null);
     };
 
     return (
@@ -457,6 +534,71 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
                             <Text style={styles.detailValue}>{selectedCliente?.numero_telefono || NO_TELEFONO_MESSAGE}</Text>
                         </View>
 
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>{DETAIL_STATUS_LABEL}</Text>
+                            <Text style={styles.detailValue}>{selectedCliente?.bloqueado ? DETAIL_STATUS_BLOCKED : DETAIL_STATUS_ACTIVE}</Text>
+                        </View>
+
+                        {canBanClientes ? (
+                            <>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.banDetailButton,
+                                        banningClienteId === selectedCliente?.id_cliente && styles.banDetailButtonDisabled,
+                                    ]}
+                                    onPress={() => {
+                                        if (selectedCliente) {
+                                            handleAskBanCliente(selectedCliente);
+                                        }
+                                    }}
+                                    disabled={banningClienteId === selectedCliente?.id_cliente}
+                                    testID={`cliente-ban-button-${selectedCliente?.id_cliente || "none"}`}
+                                >
+                                    {banningClienteId === selectedCliente?.id_cliente ? (
+                                        <ActivityIndicator size="small" color="#fff" />
+                                    ) : (
+                                        <Text style={styles.banDetailButtonText}>
+                                            {selectedCliente?.bloqueado ? DETAIL_UNBAN_BUTTON : DETAIL_BAN_BUTTON}
+                                        </Text>
+                                    )}
+                                </TouchableOpacity>
+
+                                {confirmBanClienteId === selectedCliente?.id_cliente ? (
+                                    <View style={styles.confirmBox} testID={`cliente-ban-confirm-${selectedCliente?.id_cliente}`}>
+                                        <Text style={styles.confirmTitle}>{selectedCliente?.bloqueado ? CONFIRM_UNBAN_TITLE : CONFIRM_BAN_TITLE}</Text>
+                                        <Text style={styles.confirmMessage}>{selectedCliente?.bloqueado ? CONFIRM_UNBAN_MESSAGE : CONFIRM_BAN_MESSAGE}</Text>
+                                        <View style={styles.confirmActions}>
+                                            <TouchableOpacity
+                                                style={styles.confirmCancelButton}
+                                                onPress={handleCancelBanCliente}
+                                                testID={`cliente-ban-cancel-${selectedCliente?.id_cliente}`}
+                                            >
+                                                <Text style={styles.confirmCancelText}>{CONFIRM_BAN_CANCEL}</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={[
+                                                    styles.confirmBanActionButton,
+                                                    selectedCliente?.bloqueado && styles.confirmUnbanActionButton,
+                                                ]}
+                                                onPress={() => {
+                                                    if (selectedCliente) {
+                                                        void handleToggleBanCliente(selectedCliente);
+                                                    }
+                                                    handleCancelBanCliente();
+                                                }}
+                                                disabled={banningClienteId === selectedCliente?.id_cliente}
+                                                testID={`cliente-ban-confirm-button-${selectedCliente?.id_cliente}`}
+                                            >
+                                                <Text style={styles.confirmDeleteText}>
+                                                    {selectedCliente?.bloqueado ? CONFIRM_UNBAN_ACCEPT : CONFIRM_BAN_ACCEPT}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                ) : null}
+                            </>
+                        ) : null}
+
                         <TouchableOpacity
                             style={styles.closeDetailButton}
                             onPress={handleCloseClienteDetail}
@@ -497,9 +639,16 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
                                         onPress={() => handleOpenClienteDetail(cliente)}
                                         testID={`cliente-open-detail-${cliente.id_cliente}`}
                                     >
-                                        <Text style={styles.clientName}>
-                                            {cliente.nombre} {cliente.apellido1} {cliente.apellido2 || ""}
-                                        </Text>
+                                        <View style={styles.clientNameRow}>
+                                            <Text style={styles.clientName}>
+                                                {cliente.nombre} {cliente.apellido1} {cliente.apellido2 || ""}
+                                            </Text>
+                                            {cliente.bloqueado ? (
+                                                <View style={styles.blockedBadge} testID={`cliente-blocked-badge-${cliente.id_cliente}`}>
+                                                    <Text style={styles.blockedBadgeText}>{BLOCKED_BADGE_TEXT}</Text>
+                                                </View>
+                                            ) : null}
+                                        </View>
                                         <Text style={styles.clientMeta}>{cliente.email || NO_EMAIL_MESSAGE}</Text>
                                         <Text style={styles.clientMeta}>{cliente.numero_telefono || NO_TELEFONO_MESSAGE}</Text>
                                     </TouchableOpacity>
@@ -775,6 +924,15 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
         paddingHorizontal: 10,
     },
+    confirmBanActionButton: {
+        backgroundColor: "#dc2626",
+        borderRadius: 6,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+    },
+    confirmUnbanActionButton: {
+        backgroundColor: "#1976D2",
+    },
     confirmDeleteText: {
         color: "#fff",
         fontWeight: "700",
@@ -784,6 +942,23 @@ const styles = StyleSheet.create({
         color: "#0D47A1",
         fontSize: 16,
         marginBottom: 6,
+    },
+    clientNameRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    blockedBadge: {
+        backgroundColor: "#fee2e2",
+        borderRadius: 999,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        marginLeft: 8,
+    },
+    blockedBadgeText: {
+        color: "#991b1b",
+        fontSize: 11,
+        fontWeight: "700",
     },
     clientMeta: {
         color: "#4b5563",
@@ -819,6 +994,21 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     closeDetailButtonText: {
+        color: "#fff",
+        fontWeight: "700",
+    },
+    banDetailButton: {
+        marginTop: 8,
+        backgroundColor: "#dc2626",
+        borderRadius: 10,
+        paddingVertical: 10,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    banDetailButtonDisabled: {
+        backgroundColor: "#9ca3af",
+    },
+    banDetailButtonText: {
         color: "#fff",
         fontWeight: "700",
     },

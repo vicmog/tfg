@@ -4,6 +4,7 @@ import { Op } from "sequelize";
 import {
     CLIENTE_ERRORS,
     CLIENTE_MESSAGES,
+    CLIENTE_ROLES,
     EMAIL_REGEX,
 } from "./constants.js";
 
@@ -134,6 +135,7 @@ export const updateCliente = async (req, res) => {
         apellido2,
         email,
         numero_telefono,
+        bloqueado,
     } = req.body;
     const id_usuario = req.user?.id_usuario;
 
@@ -145,23 +147,39 @@ export const updateCliente = async (req, res) => {
         return res.status(400).json({ message: CLIENTE_ERRORS.CLIENTE_ID_REQUIRED });
     }
 
-    if (!nombre || !nombre.trim()) {
-        return res.status(400).json({ message: CLIENTE_ERRORS.NOMBRE_REQUIRED });
+    const hasProfileData = [nombre, apellido1, apellido2, email, numero_telefono].some((value) => value !== undefined);
+    const hasBlockData = bloqueado !== undefined;
+
+    if (!hasProfileData && !hasBlockData) {
+        return res.status(400).json({ message: CLIENTE_ERRORS.NO_UPDATE_DATA });
     }
 
-    if (!apellido1 || !apellido1.trim()) {
-        return res.status(400).json({ message: CLIENTE_ERRORS.APELLIDO1_REQUIRED });
+    if (hasBlockData && typeof bloqueado !== "boolean") {
+        return res.status(400).json({ message: CLIENTE_ERRORS.BLOCKED_INVALID });
     }
 
-    const emailValue = typeof email === "string" ? email.trim() : "";
-    const telefonoValue = typeof numero_telefono === "string" ? numero_telefono.trim() : "";
+    let emailValue = "";
+    let telefonoValue = "";
 
-    if (!emailValue && !telefonoValue) {
-        return res.status(400).json({ message: CLIENTE_ERRORS.CONTACT_REQUIRED });
-    }
+    if (hasProfileData) {
+        if (!nombre || !nombre.trim()) {
+            return res.status(400).json({ message: CLIENTE_ERRORS.NOMBRE_REQUIRED });
+        }
 
-    if (emailValue && !EMAIL_REGEX.test(emailValue)) {
-        return res.status(400).json({ message: CLIENTE_ERRORS.INVALID_EMAIL });
+        if (!apellido1 || !apellido1.trim()) {
+            return res.status(400).json({ message: CLIENTE_ERRORS.APELLIDO1_REQUIRED });
+        }
+
+        emailValue = typeof email === "string" ? email.trim() : "";
+        telefonoValue = typeof numero_telefono === "string" ? numero_telefono.trim() : "";
+
+        if (!emailValue && !telefonoValue) {
+            return res.status(400).json({ message: CLIENTE_ERRORS.CONTACT_REQUIRED });
+        }
+
+        if (emailValue && !EMAIL_REGEX.test(emailValue)) {
+            return res.status(400).json({ message: CLIENTE_ERRORS.INVALID_EMAIL });
+        }
     }
 
     try {
@@ -170,18 +188,36 @@ export const updateCliente = async (req, res) => {
             return res.status(404).json({ message: CLIENTE_ERRORS.CLIENTE_NOT_FOUND });
         }
 
-        const hasAccess = await hasAccessToNegocio(id_usuario, cliente.id_negocio);
-        if (!hasAccess) {
+        const usuarioNegocio = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio: cliente.id_negocio },
+        });
+
+        if (!usuarioNegocio) {
             return res.status(403).json({ message: CLIENTE_ERRORS.NO_ACCESS_TO_NEGOCIO });
         }
 
-        await cliente.update({
-            nombre: nombre.trim(),
-            apellido1: apellido1.trim(),
-            apellido2: typeof apellido2 === "string" ? apellido2.trim() || null : null,
-            email: emailValue || null,
-            numero_telefono: telefonoValue || null,
-        });
+        if (hasBlockData) {
+            const canBlockCliente = [CLIENTE_ROLES.JEFE, CLIENTE_ROLES.ADMIN].includes(usuarioNegocio.rol);
+            if (!canBlockCliente) {
+                return res.status(403).json({ message: CLIENTE_ERRORS.NO_BLOCK_PERMISSION });
+            }
+        }
+
+        const updateData = {};
+
+        if (hasProfileData) {
+            updateData.nombre = nombre.trim();
+            updateData.apellido1 = apellido1.trim();
+            updateData.apellido2 = typeof apellido2 === "string" ? apellido2.trim() || null : null;
+            updateData.email = emailValue || null;
+            updateData.numero_telefono = telefonoValue || null;
+        }
+
+        if (hasBlockData) {
+            updateData.bloqueado = bloqueado;
+        }
+
+        await cliente.update(updateData);
 
         return res.status(200).json({
             message: CLIENTE_MESSAGES.CLIENTE_UPDATED,

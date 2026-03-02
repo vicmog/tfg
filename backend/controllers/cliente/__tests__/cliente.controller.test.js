@@ -15,12 +15,15 @@ import {
   mockClientesBusqueda,
   mockClienteListado,
   mockUsuarioEncontrado,
+  mockUsuarioTrabajador,
   searchClientesReq,
   searchClientesReqSinAcceso,
   searchClientesReqSinAuth,
   searchClientesReqSinTermino,
   updateClienteReq,
   updateClienteReqSinContacto,
+  updateClienteReqVetar,
+  updateClienteReqVetarSinPermiso,
 } from "./data.js";
 
 jest.mock("../../../models/Cliente.js");
@@ -207,6 +210,48 @@ describe("ClienteController Unit Tests", () => {
       expect(res.status).toHaveBeenCalledWith(400);
       expect(jsonMock).toHaveBeenCalledWith({
         message: "Debes indicar email o teléfono",
+      });
+    });
+
+    it("debería vetar cliente correctamente si es jefe/admin", async () => {
+      const clienteMock = {
+        ...mockClienteConUpdate,
+        bloqueado: false,
+      };
+      (Cliente.findByPk).mockResolvedValue(clienteMock);
+      (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioEncontrado);
+
+      const { res, jsonMock } = buildRes();
+
+      await updateCliente(updateClienteReqVetar, res);
+
+      expect(Cliente.findByPk).toHaveBeenCalledWith("1");
+      expect(clienteMock.update).toHaveBeenCalledWith({
+        bloqueado: true,
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Cliente actualizado correctamente",
+        cliente: expect.objectContaining({
+          id_cliente: 1,
+          id_negocio: 10,
+          bloqueado: false,
+        }),
+      });
+    });
+
+    it("debería fallar al vetar cliente si el rol no es jefe/admin", async () => {
+      (Cliente.findByPk).mockResolvedValue(mockClienteConUpdate);
+      (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioTrabajador);
+
+      const { res, jsonMock } = buildRes();
+
+      await updateCliente(updateClienteReqVetarSinPermiso, res);
+
+      expect(mockClienteConUpdate.update).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "No tienes permisos para vetar clientes",
       });
     });
   });

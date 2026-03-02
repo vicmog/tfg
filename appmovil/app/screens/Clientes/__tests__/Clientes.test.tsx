@@ -3,7 +3,7 @@ import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Clientes from "../Clientes";
 import { API_ROUTES } from "@/app/constants/apiRoutes";
-import { mockNavigation, mockRoute } from "./data";
+import { mockNavigation, mockRoute, mockRouteTrabajador } from "./data";
 
 jest.mock("@expo/vector-icons", () => ({
   MaterialIcons: "MaterialIcons",
@@ -29,6 +29,7 @@ global.fetch = jest.fn();
 describe("Clientes", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (fetch as jest.Mock).mockReset();
     (AsyncStorage.getItem as jest.Mock).mockResolvedValue("mock-token");
   });
 
@@ -422,7 +423,7 @@ describe("Clientes", () => {
 
     await waitFor(() => {
       expect(getByTestId("cliente-detail-modal")).toBeTruthy();
-      expect(getByText("Detalle del cliente")).toBeTruthy();
+      expect(getByText("Detalles del cliente")).toBeTruthy();
       expect(getAllByText("Juan Pérez").length).toBeGreaterThan(0);
       expect(getAllByText("juan@mail.com").length).toBeGreaterThan(0);
       expect(getAllByText("600123123").length).toBeGreaterThan(0);
@@ -465,7 +466,271 @@ describe("Clientes", () => {
     fireEvent.press(getByTestId("cliente-detail-close-button"));
 
     await waitFor(() => {
-      expect(queryByText("Detalle del cliente")).toBeNull();
+      expect(queryByText("Detalles del cliente")).toBeNull();
+    });
+  });
+
+  it("muestra botón de vetar solo para jefe/admin", async () => {
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        clientes: [
+          {
+            id_cliente: 12,
+            id_negocio: 1,
+            nombre: "Juan",
+            apellido1: "Pérez",
+            apellido2: null,
+            email: "juan@mail.com",
+            numero_telefono: "600123123",
+            bloqueado: false,
+          },
+        ],
+      }),
+    });
+
+    const { getByTestId, queryByTestId, rerender } = render(
+      <Clientes navigation={mockNavigation} route={mockRouteTrabajador} />
+    );
+
+    await waitFor(() => {
+      expect(getByTestId("cliente-open-detail-12")).toBeTruthy();
+    });
+
+    fireEvent.press(getByTestId("cliente-open-detail-12"));
+
+    await waitFor(() => {
+      expect(queryByTestId("cliente-ban-button-12")).toBeNull();
+    });
+
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        clientes: [
+          {
+            id_cliente: 12,
+            id_negocio: 1,
+            nombre: "Juan",
+            apellido1: "Pérez",
+            apellido2: null,
+            email: "juan@mail.com",
+            numero_telefono: "600123123",
+            bloqueado: false,
+          },
+        ],
+      }),
+    });
+
+    rerender(<Clientes navigation={mockNavigation} route={mockRoute} />);
+
+    await waitFor(() => {
+      expect(getByTestId("cliente-open-detail-12")).toBeTruthy();
+    });
+
+    fireEvent.press(getByTestId("cliente-open-detail-12"));
+
+    await waitFor(() => {
+      expect(getByTestId("cliente-ban-button-12")).toBeTruthy();
+    });
+  });
+
+  it("confirma veto y llama al endpoint de update", async () => {
+    (fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          clientes: [
+            {
+              id_cliente: 12,
+              id_negocio: 1,
+              nombre: "Juan",
+              apellido1: "Pérez",
+              apellido2: null,
+              email: "juan@mail.com",
+              numero_telefono: "600123123",
+              bloqueado: false,
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ message: "Cliente actualizado correctamente" }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          clientes: [
+            {
+              id_cliente: 12,
+              id_negocio: 1,
+              nombre: "Juan",
+              apellido1: "Pérez",
+              apellido2: null,
+              email: "juan@mail.com",
+              numero_telefono: "600123123",
+              bloqueado: true,
+            },
+          ],
+        }),
+      });
+
+    const { getByTestId, getByText, getAllByText } = render(
+      <Clientes navigation={mockNavigation} route={mockRoute} />
+    );
+
+    await waitFor(() => {
+      expect(getByTestId("cliente-open-detail-12")).toBeTruthy();
+    });
+
+    fireEvent.press(getByTestId("cliente-open-detail-12"));
+    fireEvent.press(getByTestId("cliente-ban-button-12"));
+
+    await waitFor(() => {
+      expect(getByTestId("cliente-ban-confirm-12")).toBeTruthy();
+    });
+
+    fireEvent.press(getByTestId("cliente-ban-confirm-button-12"));
+
+    await waitFor(() => {
+      expect(getByText("Cliente vetado correctamente")).toBeTruthy();
+      expect(getByText("Desvetar cliente")).toBeTruthy();
+      expect(getByText("Estado")).toBeTruthy();
+      expect(getAllByText("Vetado").length).toBeGreaterThan(0);
+    });
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        API_ROUTES.updateClienteById(12),
+        expect.objectContaining({
+          method: "PUT",
+          headers: expect.objectContaining({
+            "Content-Type": "application/json",
+            Authorization: "Bearer mock-token",
+          }),
+          body: JSON.stringify({ bloqueado: true }),
+        })
+      );
+    });
+  });
+
+  it("permite desvetar y llama al endpoint con bloqueado false", async () => {
+    (fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          clientes: [
+            {
+              id_cliente: 12,
+              id_negocio: 1,
+              nombre: "Juan",
+              apellido1: "Pérez",
+              apellido2: null,
+              email: "juan@mail.com",
+              numero_telefono: "600123123",
+              bloqueado: true,
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ message: "Cliente actualizado correctamente" }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          clientes: [
+            {
+              id_cliente: 12,
+              id_negocio: 1,
+              nombre: "Juan",
+              apellido1: "Pérez",
+              apellido2: null,
+              email: "juan@mail.com",
+              numero_telefono: "600123123",
+              bloqueado: false,
+            },
+          ],
+        }),
+      });
+
+    const { getByTestId, getByText, getAllByText } = render(
+      <Clientes navigation={mockNavigation} route={mockRoute} />
+    );
+
+    await waitFor(() => {
+      expect(getByTestId("cliente-open-detail-12")).toBeTruthy();
+    });
+
+    fireEvent.press(getByTestId("cliente-open-detail-12"));
+
+    await waitFor(() => {
+      expect(getByText("Desvetar cliente")).toBeTruthy();
+    });
+
+    fireEvent.press(getByTestId("cliente-ban-button-12"));
+
+    await waitFor(() => {
+      expect(getByTestId("cliente-ban-confirm-12")).toBeTruthy();
+      expect(getByText("¿Seguro que quieres desvetar este cliente?")).toBeTruthy();
+    });
+
+    fireEvent.press(getByTestId("cliente-ban-confirm-button-12"));
+
+    await waitFor(() => {
+      expect(getByText("Cliente desvetado correctamente")).toBeTruthy();
+      expect(getByText("Vetar cliente")).toBeTruthy();
+      expect(getByText("Activo")).toBeTruthy();
+    });
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        API_ROUTES.updateClienteById(12),
+        expect.objectContaining({
+          method: "PUT",
+          headers: expect.objectContaining({
+            "Content-Type": "application/json",
+            Authorization: "Bearer mock-token",
+          }),
+          body: JSON.stringify({ bloqueado: false }),
+        })
+      );
+    });
+  });
+
+  it("muestra estado vetado y acción desvetar para cliente bloqueado", async () => {
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        clientes: [
+          {
+            id_cliente: 12,
+            id_negocio: 1,
+            nombre: "Juan",
+            apellido1: "Pérez",
+            apellido2: null,
+            email: "juan@mail.com",
+            numero_telefono: "600123123",
+            bloqueado: true,
+          },
+        ],
+      }),
+    });
+
+    const { getByTestId, getByText, getAllByText } = render(
+      <Clientes navigation={mockNavigation} route={mockRoute} />
+    );
+
+    await waitFor(() => {
+      expect(getByTestId("cliente-open-detail-12")).toBeTruthy();
+    });
+
+    fireEvent.press(getByTestId("cliente-open-detail-12"));
+
+    await waitFor(() => {
+      expect(getAllByText("Vetado").length).toBeGreaterThan(0);
+      expect(getByText("Desvetar cliente")).toBeTruthy();
     });
   });
 });

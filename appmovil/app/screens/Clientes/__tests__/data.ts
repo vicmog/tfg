@@ -15,3 +15,12 @@ export const mockNegocio = {
 export const mockRoute = {
   params: { negocio: mockNegocio },
 } as any;
+
+export const mockRouteTrabajador = {
+  params: {
+    negocio: {
+      ...mockNegocio,
+      rol: "trabajador",
+    },
+  },
+} as any;

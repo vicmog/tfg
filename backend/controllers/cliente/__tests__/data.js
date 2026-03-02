@@ -10,6 +10,7 @@ export const mockClienteData = {
 };
 
 export const mockUsuarioEncontrado = { id_usuario: 1, id_negocio: 10, rol: "jefe" };
+export const mockUsuarioTrabajador = { id_usuario: 2, id_negocio: 10, rol: "trabajador" };
 
 export const createClienteReq = {
     body: {
@@ -76,6 +77,22 @@ export const updateClienteReqSinContacto = {
         numero_telefono: "",
     },
     user: { id_usuario: 1 },
+};
+
+export const updateClienteReqVetar = {
+    params: { id_cliente: "1" },
+    body: {
+        bloqueado: true,
+    },
+    user: { id_usuario: 1 },
+};
+
+export const updateClienteReqVetarSinPermiso = {
+    params: { id_cliente: "1" },
+    body: {
+        bloqueado: true,
+    },
+    user: { id_usuario: 2 },
 };
 
 export const searchClientesReq = {

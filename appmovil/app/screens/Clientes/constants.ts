@@ -20,6 +20,13 @@ export const CONFIRM_DELETE_TITLE = "Eliminar cliente";
 export const CONFIRM_DELETE_MESSAGE = "¿Seguro que quieres eliminar este cliente?";
 export const CONFIRM_DELETE_CANCEL = "Cancelar";
 export const CONFIRM_DELETE_ACCEPT = "Eliminar";
+export const CONFIRM_BAN_TITLE = "Vetar cliente";
+export const CONFIRM_BAN_MESSAGE = "¿Seguro que quieres vetar este cliente?";
+export const CONFIRM_UNBAN_TITLE = "Desvetar cliente";
+export const CONFIRM_UNBAN_MESSAGE = "¿Seguro que quieres desvetar este cliente?";
+export const CONFIRM_BAN_CANCEL = "Cancelar";
+export const CONFIRM_BAN_ACCEPT = "Vetar";
+export const CONFIRM_UNBAN_ACCEPT = "Desvetar";
 
 export const EMPTY_NOMBRE_ERROR = "El nombre del cliente es obligatorio";
 export const EMPTY_APELLIDO1_ERROR = "El primer apellido es obligatorio";
@@ -30,10 +37,14 @@ export const DEFAULT_FETCH_ERROR = "No se pudieron obtener los clientes";
 export const DEFAULT_CREATE_ERROR = "No se pudo crear el cliente";
 export const DEFAULT_UPDATE_ERROR = "No se pudieron guardar los cambios";
 export const DEFAULT_DELETE_ERROR = "No se pudo eliminar el cliente";
+export const DEFAULT_BAN_ERROR = "No se pudo vetar el cliente";
+export const DEFAULT_UNBAN_ERROR = "No se pudo desvetar el cliente";
 export const CONNECTION_ERROR = "Error de conexión. Inténtalo de nuevo.";
 export const SUCCESS_MESSAGE = "Cliente creado correctamente";
 export const UPDATE_SUCCESS_MESSAGE = "Cliente actualizado correctamente";
 export const DELETE_SUCCESS_MESSAGE = "Cliente eliminado correctamente";
+export const BAN_SUCCESS_MESSAGE = "Cliente vetado correctamente";
+export const UNBAN_SUCCESS_MESSAGE = "Cliente desvetado correctamente";
 export const EMPTY_CLIENTS_MESSAGE = "No hay clientes registrados";
 export const NO_EMAIL_MESSAGE = "Sin email";
 export const NO_TELEFONO_MESSAGE = "Sin teléfono";
@@ -44,6 +55,15 @@ export const DETAIL_CLOSE_BUTTON = "Cerrar";
 export const DETAIL_NAME_LABEL = "Nombre";
 export const DETAIL_EMAIL_LABEL = "Email";
 export const DETAIL_PHONE_LABEL = "Teléfono";
+export const DETAIL_BAN_BUTTON = "Vetar cliente";
+export const DETAIL_UNBAN_BUTTON = "Desvetar cliente";
+export const BLOCKED_BADGE_TEXT = "Vetado";
+export const DETAIL_STATUS_LABEL = "Estado";
+export const DETAIL_STATUS_BLOCKED = "Vetado";
+export const DETAIL_STATUS_ACTIVE = "Activo";
+
+export const JEFE_ROLE = "jefe";
+export const ADMIN_ROLE = "admin";
 
 export const SEARCH_PHONE_NAME = "Buscar por nombre o teléfono";
 
