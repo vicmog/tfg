@@ -153,6 +153,19 @@ describe("NegocioDetail", () => {
         expect(mockNavigation.navigate).toHaveBeenCalledWith("NegocioUsers", { negocio: mockNegocio });
     });
 
+    it("navega a Empleados al pulsar módulo empleados", async () => {
+        const { getByTestId } = render(
+            <NegocioDetail navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("modulo-empleados")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("modulo-empleados"));
+        expect(mockNavigation.navigate).toHaveBeenCalledWith("Empleados", { negocio: mockNegocio });
+    });
+
     it("hace fetch de los datos del negocio al montar", async () => {
         render(<NegocioDetail navigation={mockNavigation} route={mockRoute} />);
 

@@ -12,6 +12,7 @@ import NegocioDetail from "./screens/NegocioDetail/NegocioDetail";
 import NegocioSettings from "./screens/NegocioSettings/NegocioSettings";
 import NegocioUsers from "./screens/NegocioUsers/NegocioUsers";
 import Clientes from "./screens/Clientes/Clientes";
+import Empleados from "./screens/Empleados/Empleados";
 import { Negocio } from "./screens/types";
 
 
@@ -29,6 +30,7 @@ export type NavigationScreenList = {
   NegocioSettings: { negocio: Negocio };
   NegocioUsers: { negocio: Negocio };
   Clientes: { negocio: Negocio };
+  Empleados: { negocio: Negocio };
 };
 
 const Stack = createNativeStackNavigator<NavigationScreenList>();
@@ -60,6 +62,7 @@ const App: React.FC = () => {
           <Stack.Screen name="NegocioSettings" component={NegocioSettings} />
           <Stack.Screen name="NegocioUsers" component={NegocioUsers} />
           <Stack.Screen name="Clientes" component={Clientes} />
+          <Stack.Screen name="Empleados" component={Empleados} />
         </>
       ) : (
         <>

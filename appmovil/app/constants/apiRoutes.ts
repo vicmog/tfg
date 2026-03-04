@@ -19,6 +19,8 @@ export const API_ROUTES = {
   sendClienteEmailById: (idCliente: number) => `${API_BASE_URL}${API_PREFIX}/clientes/${idCliente}/email`,
   searchClientByNameOrPhone: (idNegocio: number, search: string) =>
     `${API_BASE_URL}${API_PREFIX}/clientes/${idNegocio}/search?searchTerm=${encodeURIComponent(search)}`,
+  empleados: `${API_BASE_URL}${API_PREFIX}/empleados`,
+  empleadosByNegocio: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/empleados/${idNegocio}`,
   users: `${API_BASE_URL}${API_PREFIX}/users`,
   userById: (idUsuario: string | number) => `${API_BASE_URL}${API_PREFIX}/users/user/${idUsuario}`,
 } as const;

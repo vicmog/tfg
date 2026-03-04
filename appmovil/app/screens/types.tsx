@@ -32,3 +32,13 @@ export type Cliente = {
     numero_telefono?: string | null;
     bloqueado: boolean;
 };
+
+export type Empleado = {
+    id_empleado: number;
+    id_negocio: number;
+    nombre: string;
+    apellido1: string;
+    apellido2?: string | null;
+    numero_telefono?: string | null;
+    email?: string | null;
+};
