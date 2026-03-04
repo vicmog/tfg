@@ -1,6 +1,7 @@
-import { createCliente, deleteCliente, getClientesByNegocio, searchClientes, updateCliente } from "../clienteController.js";
+import { createCliente, deleteCliente, getClientesByNegocio, searchClientes, sendClienteEmailToCliente, updateCliente } from "../clienteController.js";
 import { Cliente } from "../../../models/Cliente.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
+import { sendClienteEmail } from "../../../utils/mailer.js";
 import {
   buildRes,
   createClienteReq,
@@ -20,6 +21,10 @@ import {
   searchClientesReqSinAcceso,
   searchClientesReqSinAuth,
   searchClientesReqSinTermino,
+  sendClienteEmailReq,
+  sendClienteEmailReqSinAsunto,
+  sendClienteEmailReqSinPermiso,
+  mockClienteConEmail,
   updateClienteReq,
   updateClienteReqSinContacto,
   updateClienteReqVetar,
@@ -28,6 +33,9 @@ import {
 
 jest.mock("../../../models/Cliente.js");
 jest.mock("../../../models/UsuarioNegocio.js");
+jest.mock("../../../utils/mailer.js", () => ({
+  sendClienteEmail: jest.fn(),
+}));
 
 describe("ClienteController Unit Tests", () => {
   beforeEach(() => {
@@ -308,6 +316,61 @@ describe("ClienteController Unit Tests", () => {
       expect(res.status).toHaveBeenCalledWith(403);
       expect(jsonMock).toHaveBeenCalledWith({
         message: "No tienes acceso a este negocio",
+      });
+    });
+  });
+
+  describe("sendClienteEmailToCliente", () => {
+    it("debería enviar email al cliente si el usuario es jefe/admin", async () => {
+      (Cliente.findByPk).mockResolvedValue(mockClienteConEmail);
+      (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioEncontrado);
+      (sendClienteEmail).mockResolvedValue({ messageId: "mail-1" });
+
+      const { res, jsonMock } = buildRes();
+
+      await sendClienteEmailToCliente(sendClienteEmailReq, res);
+
+      expect(sendClienteEmail).toHaveBeenCalledWith(
+        "cliente@mail.com",
+        "Recordatorio de cita",
+        "Hola, te recordamos tu cita de mañana.",
+        [
+          {
+            filename: "adjunto-1",
+            path: "https://example.com/adjunto.pdf",
+          },
+        ]
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Email enviado correctamente al cliente",
+      });
+    });
+
+    it("debería fallar si no tiene permisos para enviar emails", async () => {
+      (Cliente.findByPk).mockResolvedValue(mockClienteConEmail);
+      (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioTrabajador);
+
+      const { res, jsonMock } = buildRes();
+
+      await sendClienteEmailToCliente(sendClienteEmailReqSinPermiso, res);
+
+      expect(sendClienteEmail).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "No tienes permisos para enviar emails a clientes",
+      });
+    });
+
+    it("debería fallar si el asunto está vacío", async () => {
+      const { res, jsonMock } = buildRes();
+
+      await sendClienteEmailToCliente(sendClienteEmailReqSinAsunto, res);
+
+      expect(Cliente.findByPk).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "El asunto del email es obligatorio",
       });
     });
   });

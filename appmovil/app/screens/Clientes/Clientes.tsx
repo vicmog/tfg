@@ -18,6 +18,7 @@ import {
     ADMIN_ROLE,
     BAN_SUCCESS_MESSAGE,
     CONNECTION_ERROR,
+    DEFAULT_EMAIL_SEND_ERROR,
     CONFIRM_BAN_ACCEPT,
     CONFIRM_BAN_CANCEL,
     CONFIRM_BAN_MESSAGE,
@@ -36,6 +37,7 @@ import {
     DELETE_SUCCESS_MESSAGE,
     DETAIL_CLIENT_TITLE,
     DETAIL_BAN_BUTTON,
+    DETAIL_EMAIL_BUTTON,
     DETAIL_UNBAN_BUTTON,
     DETAIL_CLOSE_BUTTON,
     DETAIL_EMAIL_LABEL,
@@ -51,6 +53,16 @@ import {
     DEFAULT_UPDATE_ERROR,
     DEFAULT_FETCH_ERROR,
     EMAIL_REGEX,
+    EMAIL_ATTACHMENTS_PLACEHOLDER,
+    EMAIL_CLIENT_WITHOUT_EMAIL_ERROR,
+    EMAIL_MESSAGE_PLACEHOLDER,
+    EMAIL_MESSAGE_REQUIRED_ERROR,
+    EMAIL_MODAL_TITLE,
+    EMAIL_SEND_BUTTON,
+    EMAIL_SENDING_BUTTON,
+    EMAIL_SENT_SUCCESS_MESSAGE,
+    EMAIL_SUBJECT_PLACEHOLDER,
+    EMAIL_SUBJECT_REQUIRED_ERROR,
     EDIT_BUTTON_TEXT,
     EDIT_CLIENT_PLACEHOLDER,
     EMPTY_APELLIDO1_ERROR,
@@ -60,6 +72,7 @@ import {
     SAVE_CHANGES_BUTTON_TEXT,
     SAVING_BUTTON_TEXT,
     SAVING_CHANGES_BUTTON_TEXT,
+    sendClienteEmailByIdRoute,
     SCREEN_TITLE,
     SUCCESS_MESSAGE,
     UPDATE_SUCCESS_MESSAGE,
@@ -101,8 +114,18 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
 
     const [searchText, setSearchText] = useState<string>("");
     const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
+
+    const [emailModalVisible, setEmailModalVisible] = useState(false);
+    const [emailSubject, setEmailSubject] = useState("");
+    const [emailMessage, setEmailMessage] = useState("");
+    const [emailAttachments, setEmailAttachments] = useState("");
+    const [emailSending, setEmailSending] = useState(false);
+    const [emailModalError, setEmailModalError] = useState("");
+    const [emailModalSuccess, setEmailModalSuccess] = useState("");
+
     const normalizedRole = (negocio.rol || "").toLowerCase();
     const canBanClientes = normalizedRole === JEFE_ROLE || normalizedRole === ADMIN_ROLE;
+    const canEmailClientes = normalizedRole === JEFE_ROLE || normalizedRole === ADMIN_ROLE;
 
     const fetchClientes = useCallback(async () => {
         setLoading(true);
@@ -329,6 +352,89 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
     const handleCloseClienteDetail = () => {
         setSelectedCliente(null);
         setConfirmBanClienteId(null);
+        setEmailModalVisible(false);
+        setEmailModalError("");
+        setEmailModalSuccess("");
+    };
+
+    const resetEmailForm = () => {
+        setEmailSubject("");
+        setEmailMessage("");
+        setEmailAttachments("");
+        setEmailModalError("");
+        setEmailModalSuccess("");
+    };
+
+    const handleOpenEmailModal = () => {
+        resetEmailForm();
+        setEmailModalVisible(true);
+    };
+
+    const handleCloseEmailModal = () => {
+        setEmailModalVisible(false);
+        resetEmailForm();
+    };
+
+    const handleSendEmailToCliente = async () => {
+        setEmailModalError("");
+        setEmailModalSuccess("");
+        setListError("");
+        setListSuccess("");
+
+        if (!selectedCliente?.email?.trim()) {
+            setEmailModalError(EMAIL_CLIENT_WITHOUT_EMAIL_ERROR);
+            return;
+        }
+
+        if (!emailSubject.trim()) {
+            setEmailModalError(EMAIL_SUBJECT_REQUIRED_ERROR);
+            return;
+        }
+
+        if (!emailMessage.trim()) {
+            setEmailModalError(EMAIL_MESSAGE_REQUIRED_ERROR);
+            return;
+        }
+
+        const adjuntos = emailAttachments
+            .split(/[,\n]+/)
+            .map((adjunto) => adjunto.trim())
+            .filter(Boolean);
+
+        setEmailSending(true);
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(sendClienteEmailByIdRoute(selectedCliente.id_cliente), {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    asunto: emailSubject.trim(),
+                    mensaje: emailMessage.trim(),
+                    adjuntos,
+                }),
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setEmailModalError(data.message || DEFAULT_EMAIL_SEND_ERROR);
+                return;
+            }
+
+            const data = await response.json();
+            const successMessage = data.message || EMAIL_SENT_SUCCESS_MESSAGE;
+            setEmailModalSuccess(successMessage);
+            setListSuccess(successMessage);
+            setEmailModalVisible(false);
+            resetEmailForm();
+        } catch (error) {
+            setEmailModalError(CONNECTION_ERROR);
+        } finally {
+            setEmailSending(false);
+        }
     };
 
     const handleToggleBanCliente = async (cliente: Cliente) => {
@@ -539,6 +645,16 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
                             <Text style={styles.detailValue}>{selectedCliente?.bloqueado ? DETAIL_STATUS_BLOCKED : DETAIL_STATUS_ACTIVE}</Text>
                         </View>
 
+                        {canEmailClientes ? (
+                            <TouchableOpacity
+                                style={styles.emailDetailButton}
+                                onPress={handleOpenEmailModal}
+                                testID={`cliente-email-open-button-${selectedCliente?.id_cliente || "none"}`}
+                            >
+                                <Text style={styles.emailDetailButtonText}>{DETAIL_EMAIL_BUTTON}</Text>
+                            </TouchableOpacity>
+                        ) : null}
+
                         {canBanClientes ? (
                             <>
                                 <TouchableOpacity
@@ -598,13 +714,76 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
                                 ) : null}
                             </>
                         ) : null}
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal
+                visible={emailModalVisible}
+                transparent
+                animationType="none"
+                onRequestClose={handleCloseEmailModal}
+                testID="cliente-email-modal"
+            >
+                <View style={styles.modalBackdrop}>
+                    <View style={styles.formContainer}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>{EMAIL_MODAL_TITLE}</Text>
+                            <TouchableOpacity onPress={handleCloseEmailModal} testID="cliente-email-close-button">
+                                <MaterialIcons name="close" size={22} color="#6b7280" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder={EMAIL_SUBJECT_PLACEHOLDER}
+                            value={emailSubject}
+                            onChangeText={setEmailSubject}
+                            testID="cliente-email-subject-input"
+                        />
+
+                        <TextInput
+                            style={[styles.input, styles.multilineInput]}
+                            multiline
+                            textAlignVertical="top"
+                            placeholder={EMAIL_MESSAGE_PLACEHOLDER}
+                            value={emailMessage}
+                            onChangeText={setEmailMessage}
+                            testID="cliente-email-message-input"
+                        />
+
+                        <TextInput
+                            style={[styles.input, styles.multilineInput]}
+                            multiline
+                            textAlignVertical="top"
+                            placeholder={EMAIL_ATTACHMENTS_PLACEHOLDER}
+                            value={emailAttachments}
+                            onChangeText={setEmailAttachments}
+                            testID="cliente-email-attachments-input"
+                        />
+
+                        {emailModalError ? (
+                            <View style={styles.feedbackError} testID="cliente-email-error-message">
+                                <Text style={styles.feedbackErrorText}>{emailModalError}</Text>
+                            </View>
+                        ) : null}
+
+                        {emailModalSuccess ? (
+                            <View style={styles.feedbackSuccess} testID="cliente-email-success-message">
+                                <Text style={styles.feedbackSuccessText}>{emailModalSuccess}</Text>
+                            </View>
+                        ) : null}
 
                         <TouchableOpacity
-                            style={styles.closeDetailButton}
-                            onPress={handleCloseClienteDetail}
-                            testID="cliente-detail-close-action"
+                            style={[styles.saveButton, emailSending && styles.saveButtonDisabled]}
+                            onPress={handleSendEmailToCliente}
+                            disabled={emailSending}
+                            testID="cliente-email-send-button"
                         >
-                            <Text style={styles.closeDetailButtonText}>{DETAIL_CLOSE_BUTTON}</Text>
+                            {emailSending ? <ActivityIndicator size="small" color="#fff" /> : null}
+                            <Text style={styles.saveButtonText}>
+                                {emailSending ? EMAIL_SENDING_BUTTON : EMAIL_SEND_BUTTON}
+                            </Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -999,7 +1178,7 @@ const styles = StyleSheet.create({
     },
     banDetailButton: {
         marginTop: 8,
-        backgroundColor: "#03045E",
+        backgroundColor: "#5d5fe6",
         borderRadius: 10,
         paddingVertical: 10,
         alignItems: "center",
@@ -1011,5 +1190,20 @@ const styles = StyleSheet.create({
     banDetailButtonText: {
         color: "#fff",
         fontWeight: "700",
+    },
+    emailDetailButton: {
+        marginTop: 8,
+        backgroundColor: "#5d5fe6",
+        borderRadius: 10,
+        paddingVertical: 10,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    emailDetailButtonText: {
+        color: "#fff",
+        fontWeight: "700",
+    },
+    multilineInput: {
+        minHeight: 90,
     },
 });

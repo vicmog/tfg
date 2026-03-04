@@ -119,6 +119,34 @@ export const searchClientesReqSinAcceso = {
     user: { id_usuario: 2 },
 };
 
+export const sendClienteEmailReq = {
+    params: { id_cliente: "1" },
+    body: {
+        asunto: "Recordatorio de cita",
+        mensaje: "Hola, te recordamos tu cita de mañana.",
+        adjuntos: ["https://example.com/adjunto.pdf"],
+    },
+    user: { id_usuario: 1 },
+};
+
+export const sendClienteEmailReqSinPermiso = {
+    params: { id_cliente: "1" },
+    body: {
+        asunto: "Recordatorio",
+        mensaje: "Texto",
+    },
+    user: { id_usuario: 2 },
+};
+
+export const sendClienteEmailReqSinAsunto = {
+    params: { id_cliente: "1" },
+    body: {
+        asunto: "   ",
+        mensaje: "Texto",
+    },
+    user: { id_usuario: 1 },
+};
+
 export const mockClienteListado = {
     id_cliente: 1,
     id_negocio: 10,
@@ -138,6 +166,11 @@ export const mockClienteConDestroy = {
 export const mockClienteConUpdate = {
     ...mockClienteListado,
     update: jest.fn().mockResolvedValue(true),
+};
+
+export const mockClienteConEmail = {
+    ...mockClienteListado,
+    email: "cliente@mail.com",
 };
 
 export const mockClientesBusqueda = [

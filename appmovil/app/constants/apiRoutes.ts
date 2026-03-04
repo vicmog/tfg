@@ -16,6 +16,7 @@ export const API_ROUTES = {
   clientesByNegocio: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/clientes/${idNegocio}`,
   updateClienteById: (idCliente: number) => `${API_BASE_URL}${API_PREFIX}/clientes/${idCliente}`,
   deleteClienteById: (idCliente: number) => `${API_BASE_URL}${API_PREFIX}/clientes/${idCliente}`,
+  sendClienteEmailById: (idCliente: number) => `${API_BASE_URL}${API_PREFIX}/clientes/${idCliente}/email`,
   searchClientByNameOrPhone: (idNegocio: number, search: string) =>
     `${API_BASE_URL}${API_PREFIX}/clientes/${idNegocio}/search?searchTerm=${encodeURIComponent(search)}`,
   users: `${API_BASE_URL}${API_PREFIX}/users`,

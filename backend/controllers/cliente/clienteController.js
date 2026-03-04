@@ -1,6 +1,7 @@
 import { Cliente } from "../../models/Cliente.js";
 import { UsuarioNegocio } from "../../models/UsuarioNegocio.js";
 import { Op } from "sequelize";
+import { sendClienteEmail } from "../../utils/mailer.js";
 import {
     CLIENTE_ERRORS,
     CLIENTE_MESSAGES,
@@ -298,6 +299,79 @@ export const searchClientes = async (req, res) => {
         });
 
         return res.status(200).json({ clientes });
+    } catch (error) {
+        return res.status(500).json({ message: CLIENTE_ERRORS.SERVER_ERROR });
+    }
+};
+
+export const sendClienteEmailToCliente = async (req, res) => {
+    const { id_cliente } = req.params;
+    const { asunto, mensaje, adjuntos } = req.body;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: CLIENTE_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (!id_cliente) {
+        return res.status(400).json({ message: CLIENTE_ERRORS.CLIENTE_ID_REQUIRED });
+    }
+
+    const asuntoValue = typeof asunto === "string" ? asunto.trim() : "";
+    const mensajeValue = typeof mensaje === "string" ? mensaje.trim() : "";
+
+    if (!asuntoValue) {
+        return res.status(400).json({ message: CLIENTE_ERRORS.EMAIL_SUBJECT_REQUIRED });
+    }
+
+    if (!mensajeValue) {
+        return res.status(400).json({ message: CLIENTE_ERRORS.EMAIL_MESSAGE_REQUIRED });
+    }
+
+    if (adjuntos !== undefined && !Array.isArray(adjuntos)) {
+        return res.status(400).json({ message: CLIENTE_ERRORS.EMAIL_ATTACHMENTS_INVALID });
+    }
+
+    const hasInvalidAttachment = Array.isArray(adjuntos)
+        && adjuntos.some((adjunto) => typeof adjunto !== "string" || !adjunto.trim());
+
+    if (hasInvalidAttachment) {
+        return res.status(400).json({ message: CLIENTE_ERRORS.EMAIL_ATTACHMENTS_INVALID });
+    }
+
+    try {
+        const cliente = await Cliente.findByPk(id_cliente);
+        if (!cliente) {
+            return res.status(404).json({ message: CLIENTE_ERRORS.CLIENTE_NOT_FOUND });
+        }
+
+        const usuarioNegocio = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio: cliente.id_negocio },
+        });
+
+        if (!usuarioNegocio) {
+            return res.status(403).json({ message: CLIENTE_ERRORS.NO_ACCESS_TO_NEGOCIO });
+        }
+
+        const canSendEmail = [CLIENTE_ROLES.JEFE, CLIENTE_ROLES.ADMIN].includes(usuarioNegocio.rol);
+        if (!canSendEmail) {
+            return res.status(403).json({ message: CLIENTE_ERRORS.NO_EMAIL_PERMISSION });
+        }
+
+        if (!cliente.email) {
+            return res.status(400).json({ message: CLIENTE_ERRORS.CLIENTE_WITHOUT_EMAIL });
+        }
+
+        const parsedAttachments = Array.isArray(adjuntos)
+            ? adjuntos.map((adjunto, index) => ({
+                filename: `adjunto-${index + 1}`,
+                path: adjunto.trim(),
+            }))
+            : [];
+
+        await sendClienteEmail(cliente.email, asuntoValue, mensajeValue, parsedAttachments);
+
+        return res.status(200).json({ message: CLIENTE_MESSAGES.CLIENTE_EMAIL_SENT });
     } catch (error) {
         return res.status(500).json({ message: CLIENTE_ERRORS.SERVER_ERROR });
     }

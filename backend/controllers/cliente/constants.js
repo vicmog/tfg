@@ -11,6 +11,11 @@ export const CLIENTE_ERRORS = {
   CLIENTE_NOT_FOUND: "Cliente no encontrado",
   NO_ACCESS_TO_NEGOCIO: "No tienes acceso a este negocio",
   NO_BLOCK_PERMISSION: "No tienes permisos para vetar clientes",
+  NO_EMAIL_PERMISSION: "No tienes permisos para enviar emails a clientes",
+  CLIENTE_WITHOUT_EMAIL: "El cliente no tiene email registrado",
+  EMAIL_SUBJECT_REQUIRED: "El asunto del email es obligatorio",
+  EMAIL_MESSAGE_REQUIRED: "El mensaje del email es obligatorio",
+  EMAIL_ATTACHMENTS_INVALID: "Los adjuntos deben ser una lista de URLs válidas",
   SERVER_ERROR: "Error en el servidor",
 };
 
@@ -18,6 +23,7 @@ export const CLIENTE_MESSAGES = {
   CLIENTE_CREATED: "Cliente creado correctamente",
   CLIENTE_UPDATED: "Cliente actualizado correctamente",
   CLIENTE_DELETED: "Cliente eliminado correctamente",
+  CLIENTE_EMAIL_SENT: "Email enviado correctamente al cliente",
 };
 
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

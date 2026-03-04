@@ -170,7 +170,7 @@ export const updateNegocio = async (req, res) => {
 export const deleteNegocio = async (req, res) => {
     const { id } = req.params;
     const id_usuario = req.user?.id_usuario;
-
+    
     if (!id_usuario) {
         return res.status(401).json({ message: NEGOCIO_ERRORS.USER_NOT_AUTHENTICATED });
     }

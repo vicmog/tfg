@@ -4,6 +4,7 @@ export const clientesByNegocioRoute = (idNegocio: number) => API_ROUTES.clientes
 export const createClienteRoute = API_ROUTES.clientes;
 export const updateClienteByIdRoute = (idCliente: number) => API_ROUTES.updateClienteById(idCliente);
 export const deleteClienteByIdRoute = (idCliente: number) => API_ROUTES.deleteClienteById(idCliente);
+export const sendClienteEmailByIdRoute = (idCliente: number) => API_ROUTES.sendClienteEmailById(idCliente);
 export const searchClientByNameOrPhoneRoute = (idNegocio: number, search: string) =>
 	API_ROUTES.searchClientByNameOrPhone(idNegocio, search);
 
@@ -57,10 +58,22 @@ export const DETAIL_EMAIL_LABEL = "Email";
 export const DETAIL_PHONE_LABEL = "Teléfono";
 export const DETAIL_BAN_BUTTON = "Vetar cliente";
 export const DETAIL_UNBAN_BUTTON = "Desvetar cliente";
+export const DETAIL_EMAIL_BUTTON = "Enviar email";
 export const BLOCKED_BADGE_TEXT = "Vetado";
 export const DETAIL_STATUS_LABEL = "Estado";
 export const DETAIL_STATUS_BLOCKED = "Vetado";
 export const DETAIL_STATUS_ACTIVE = "Activo";
+export const EMAIL_MODAL_TITLE = "Redactar email";
+export const EMAIL_SUBJECT_PLACEHOLDER = "Asunto";
+export const EMAIL_MESSAGE_PLACEHOLDER = "Mensaje";
+export const EMAIL_ATTACHMENTS_PLACEHOLDER = "Adjuntos opcionales (URLs separadas por coma o salto de línea)";
+export const EMAIL_SEND_BUTTON = "Enviar";
+export const EMAIL_SENDING_BUTTON = "Enviando...";
+export const EMAIL_SUBJECT_REQUIRED_ERROR = "El asunto es obligatorio";
+export const EMAIL_MESSAGE_REQUIRED_ERROR = "El mensaje es obligatorio";
+export const EMAIL_CLIENT_WITHOUT_EMAIL_ERROR = "El cliente no tiene email registrado";
+export const DEFAULT_EMAIL_SEND_ERROR = "No se pudo enviar el email";
+export const EMAIL_SENT_SUCCESS_MESSAGE = "Email enviado correctamente al cliente";
 
 export const JEFE_ROLE = "jefe";
 export const ADMIN_ROLE = "admin";

@@ -470,7 +470,7 @@ describe("Clientes", () => {
     });
   });
 
-  it("muestra botón de vetar solo para jefe/admin", async () => {
+  it("muestra botones de vetar/email solo para jefe/admin", async () => {
     (fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -501,6 +501,7 @@ describe("Clientes", () => {
 
     await waitFor(() => {
       expect(queryByTestId("cliente-ban-button-12")).toBeNull();
+      expect(queryByTestId("cliente-email-open-button-12")).toBeNull();
     });
 
     (fetch as jest.Mock).mockResolvedValueOnce({
@@ -531,6 +532,116 @@ describe("Clientes", () => {
 
     await waitFor(() => {
       expect(getByTestId("cliente-ban-button-12")).toBeTruthy();
+      expect(getByTestId("cliente-email-open-button-12")).toBeTruthy();
+    });
+  });
+
+  it("envía email al cliente desde el diálogo", async () => {
+    (fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          clientes: [
+            {
+              id_cliente: 12,
+              id_negocio: 1,
+              nombre: "Juan",
+              apellido1: "Pérez",
+              apellido2: null,
+              email: "juan@mail.com",
+              numero_telefono: "600123123",
+              bloqueado: false,
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ message: "Email enviado correctamente al cliente" }),
+      });
+
+    const { getByTestId, getByText } = render(
+      <Clientes navigation={mockNavigation} route={mockRoute} />
+    );
+
+    await waitFor(() => {
+      expect(getByTestId("cliente-open-detail-12")).toBeTruthy();
+    });
+
+    fireEvent.press(getByTestId("cliente-open-detail-12"));
+    fireEvent.press(getByTestId("cliente-email-open-button-12"));
+
+    fireEvent.changeText(getByTestId("cliente-email-subject-input"), "Asunto prueba");
+    fireEvent.changeText(getByTestId("cliente-email-message-input"), "Mensaje de prueba");
+    fireEvent.changeText(
+      getByTestId("cliente-email-attachments-input"),
+      "https://example.com/a.pdf, https://example.com/b.pdf"
+    );
+    fireEvent.press(getByTestId("cliente-email-send-button"));
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        API_ROUTES.sendClienteEmailById(12),
+        expect.objectContaining({
+          method: "POST",
+          headers: expect.objectContaining({
+            "Content-Type": "application/json",
+            Authorization: "Bearer mock-token",
+          }),
+          body: JSON.stringify({
+            asunto: "Asunto prueba",
+            mensaje: "Mensaje de prueba",
+            adjuntos: ["https://example.com/a.pdf", "https://example.com/b.pdf"],
+          }),
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(getByText("Email enviado correctamente al cliente")).toBeTruthy();
+    });
+  });
+
+  it("muestra error si falla el envío de email", async () => {
+    (fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          clientes: [
+            {
+              id_cliente: 12,
+              id_negocio: 1,
+              nombre: "Juan",
+              apellido1: "Pérez",
+              apellido2: null,
+              email: "juan@mail.com",
+              numero_telefono: "600123123",
+              bloqueado: false,
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ message: "No se pudo enviar el email" }),
+      });
+
+    const { getByTestId, getByText } = render(
+      <Clientes navigation={mockNavigation} route={mockRoute} />
+    );
+
+    await waitFor(() => {
+      expect(getByTestId("cliente-open-detail-12")).toBeTruthy();
+    });
+
+    fireEvent.press(getByTestId("cliente-open-detail-12"));
+    fireEvent.press(getByTestId("cliente-email-open-button-12"));
+    fireEvent.changeText(getByTestId("cliente-email-subject-input"), "Asunto prueba");
+    fireEvent.changeText(getByTestId("cliente-email-message-input"), "Mensaje de prueba");
+    fireEvent.press(getByTestId("cliente-email-send-button"));
+
+    await waitFor(() => {
+      expect(getByText("No se pudo enviar el email")).toBeTruthy();
     });
   });
 

@@ -30,3 +30,15 @@ export async function sendNewPasswordEmail(to, newPassword, nombre_usuario) {
   const text = `Hola ${nombre_usuario || ""},\n\nSe ha generado una nueva contraseña para tu cuenta: ${newPassword}\n\nPor favor inicia sesión y cambia la contraseña lo antes posible.`;
   return transporter.sendMail({ from, to, subject, text });
 }
+
+export async function sendClienteEmail(to, subject, text, attachments = []) {
+  const from = process.env.FROM_EMAIL || process.env.SMTP_USER;
+
+  return transporter.sendMail({
+    from,
+    to,
+    subject,
+    text,
+    attachments,
+  });
+}
