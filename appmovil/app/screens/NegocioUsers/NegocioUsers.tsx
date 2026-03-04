@@ -289,19 +289,42 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
         }
     };
 
+    const getRoleBadgeStyle = (rol: string) => {
+        if (rol === ADMIN_ROLE) {
+            return styles.roleBadgeAdmin;
+        }
+
+        if (rol === JEFE_ROLE) {
+            return styles.roleBadgeJefe;
+        }
+
+        return styles.roleBadgeTrabajador;
+    };
+
+    const getRoleTextStyle = (rol: string) => {
+        if (rol === ADMIN_ROLE) {
+            return styles.roleTextAdmin;
+        }
+
+        if (rol === JEFE_ROLE) {
+            return styles.roleTextJefe;
+        }
+
+        return styles.roleTextTrabajador;
+    };
+
     const renderItem = ({ item }: { item: UsuarioAcceso }) => {
         const canDeleteAccess = canManageRoles && item.rol !== ADMIN_ROLE && item.id_usuario !== currentUserId;
 
         return (
         <View style={styles.userCard} testID={`user-item-${item.id_usuario}`}>
             <View style={styles.userInfo}>
-                <Text style={item.id_usuario === currentUserId ? styles.currentUserText : styles.userName}>{item.nombre}</Text>
-                <Text style={styles.userUsername}>@{item.nombre_usuario}</Text>
+                <Text style={styles.userUsernamePrimary}>@{item.nombre_usuario}</Text>
+                <View style={[styles.roleBadge, getRoleBadgeStyle(item.rol)]}>
+                    <Text style={[styles.roleText, getRoleTextStyle(item.rol)]}>{item.rol}</Text>
+                </View>
             </View>
             <View style={styles.userActionsContainer}>
-                <View style={styles.roleBadge}>
-                    <Text style={styles.roleText}>{item.rol}</Text>
-                </View>
                 {canManageRoles && item.rol !== ADMIN_ROLE ? (
                     <><TouchableOpacity
                         style={styles.editRoleButton}
@@ -688,28 +711,44 @@ const styles = StyleSheet.create({
     userInfo: {
         flex: 1,
     },
-    userName: {
+    userUsernamePrimary: {
         fontSize: 16,
         fontWeight: "700",
         color: "#0D47A1",
     },
-    userUsername: {
-        fontSize: 13,
-        color: "#6b7280",
-        marginTop: 4,
-    },
     roleBadge: {
-        backgroundColor: "#e0f2fe",
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 999,
-        marginLeft: 12,
+        borderWidth: 1,
+        marginTop: 6,
+        alignSelf: "flex-start",
+    },
+    roleBadgeAdmin: {
+        backgroundColor: "#ffebee",
+        borderColor: "#ffcdd2",
+    },
+    roleBadgeJefe: {
+        backgroundColor: "#e3f2fd",
+        borderColor: "#bbdefb",
+    },
+    roleBadgeTrabajador: {
+        backgroundColor: "#ecfdf5",
+        borderColor: "#a7f3d0",
     },
     roleText: {
-        color: "#0369a1",
-        fontWeight: "600",
+        fontWeight: "700",
         fontSize: 12,
         textTransform: "capitalize",
+    },
+    roleTextAdmin: {
+        color: "#c62828",
+    },
+    roleTextJefe: {
+        color: "#1976D2",
+    },
+    roleTextTrabajador: {
+        color: "#059669",
     },
     userActionsContainer: {
         flexDirection: "row",
@@ -901,10 +940,5 @@ const styles = StyleSheet.create({
     confirmRoleButtonText: {
         color: "#fff",
         fontWeight: "700",
-    },
-    currentUserText: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#000000",
     },
 });
