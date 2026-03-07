@@ -48,6 +48,70 @@ export const getEmpleadosReq = {
     user: { id_usuario: 1 },
 };
 
+export const updateEmpleadoReq = {
+    params: { id_empleado: "11" },
+    body: {
+        nombre: "Laura María",
+        apellido1: "Pérez",
+        apellido2: "Gil",
+        email: "laura.actualizada@mail.com",
+        numero_telefono: "600123123",
+    },
+    user: { id_usuario: 1 },
+};
+
+export const updateEmpleadoReqAdmin = {
+    params: { id_empleado: "11" },
+    body: {
+        nombre: "Laura María",
+        apellido1: "Pérez",
+        apellido2: "Gil",
+        email: "laura.actualizada@mail.com",
+        numero_telefono: "600123123",
+    },
+    user: { id_usuario: 3 },
+};
+
+export const updateEmpleadoReqSinAuth = {
+    params: { id_empleado: "11" },
+    body: {
+        nombre: "Laura María",
+        apellido1: "Pérez",
+        email: "laura.actualizada@mail.com",
+        numero_telefono: "600123123",
+    },
+    user: null,
+};
+
+export const updateEmpleadoReqSinContacto = {
+    params: { id_empleado: "11" },
+    body: {
+        nombre: "Laura María",
+        apellido1: "Pérez",
+        email: "",
+        numero_telefono: "",
+    },
+    user: { id_usuario: 1 },
+};
+
+export const updateEmpleadoReqSinPermisoGestion = {
+    params: { id_empleado: "11" },
+    body: {
+        nombre: "Laura María",
+        apellido1: "Pérez",
+        apellido2: "Gil",
+        email: "laura.actualizada@mail.com",
+        numero_telefono: "600123123",
+    },
+    user: { id_usuario: 2 },
+};
+
+export const updateEmpleadoReqSinDatos = {
+    params: { id_empleado: "11" },
+    body: {},
+    user: { id_usuario: 1 },
+};
+
 export const deleteEmpleadoReq = {
     params: { id_empleado: "11" },
     user: { id_usuario: 1 },
@@ -86,6 +150,11 @@ export const mockEmpleadoData = {
 export const mockEmpleadoConDestroy = {
     ...mockEmpleadoData,
     destroy: jest.fn(),
+};
+
+export const mockEmpleadoConUpdate = {
+    ...mockEmpleadoData,
+    update: jest.fn().mockResolvedValue(true),
 };
 
 export const buildRes = () => {

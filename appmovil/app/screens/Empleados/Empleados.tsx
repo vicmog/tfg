@@ -26,10 +26,11 @@ import {
     DEFAULT_DELETE_ERROR,
     DEFAULT_CREATE_ERROR,
     DEFAULT_FETCH_ERROR,
+    DEFAULT_UPDATE_ERROR,
     deleteEmpleadoByIdRoute,
-    DELETE_BUTTON_TEXT,
     DELETE_SUCCESS_MESSAGE,
     DELETING_BUTTON_TEXT,
+    EDIT_FORM_TITLE,
     empleadosByNegocioRoute,
     EMAIL_REGEX,
     EMPTY_APELLIDO1_ERROR,
@@ -41,10 +42,14 @@ import {
     NO_ACCESS_MESSAGE,
     NO_EMAIL_MESSAGE,
     NO_TELEFONO_MESSAGE,
+    SAVE_CHANGES_BUTTON_TEXT,
     SAVE_BUTTON_TEXT,
+    SAVING_CHANGES_BUTTON_TEXT,
     SAVING_BUTTON_TEXT,
     SCREEN_TITLE,
     SUCCESS_MESSAGE,
+    updateEmpleadoByIdRoute,
+    UPDATE_SUCCESS_MESSAGE,
 } from "./constants";
 import { EmpleadosProps } from "./types";
 
@@ -59,6 +64,7 @@ const Empleados: React.FC<EmpleadosProps> = ({ route, navigation }) => {
     const [modalError, setModalError] = useState("");
     const [deletingEmpleadoId, setDeletingEmpleadoId] = useState<number | null>(null);
     const [confirmDeleteEmpleadoId, setConfirmDeleteEmpleadoId] = useState<number | null>(null);
+    const [editingEmpleadoId, setEditingEmpleadoId] = useState<number | null>(null);
 
     const [nombre, setNombre] = useState("");
     const [apellido1, setApellido1] = useState("");
@@ -116,6 +122,7 @@ const Empleados: React.FC<EmpleadosProps> = ({ route, navigation }) => {
         setApellido2("");
         setEmail("");
         setTelefono("");
+        setEditingEmpleadoId(null);
     };
 
     const validateForm = () => {
@@ -148,6 +155,17 @@ const Empleados: React.FC<EmpleadosProps> = ({ route, navigation }) => {
         setModalVisible(true);
     };
 
+    const handleOpenEditModal = (empleado: Empleado) => {
+        setNombre(empleado.nombre || "");
+        setApellido1(empleado.apellido1 || "");
+        setApellido2(empleado.apellido2 || "");
+        setEmail(empleado.email || "");
+        setTelefono(empleado.numero_telefono || "");
+        setEditingEmpleadoId(empleado.id_empleado);
+        setModalError("");
+        setModalVisible(true);
+    };
+
     const handleToggleModal = () => {
         setModalVisible(!modalVisible);
         setModalError("");
@@ -167,8 +185,11 @@ const Empleados: React.FC<EmpleadosProps> = ({ route, navigation }) => {
         setSaving(true);
         try {
             const token = await AsyncStorage.getItem("token");
-            const response = await fetch(createEmpleadoRoute, {
-                method: "POST",
+            const isEditing = !!editingEmpleadoId;
+            const route = isEditing ? updateEmpleadoByIdRoute(editingEmpleadoId) : createEmpleadoRoute;
+            const method = isEditing ? "PUT" : "POST";
+            const response = await fetch(route, {
+                method,
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
@@ -185,13 +206,13 @@ const Empleados: React.FC<EmpleadosProps> = ({ route, navigation }) => {
 
             if (!response.ok) {
                 const data = await response.json();
-                setModalError(data.message || DEFAULT_CREATE_ERROR);
+                setModalError(data.message || (isEditing ? DEFAULT_UPDATE_ERROR : DEFAULT_CREATE_ERROR));
                 return;
             }
 
             setModalVisible(false);
             resetForm();
-            setListSuccess(SUCCESS_MESSAGE);
+            setListSuccess(isEditing ? UPDATE_SUCCESS_MESSAGE : SUCCESS_MESSAGE);
             await fetchEmpleados();
         } catch (error) {
             setModalError(CONNECTION_ERROR);
@@ -273,7 +294,7 @@ const Empleados: React.FC<EmpleadosProps> = ({ route, navigation }) => {
                 <View style={styles.modalBackdrop}>
                     <View style={styles.formContainer}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>{FORM_TITLE}</Text>
+                            <Text style={styles.modalTitle}>{editingEmpleadoId ? EDIT_FORM_TITLE : FORM_TITLE}</Text>
                             <TouchableOpacity onPress={handleToggleModal} testID="close-empleado-form-button">
                                 <MaterialIcons name="close" size={22} color="#6b7280" />
                             </TouchableOpacity>
@@ -331,7 +352,11 @@ const Empleados: React.FC<EmpleadosProps> = ({ route, navigation }) => {
                             testID="empleado-save-button"
                         >
                             {saving ? <ActivityIndicator size="small" color="#fff" /> : null}
-                            <Text style={styles.saveButtonText}>{saving ? SAVING_BUTTON_TEXT : SAVE_BUTTON_TEXT}</Text>
+                            <Text style={styles.saveButtonText}>
+                                {saving
+                                    ? (editingEmpleadoId ? SAVING_CHANGES_BUTTON_TEXT : SAVING_BUTTON_TEXT)
+                                    : (editingEmpleadoId ? SAVE_CHANGES_BUTTON_TEXT : SAVE_BUTTON_TEXT)}
+                            </Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -370,6 +395,13 @@ const Empleados: React.FC<EmpleadosProps> = ({ route, navigation }) => {
                                     </View>
                                     <View style={styles.actionsRow}>
                                         <TouchableOpacity
+                                            style={[styles.actionButton, styles.editButton]}
+                                            onPress={() => handleOpenEditModal(empleado)}
+                                            testID={`empleado-edit-button-${empleado.id_empleado}`}
+                                        >
+                                            <MaterialIcons name="edit" size={16} color="#fff" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
                                             style={[styles.actionButton, styles.deleteButton]}
                                             onPress={() => handleAskDeleteEmpleado(empleado.id_empleado)}
                                             disabled={deletingEmpleadoId === empleado.id_empleado}
@@ -378,10 +410,7 @@ const Empleados: React.FC<EmpleadosProps> = ({ route, navigation }) => {
                                             {deletingEmpleadoId === empleado.id_empleado ? (
                                                 <ActivityIndicator size="small" color="#fff" />
                                             ) : (
-                                                <View style={styles.deleteButtonContent}>
-                                                    <MaterialIcons name="delete" size={16} color="#fff" />
-                                                    <Text style={styles.deleteButtonText}>{DELETE_BUTTON_TEXT}</Text>
-                                                </View>
+                                                <MaterialIcons name="delete" size={16} color="#fff" />
                                             )}
                                         </TouchableOpacity>
                                     </View>
@@ -573,27 +602,19 @@ const styles = StyleSheet.create({
         alignSelf: "center",
     },
     actionButton: {
-        minHeight: 34,
-        minWidth: 34,
+        height: 34,
+        width: 34,
         borderRadius: 10,
-        alignItems: "center",
-        justifyContent: "center",
-        paddingHorizontal: 10,
-        paddingVertical: 8,
-    },
-    deleteButton: {
-        backgroundColor: "#dc2626",
-    },
-    deleteButtonContent: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
     },
-    deleteButtonText: {
-        color: "#fff",
-        fontWeight: "600",
-        fontSize: 12,
-        marginLeft: 6,
+    editButton: {
+        backgroundColor: "#1976D2",
+        marginBottom: 8,
+    },
+    deleteButton: {
+        backgroundColor: "#dc2626",
     },
     confirmBox: {
         marginTop: 10,

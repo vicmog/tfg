@@ -1,6 +1,8 @@
 export const EMPLEADO_ERRORS = {
     USER_NOT_AUTHENTICATED: "Usuario no autenticado",
     NEGOCIO_ID_REQUIRED: "El negocio es obligatorio",
+    EMPLEADO_ID_REQUIRED: "El empleado es obligatorio",
+    NO_UPDATE_DATA: "Debes indicar al menos un campo para actualizar",
     NOMBRE_REQUIRED: "El nombre del empleado es obligatorio",
     APELLIDO1_REQUIRED: "El primer apellido es obligatorio",
     CONTACT_REQUIRED: "Debes indicar email o teléfono",
@@ -13,6 +15,7 @@ export const EMPLEADO_ERRORS = {
 
 export const EMPLEADO_MESSAGES = {
     EMPLEADO_CREATED: "Empleado creado correctamente",
+    EMPLEADO_UPDATED: "Empleado actualizado correctamente",
     EMPLEADO_DELETED: "Empleado eliminado correctamente",
 };
 

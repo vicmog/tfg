@@ -1,4 +1,4 @@
-import { createEmpleado, deleteEmpleado, getEmpleadosByNegocio } from "../empleadoController.js";
+import { createEmpleado, deleteEmpleado, getEmpleadosByNegocio, updateEmpleado } from "../empleadoController.js";
 import { Empleado } from "../../../models/Empleado.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
 import {
@@ -14,10 +14,17 @@ import {
     getEmpleadosReq,
     getEmpleadosReqSinAuth,
     mockEmpleadoConDestroy,
+    mockEmpleadoConUpdate,
     mockEmpleadoData,
     mockUsuarioAdmin,
     mockUsuarioJefe,
     mockUsuarioTrabajador,
+    updateEmpleadoReq,
+    updateEmpleadoReqAdmin,
+    updateEmpleadoReqSinAuth,
+    updateEmpleadoReqSinContacto,
+    updateEmpleadoReqSinDatos,
+    updateEmpleadoReqSinPermisoGestion,
 } from "./data.js";
 
 jest.mock("../../../models/Empleado.js");
@@ -117,6 +124,133 @@ describe("EmpleadoController Unit Tests", () => {
             expect(res.status).toHaveBeenCalledWith(401);
             expect(jsonMock).toHaveBeenCalledWith({
                 message: "Usuario no autenticado",
+            });
+        });
+    });
+
+    describe("updateEmpleado", () => {
+        it("debería actualizar empleado correctamente", async () => {
+            (Empleado.findByPk).mockResolvedValue(mockEmpleadoConUpdate);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+
+            const { res, jsonMock } = buildRes();
+
+            await updateEmpleado(updateEmpleadoReq, res);
+
+            expect(Empleado.findByPk).toHaveBeenCalledWith("11");
+            expect(mockEmpleadoConUpdate.update).toHaveBeenCalledWith({
+                nombre: "Laura María",
+                apellido1: "Pérez",
+                apellido2: "Gil",
+                email: "laura.actualizada@mail.com",
+                numero_telefono: "600123123",
+            });
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Empleado actualizado correctamente",
+                empleado: {
+                    id_empleado: 11,
+                    id_negocio: 10,
+                    nombre: "Laura María",
+                    apellido1: "Pérez",
+                    apellido2: "Gil",
+                    email: "laura.actualizada@mail.com",
+                    numero_telefono: "600123123",
+                },
+            });
+        });
+
+        it("debería permitir actualizar empleado a un admin", async () => {
+            (Empleado.findByPk).mockResolvedValue(mockEmpleadoConUpdate);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioAdmin);
+
+            const { res, jsonMock } = buildRes();
+
+            await updateEmpleado(updateEmpleadoReqAdmin, res);
+
+            expect(mockEmpleadoConUpdate.update).toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith(expect.objectContaining({
+                message: "Empleado actualizado correctamente",
+            }));
+        });
+
+        it("debería fallar si el usuario no está autenticado", async () => {
+            const { res, jsonMock } = buildRes();
+
+            await updateEmpleado(updateEmpleadoReqSinAuth, res);
+
+            expect(Empleado.findByPk).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(401);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Usuario no autenticado",
+            });
+        });
+
+        it("debería fallar si no hay datos para actualizar", async () => {
+            const { res, jsonMock } = buildRes();
+
+            await updateEmpleado(updateEmpleadoReqSinDatos, res);
+
+            expect(Empleado.findByPk).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Debes indicar al menos un campo para actualizar",
+            });
+        });
+
+        it("debería fallar si no hay contacto en actualización", async () => {
+            const { res, jsonMock } = buildRes();
+
+            await updateEmpleado(updateEmpleadoReqSinContacto, res);
+
+            expect(Empleado.findByPk).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Debes indicar email o teléfono",
+            });
+        });
+
+        it("debería fallar si el empleado no existe", async () => {
+            (Empleado.findByPk).mockResolvedValue(null);
+
+            const { res, jsonMock } = buildRes();
+
+            await updateEmpleado(updateEmpleadoReq, res);
+
+            expect(res.status).toHaveBeenCalledWith(404);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Empleado no encontrado",
+            });
+        });
+
+        it("debería fallar si el usuario no pertenece al negocio", async () => {
+            (Empleado.findByPk).mockResolvedValue(mockEmpleadoConUpdate);
+            (UsuarioNegocio.findOne).mockResolvedValue(null);
+
+            const { res, jsonMock } = buildRes();
+
+            await updateEmpleado(updateEmpleadoReq, res);
+
+            expect(mockEmpleadoConUpdate.update).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "No tienes acceso a este negocio",
+            });
+        });
+
+        it("debería fallar si el usuario no es jefe ni admin", async () => {
+            (Empleado.findByPk).mockResolvedValue(mockEmpleadoConUpdate);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioTrabajador);
+
+            const { res, jsonMock } = buildRes();
+
+            await updateEmpleado(updateEmpleadoReqSinPermisoGestion, res);
+
+            expect(mockEmpleadoConUpdate.update).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "No tienes permisos para gestionar empleados",
             });
         });
     });
