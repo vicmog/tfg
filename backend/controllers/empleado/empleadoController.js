@@ -124,6 +124,91 @@ export const getEmpleadosByNegocio = async (req, res) => {
     }
 };
 
+export const updateEmpleado = async (req, res) => {
+    const { id_empleado } = req.params;
+    const {
+        nombre,
+        apellido1,
+        apellido2,
+        numero_telefono,
+        email,
+    } = req.body;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: EMPLEADO_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (!id_empleado) {
+        return res.status(400).json({ message: EMPLEADO_ERRORS.EMPLEADO_ID_REQUIRED });
+    }
+
+    const hasUpdateData = [nombre, apellido1, apellido2, email, numero_telefono].some((value) => value !== undefined);
+
+    if (!hasUpdateData) {
+        return res.status(400).json({ message: EMPLEADO_ERRORS.NO_UPDATE_DATA });
+    }
+
+    if (!nombre || !nombre.trim()) {
+        return res.status(400).json({ message: EMPLEADO_ERRORS.NOMBRE_REQUIRED });
+    }
+
+    if (!apellido1 || !apellido1.trim()) {
+        return res.status(400).json({ message: EMPLEADO_ERRORS.APELLIDO1_REQUIRED });
+    }
+
+    const emailValue = typeof email === "string" ? email.trim() : "";
+    const telefonoValue = typeof numero_telefono === "string" ? numero_telefono.trim() : "";
+
+    if (!emailValue && !telefonoValue) {
+        return res.status(400).json({ message: EMPLEADO_ERRORS.CONTACT_REQUIRED });
+    }
+
+    if (emailValue && !EMAIL_REGEX.test(emailValue)) {
+        return res.status(400).json({ message: EMPLEADO_ERRORS.INVALID_EMAIL });
+    }
+
+    try {
+        const empleado = await Empleado.findByPk(id_empleado);
+
+        if (!empleado) {
+            return res.status(404).json({ message: EMPLEADO_ERRORS.EMPLEADO_NOT_FOUND });
+        }
+
+        const usuarioNegocio = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio: empleado.id_negocio },
+        });
+
+        if (!usuarioNegocio) {
+            return res.status(403).json({ message: EMPLEADO_ERRORS.NO_ACCESS_TO_NEGOCIO });
+        }
+
+        if (!canManageEmpleados(usuarioNegocio.rol)) {
+            return res.status(403).json({ message: EMPLEADO_ERRORS.NO_CREATE_PERMISSION });
+        }
+
+        const updateData = {
+            nombre: nombre.trim(),
+            apellido1: apellido1.trim(),
+            apellido2: typeof apellido2 === "string" ? apellido2.trim() || null : null,
+            numero_telefono: telefonoValue || null,
+            email: emailValue || null,
+        };
+
+        await empleado.update(updateData);
+
+        return res.status(200).json({
+            message: EMPLEADO_MESSAGES.EMPLEADO_UPDATED,
+            empleado: {
+                ...serializeEmpleado(empleado),
+                ...updateData,
+            },
+        });
+    } catch (error) {
+        return res.status(500).json({ message: EMPLEADO_ERRORS.SERVER_ERROR });
+    }
+};
+
 export const deleteEmpleado = async (req, res) => {
     const { id_empleado } = req.params;
     const id_usuario = req.user?.id_usuario;

@@ -142,6 +142,117 @@ describe("Empleados", () => {
         });
     });
 
+    it("edita empleado y guarda cambios", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    empleados: [
+                        {
+                            id_empleado: 8,
+                            id_negocio: 1,
+                            nombre: "Laura",
+                            apellido1: "Pérez",
+                            apellido2: null,
+                            numero_telefono: "600123123",
+                            email: "laura@mail.com",
+                        },
+                    ],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    message: "Empleado actualizado correctamente",
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    empleados: [
+                        {
+                            id_empleado: 8,
+                            id_negocio: 1,
+                            nombre: "Laura María",
+                            apellido1: "Pérez",
+                            apellido2: null,
+                            numero_telefono: "600123123",
+                            email: "laura@mail.com",
+                        },
+                    ],
+                }),
+            });
+
+        const { getByDisplayValue, getByTestId, getByText } = render(
+            <Empleados navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("empleado-edit-button-8")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("empleado-edit-button-8"));
+        fireEvent.changeText(getByDisplayValue("Laura"), "Laura María");
+        fireEvent.press(getByTestId("empleado-save-button"));
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.updateEmpleadoById(8),
+                expect.objectContaining({
+                    method: "PUT",
+                    headers: expect.objectContaining({
+                        "Content-Type": "application/json",
+                        Authorization: "Bearer mock-token",
+                    }),
+                })
+            );
+        });
+
+        await waitFor(() => {
+            expect(getByText("Laura María Pérez")).toBeTruthy();
+        });
+    });
+
+    it("muestra error si falla la edición", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    empleados: [
+                        {
+                            id_empleado: 8,
+                            id_negocio: 1,
+                            nombre: "Laura",
+                            apellido1: "Pérez",
+                            apellido2: null,
+                            numero_telefono: "600123123",
+                            email: "laura@mail.com",
+                        },
+                    ],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: false,
+                json: async () => ({ message: "No tienes permisos para gestionar empleados" }),
+            });
+
+        const { getByDisplayValue, getByTestId, getByText } = render(
+            <Empleados navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("empleado-edit-button-8")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("empleado-edit-button-8"));
+        fireEvent.changeText(getByDisplayValue("Laura"), "Laura María");
+        fireEvent.press(getByTestId("empleado-save-button"));
+
+        await waitFor(() => {
+            expect(getByText("No tienes permisos para gestionar empleados")).toBeTruthy();
+        });
+    });
+
     it("elimina empleado desde la lista y refresca empleados", async () => {
         (fetch as jest.Mock)
             .mockResolvedValueOnce({
