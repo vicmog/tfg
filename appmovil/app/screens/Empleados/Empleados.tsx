@@ -17,10 +17,19 @@ import {
     ADD_EMPLOYEE_BUTTON,
     ADMIN_ROLE,
     CONNECTION_ERROR,
+    CONFIRM_DELETE_ACCEPT,
+    CONFIRM_DELETE_CANCEL,
+    CONFIRM_DELETE_MESSAGE,
+    CONFIRM_DELETE_TITLE,
     CONTACT_REQUIRED_ERROR,
     createEmpleadoRoute,
+    DEFAULT_DELETE_ERROR,
     DEFAULT_CREATE_ERROR,
     DEFAULT_FETCH_ERROR,
+    deleteEmpleadoByIdRoute,
+    DELETE_BUTTON_TEXT,
+    DELETE_SUCCESS_MESSAGE,
+    DELETING_BUTTON_TEXT,
     empleadosByNegocioRoute,
     EMAIL_REGEX,
     EMPTY_APELLIDO1_ERROR,
@@ -30,6 +39,8 @@ import {
     INVALID_EMAIL_ERROR,
     JEFE_ROLE,
     NO_ACCESS_MESSAGE,
+    NO_EMAIL_MESSAGE,
+    NO_TELEFONO_MESSAGE,
     SAVE_BUTTON_TEXT,
     SAVING_BUTTON_TEXT,
     SCREEN_TITLE,
@@ -46,6 +57,8 @@ const Empleados: React.FC<EmpleadosProps> = ({ route, navigation }) => {
     const [listError, setListError] = useState("");
     const [listSuccess, setListSuccess] = useState("");
     const [modalError, setModalError] = useState("");
+    const [deletingEmpleadoId, setDeletingEmpleadoId] = useState<number | null>(null);
+    const [confirmDeleteEmpleadoId, setConfirmDeleteEmpleadoId] = useState<number | null>(null);
 
     const [nombre, setNombre] = useState("");
     const [apellido1, setApellido1] = useState("");
@@ -187,6 +200,46 @@ const Empleados: React.FC<EmpleadosProps> = ({ route, navigation }) => {
         }
     };
 
+    const handleDeleteEmpleado = async (idEmpleado: number) => {
+        setListError("");
+        setListSuccess("");
+        setDeletingEmpleadoId(idEmpleado);
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(deleteEmpleadoByIdRoute(idEmpleado), {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setListError(data.message || DEFAULT_DELETE_ERROR);
+                return;
+            }
+
+            setListSuccess(DELETE_SUCCESS_MESSAGE);
+            setConfirmDeleteEmpleadoId(null);
+            await fetchEmpleados();
+        } catch (error) {
+            setListError(CONNECTION_ERROR);
+        } finally {
+            setDeletingEmpleadoId(null);
+        }
+    };
+
+    const handleAskDeleteEmpleado = (idEmpleado: number) => {
+        setListError("");
+        setListSuccess("");
+        setConfirmDeleteEmpleadoId(idEmpleado);
+    };
+
+    const handleCancelDeleteEmpleado = () => {
+        setConfirmDeleteEmpleadoId(null);
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -312,10 +365,55 @@ const Empleados: React.FC<EmpleadosProps> = ({ route, navigation }) => {
                                         <Text style={styles.clientName}>
                                             {empleado.nombre} {empleado.apellido1} {empleado.apellido2 || ""}
                                         </Text>
-                                        <Text style={styles.clientMeta}>{empleado.email || "Sin email"}</Text>
-                                        <Text style={styles.clientMeta}>{empleado.numero_telefono || "Sin teléfono"}</Text>
+                                        <Text style={styles.clientMeta}>{empleado.email || NO_EMAIL_MESSAGE}</Text>
+                                        <Text style={styles.clientMeta}>{empleado.numero_telefono || NO_TELEFONO_MESSAGE}</Text>
+                                    </View>
+                                    <View style={styles.actionsRow}>
+                                        <TouchableOpacity
+                                            style={[styles.actionButton, styles.deleteButton]}
+                                            onPress={() => handleAskDeleteEmpleado(empleado.id_empleado)}
+                                            disabled={deletingEmpleadoId === empleado.id_empleado}
+                                            testID={`empleado-delete-button-${empleado.id_empleado}`}
+                                        >
+                                            {deletingEmpleadoId === empleado.id_empleado ? (
+                                                <ActivityIndicator size="small" color="#fff" />
+                                            ) : (
+                                                <View style={styles.deleteButtonContent}>
+                                                    <MaterialIcons name="delete" size={16} color="#fff" />
+                                                    <Text style={styles.deleteButtonText}>{DELETE_BUTTON_TEXT}</Text>
+                                                </View>
+                                            )}
+                                        </TouchableOpacity>
                                     </View>
                                 </View>
+
+                                {confirmDeleteEmpleadoId === empleado.id_empleado ? (
+                                    <View style={styles.confirmBox} testID={`empleado-delete-confirm-${empleado.id_empleado}`}>
+                                        <Text style={styles.confirmTitle}>{CONFIRM_DELETE_TITLE}</Text>
+                                        <Text style={styles.confirmMessage}>{CONFIRM_DELETE_MESSAGE}</Text>
+                                        <View style={styles.confirmActions}>
+                                            <TouchableOpacity
+                                                style={styles.confirmCancelButton}
+                                                onPress={handleCancelDeleteEmpleado}
+                                                testID={`empleado-delete-cancel-${empleado.id_empleado}`}
+                                            >
+                                                <Text style={styles.confirmCancelText}>{CONFIRM_DELETE_CANCEL}</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={styles.confirmDeleteButton}
+                                                onPress={() => handleDeleteEmpleado(empleado.id_empleado)}
+                                                disabled={deletingEmpleadoId === empleado.id_empleado}
+                                                testID={`empleado-delete-confirm-button-${empleado.id_empleado}`}
+                                            >
+                                                <Text style={styles.confirmDeleteText}>
+                                                    {deletingEmpleadoId === empleado.id_empleado
+                                                        ? DELETING_BUTTON_TEXT
+                                                        : CONFIRM_DELETE_ACCEPT}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                ) : null}
                             </View>
                         ))
                     )}
@@ -467,6 +565,75 @@ const styles = StyleSheet.create({
     clientInfo: {
         flex: 1,
         paddingRight: 10,
+    },
+    actionsRow: {
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        alignSelf: "center",
+    },
+    actionButton: {
+        minHeight: 34,
+        minWidth: 34,
+        borderRadius: 10,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+    },
+    deleteButton: {
+        backgroundColor: "#dc2626",
+    },
+    deleteButtonContent: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    deleteButtonText: {
+        color: "#fff",
+        fontWeight: "600",
+        fontSize: 12,
+        marginLeft: 6,
+    },
+    confirmBox: {
+        marginTop: 10,
+        borderWidth: 1,
+        borderColor: "#fecaca",
+        backgroundColor: "#fff1f2",
+        borderRadius: 8,
+        padding: 10,
+    },
+    confirmTitle: {
+        color: "#03045E",
+        fontWeight: "700",
+        marginBottom: 4,
+    },
+    confirmMessage: {
+        color: "#03045E",
+        marginBottom: 8,
+    },
+    confirmActions: {
+        flexDirection: "row",
+        justifyContent: "flex-end",
+    },
+    confirmCancelButton: {
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        marginRight: 8,
+    },
+    confirmCancelText: {
+        color: "#6b7280",
+        fontWeight: "600",
+    },
+    confirmDeleteButton: {
+        backgroundColor: "#dc2626",
+        borderRadius: 6,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+    },
+    confirmDeleteText: {
+        color: "#fff",
+        fontWeight: "700",
     },
     clientName: {
         fontWeight: "700",

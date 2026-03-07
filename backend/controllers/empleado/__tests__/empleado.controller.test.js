@@ -1,4 +1,4 @@
-import { createEmpleado, getEmpleadosByNegocio } from "../empleadoController.js";
+import { createEmpleado, deleteEmpleado, getEmpleadosByNegocio } from "../empleadoController.js";
 import { Empleado } from "../../../models/Empleado.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
 import {
@@ -7,9 +7,15 @@ import {
     createEmpleadoReqSinNombre,
     createEmpleadoReqSinPermisoGestion,
     createEmpleadoReqSinContacto,
+    deleteEmpleadoReq,
+    deleteEmpleadoReqAdmin,
+    deleteEmpleadoReqSinAuth,
+    deleteEmpleadoReqSinPermisoGestion,
     getEmpleadosReq,
     getEmpleadosReqSinAuth,
+    mockEmpleadoConDestroy,
     mockEmpleadoData,
+    mockUsuarioAdmin,
     mockUsuarioJefe,
     mockUsuarioTrabajador,
 } from "./data.js";
@@ -111,6 +117,94 @@ describe("EmpleadoController Unit Tests", () => {
             expect(res.status).toHaveBeenCalledWith(401);
             expect(jsonMock).toHaveBeenCalledWith({
                 message: "Usuario no autenticado",
+            });
+        });
+    });
+
+    describe("deleteEmpleado", () => {
+        it("debería eliminar empleado correctamente para jefe", async () => {
+            (Empleado.findByPk).mockResolvedValue(mockEmpleadoConDestroy);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+
+            const { res, jsonMock } = buildRes();
+
+            await deleteEmpleado(deleteEmpleadoReq, res);
+
+            expect(Empleado.findByPk).toHaveBeenCalledWith("11");
+            expect(mockEmpleadoConDestroy.destroy).toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Empleado eliminado correctamente",
+            });
+        });
+
+        it("debería permitir eliminar empleado a un admin", async () => {
+            (Empleado.findByPk).mockResolvedValue(mockEmpleadoConDestroy);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioAdmin);
+
+            const { res, jsonMock } = buildRes();
+
+            await deleteEmpleado(deleteEmpleadoReqAdmin, res);
+
+            expect(mockEmpleadoConDestroy.destroy).toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Empleado eliminado correctamente",
+            });
+        });
+
+        it("debería fallar si el usuario no está autenticado", async () => {
+            const { res, jsonMock } = buildRes();
+
+            await deleteEmpleado(deleteEmpleadoReqSinAuth, res);
+
+            expect(Empleado.findByPk).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(401);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Usuario no autenticado",
+            });
+        });
+
+        it("debería fallar si el empleado no existe", async () => {
+            (Empleado.findByPk).mockResolvedValue(null);
+
+            const { res, jsonMock } = buildRes();
+
+            await deleteEmpleado(deleteEmpleadoReq, res);
+
+            expect(res.status).toHaveBeenCalledWith(404);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Empleado no encontrado",
+            });
+        });
+
+        it("debería fallar si el usuario no pertenece al negocio", async () => {
+            (Empleado.findByPk).mockResolvedValue(mockEmpleadoConDestroy);
+            (UsuarioNegocio.findOne).mockResolvedValue(null);
+
+            const { res, jsonMock } = buildRes();
+
+            await deleteEmpleado(deleteEmpleadoReq, res);
+
+            expect(mockEmpleadoConDestroy.destroy).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "No tienes acceso a este negocio",
+            });
+        });
+
+        it("debería fallar si el usuario no es jefe ni admin", async () => {
+            (Empleado.findByPk).mockResolvedValue(mockEmpleadoConDestroy);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioTrabajador);
+
+            const { res, jsonMock } = buildRes();
+
+            await deleteEmpleado(deleteEmpleadoReqSinPermisoGestion, res);
+
+            expect(mockEmpleadoConDestroy.destroy).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "No tienes permisos para gestionar empleados",
             });
         });
     });

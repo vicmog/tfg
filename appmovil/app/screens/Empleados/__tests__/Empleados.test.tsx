@@ -142,6 +142,107 @@ describe("Empleados", () => {
         });
     });
 
+    it("elimina empleado desde la lista y refresca empleados", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    empleados: [
+                        {
+                            id_empleado: 8,
+                            id_negocio: 1,
+                            nombre: "Laura",
+                            apellido1: "Pérez",
+                            apellido2: null,
+                            numero_telefono: "600123123",
+                            email: "laura@mail.com",
+                        },
+                    ],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ message: "Empleado eliminado correctamente" }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ empleados: [] }),
+            });
+
+        const { getByTestId, queryByTestId, queryByText } = render(
+            <Empleados navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("empleado-delete-button-8")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("empleado-delete-button-8"));
+
+        await waitFor(() => {
+            expect(getByTestId("empleado-delete-confirm-8")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("empleado-delete-confirm-button-8"));
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.deleteEmpleadoById(8),
+                expect.objectContaining({
+                    method: "DELETE",
+                    headers: expect.objectContaining({
+                        Authorization: "Bearer mock-token",
+                    }),
+                })
+            );
+        });
+
+        await waitFor(() => {
+            expect(queryByTestId("empleado-item-8")).toBeNull();
+        });
+
+        expect(queryByText("Empleado eliminado correctamente")).toBeTruthy();
+    });
+
+    it("muestra error si falla la eliminación", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    empleados: [
+                        {
+                            id_empleado: 8,
+                            id_negocio: 1,
+                            nombre: "Laura",
+                            apellido1: "Pérez",
+                            apellido2: null,
+                            numero_telefono: "600123123",
+                            email: "laura@mail.com",
+                        },
+                    ],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: false,
+                json: async () => ({ message: "No tienes permisos para gestionar empleados" }),
+            });
+
+        const { getByTestId, getByText } = render(
+            <Empleados navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("empleado-delete-button-8")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("empleado-delete-button-8"));
+        fireEvent.press(getByTestId("empleado-delete-confirm-button-8"));
+
+        await waitFor(() => {
+            expect(getByText("No tienes permisos para gestionar empleados")).toBeTruthy();
+        });
+    });
+
     it("restringe acceso para trabajador", async () => {
         const { queryByTestId, getByText } = render(
             <Empleados navigation={mockNavigation} route={mockRouteTrabajador} />

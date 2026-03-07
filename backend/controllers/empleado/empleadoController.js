@@ -123,3 +123,38 @@ export const getEmpleadosByNegocio = async (req, res) => {
         return res.status(500).json({ message: EMPLEADO_ERRORS.SERVER_ERROR });
     }
 };
+
+export const deleteEmpleado = async (req, res) => {
+    const { id_empleado } = req.params;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: EMPLEADO_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    try {
+        const empleado = await Empleado.findByPk(id_empleado);
+
+        if (!empleado) {
+            return res.status(404).json({ message: EMPLEADO_ERRORS.EMPLEADO_NOT_FOUND });
+        }
+
+        const usuarioNegocio = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio: empleado.id_negocio },
+        });
+
+        if (!usuarioNegocio) {
+            return res.status(403).json({ message: EMPLEADO_ERRORS.NO_ACCESS_TO_NEGOCIO });
+        }
+
+        if (!canManageEmpleados(usuarioNegocio.rol)) {
+            return res.status(403).json({ message: EMPLEADO_ERRORS.NO_CREATE_PERMISSION });
+        }
+
+        await empleado.destroy();
+
+        return res.status(200).json({ message: EMPLEADO_MESSAGES.EMPLEADO_DELETED });
+    } catch (error) {
+        return res.status(500).json({ message: EMPLEADO_ERRORS.SERVER_ERROR });
+    }
+};
