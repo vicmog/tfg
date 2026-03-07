@@ -1,4 +1,4 @@
-import { createEmpleado, deleteEmpleado, getEmpleadosByNegocio, updateEmpleado } from "../empleadoController.js";
+import { createEmpleado, deleteEmpleado, getEmpleadoById, getEmpleadosByNegocio, searchEmpleados, updateEmpleado } from "../empleadoController.js";
 import { Empleado } from "../../../models/Empleado.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
 import {
@@ -11,14 +11,22 @@ import {
     deleteEmpleadoReqAdmin,
     deleteEmpleadoReqSinAuth,
     deleteEmpleadoReqSinPermisoGestion,
+    getEmpleadoByIdReq,
+    getEmpleadoByIdReqSinAuth,
+    getEmpleadoByIdReqSinPermiso,
     getEmpleadosReq,
     getEmpleadosReqSinAuth,
     mockEmpleadoConDestroy,
     mockEmpleadoConUpdate,
     mockEmpleadoData,
+    mockEmpleadosBusqueda,
     mockUsuarioAdmin,
     mockUsuarioJefe,
     mockUsuarioTrabajador,
+    searchEmpleadosReq,
+    searchEmpleadosReqSinAuth,
+    searchEmpleadosReqSinPermiso,
+    searchEmpleadosReqSinTermino,
     updateEmpleadoReq,
     updateEmpleadoReqAdmin,
     updateEmpleadoReqSinAuth,
@@ -124,6 +132,120 @@ describe("EmpleadoController Unit Tests", () => {
             expect(res.status).toHaveBeenCalledWith(401);
             expect(jsonMock).toHaveBeenCalledWith({
                 message: "Usuario no autenticado",
+            });
+        });
+    });
+
+    describe("getEmpleadoById", () => {
+        it("debería devolver los datos de un empleado", async () => {
+            (Empleado.findByPk).mockResolvedValue(mockEmpleadoData);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+
+            const { res, jsonMock } = buildRes();
+
+            await getEmpleadoById(getEmpleadoByIdReq, res);
+
+            expect(Empleado.findByPk).toHaveBeenCalledWith("11");
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({
+                empleado: mockEmpleadoData,
+            });
+        });
+
+        it("debería fallar si no está autenticado", async () => {
+            const { res, jsonMock } = buildRes();
+
+            await getEmpleadoById(getEmpleadoByIdReqSinAuth, res);
+
+            expect(Empleado.findByPk).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(401);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Usuario no autenticado",
+            });
+        });
+
+        it("debería fallar si el empleado no existe", async () => {
+            (Empleado.findByPk).mockResolvedValue(null);
+
+            const { res, jsonMock } = buildRes();
+
+            await getEmpleadoById(getEmpleadoByIdReq, res);
+
+            expect(res.status).toHaveBeenCalledWith(404);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Empleado no encontrado",
+            });
+        });
+
+        it("debería fallar si el usuario no es jefe ni admin", async () => {
+            (Empleado.findByPk).mockResolvedValue(mockEmpleadoData);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioTrabajador);
+
+            const { res, jsonMock } = buildRes();
+
+            await getEmpleadoById(getEmpleadoByIdReqSinPermiso, res);
+
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "No tienes permisos para gestionar empleados",
+            });
+        });
+    });
+
+    describe("searchEmpleados", () => {
+        it("debería devolver empleados por nombre o email", async () => {
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+            (Empleado.findAll).mockResolvedValue(mockEmpleadosBusqueda);
+
+            const { res, jsonMock } = buildRes();
+
+            await searchEmpleados(searchEmpleadosReq, res);
+
+            expect(UsuarioNegocio.findOne).toHaveBeenCalledWith({
+                where: { id_usuario: 1, id_negocio: "10" },
+            });
+            expect(Empleado.findAll).toHaveBeenCalledTimes(1);
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({
+                empleados: mockEmpleadosBusqueda,
+            });
+        });
+
+        it("debería devolver lista vacía si el término está vacío", async () => {
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+
+            const { res, jsonMock } = buildRes();
+
+            await searchEmpleados(searchEmpleadosReqSinTermino, res);
+
+            expect(Empleado.findAll).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({ empleados: [] });
+        });
+
+        it("debería fallar si el usuario no está autenticado", async () => {
+            const { res, jsonMock } = buildRes();
+
+            await searchEmpleados(searchEmpleadosReqSinAuth, res);
+
+            expect(UsuarioNegocio.findOne).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(401);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Usuario no autenticado",
+            });
+        });
+
+        it("debería fallar si el usuario no es jefe ni admin", async () => {
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioTrabajador);
+
+            const { res, jsonMock } = buildRes();
+
+            await searchEmpleados(searchEmpleadosReqSinPermiso, res);
+
+            expect(Empleado.findAll).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "No tienes permisos para gestionar empleados",
             });
         });
     });

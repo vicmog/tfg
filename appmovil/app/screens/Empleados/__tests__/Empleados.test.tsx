@@ -213,6 +213,181 @@ describe("Empleados", () => {
         });
     });
 
+    it("busca empleados por nombre o email", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    empleados: [
+                        {
+                            id_empleado: 8,
+                            id_negocio: 1,
+                            nombre: "Laura",
+                            apellido1: "Pérez",
+                            apellido2: null,
+                            numero_telefono: "600123123",
+                            email: "laura@mail.com",
+                        },
+                    ],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    empleados: [
+                        {
+                            id_empleado: 9,
+                            id_negocio: 1,
+                            nombre: "Lucía",
+                            apellido1: "García",
+                            apellido2: null,
+                            numero_telefono: "611111111",
+                            email: "lucia@mail.com",
+                        },
+                    ],
+                }),
+            });
+
+        const { getByTestId, getByText, queryByText } = render(
+            <Empleados navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByText("Laura Pérez")).toBeTruthy();
+        });
+
+        fireEvent.changeText(getByTestId("empleado-search-input"), "Luc");
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.searchEmpleadoByNameOrEmail(1, "Luc"),
+                expect.objectContaining({
+                    headers: { Authorization: "Bearer mock-token" },
+                })
+            );
+        });
+
+        await waitFor(() => {
+            expect(queryByText("Laura Pérez")).toBeNull();
+            expect(getByText("Lucía García")).toBeTruthy();
+        });
+    });
+
+    it("abre el modal de detalle y carga datos del empleado", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    empleados: [
+                        {
+                            id_empleado: 8,
+                            id_negocio: 1,
+                            nombre: "Laura",
+                            apellido1: "Pérez",
+                            apellido2: null,
+                            numero_telefono: "600123123",
+                            email: "laura@mail.com",
+                        },
+                    ],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    empleado: {
+                        id_empleado: 8,
+                        id_negocio: 1,
+                        nombre: "Laura",
+                        apellido1: "Pérez",
+                        apellido2: null,
+                        numero_telefono: "600123123",
+                        email: "laura@mail.com",
+                    },
+                }),
+            });
+
+        const { getAllByText, getByTestId, getByText } = render(
+            <Empleados navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("empleado-open-detail-8")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("empleado-open-detail-8"));
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.empleadoById(8),
+                expect.objectContaining({
+                    headers: { Authorization: "Bearer mock-token" },
+                })
+            );
+        });
+
+        await waitFor(() => {
+            expect(getByTestId("empleado-detail-modal")).toBeTruthy();
+            expect(getByText("Detalles del empleado")).toBeTruthy();
+            expect(getAllByText("Laura Pérez").length).toBeGreaterThan(0);
+            expect(getAllByText("laura@mail.com").length).toBeGreaterThan(0);
+            expect(getAllByText("600123123").length).toBeGreaterThan(0);
+        });
+    });
+
+    it("cierra el modal de detalle del empleado", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    empleados: [
+                        {
+                            id_empleado: 8,
+                            id_negocio: 1,
+                            nombre: "Laura",
+                            apellido1: "Pérez",
+                            apellido2: null,
+                            numero_telefono: "600123123",
+                            email: "laura@mail.com",
+                        },
+                    ],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    empleado: {
+                        id_empleado: 8,
+                        id_negocio: 1,
+                        nombre: "Laura",
+                        apellido1: "Pérez",
+                        apellido2: null,
+                        numero_telefono: "600123123",
+                        email: "laura@mail.com",
+                    },
+                }),
+            });
+
+        const { getByTestId, queryByText } = render(
+            <Empleados navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("empleado-open-detail-8")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("empleado-open-detail-8"));
+
+        await waitFor(() => {
+            expect(getByTestId("empleado-detail-close-button")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("empleado-detail-close-button"));
+
+        await waitFor(() => {
+            expect(queryByText("Detalles del empleado")).toBeNull();
+        });
+    });
+
     it("muestra error si falla la edición", async () => {
         (fetch as jest.Mock)
             .mockResolvedValueOnce({

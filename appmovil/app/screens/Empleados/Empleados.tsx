@@ -30,6 +30,11 @@ import {
     deleteEmpleadoByIdRoute,
     DELETE_SUCCESS_MESSAGE,
     DELETING_BUTTON_TEXT,
+    DETAIL_EMAIL_LABEL,
+    DETAIL_EMPLOYEE_TITLE,
+    DETAIL_NAME_LABEL,
+    DETAIL_PHONE_LABEL,
+    empleadoByIdRoute,
     EDIT_FORM_TITLE,
     empleadosByNegocioRoute,
     EMAIL_REGEX,
@@ -44,9 +49,11 @@ import {
     NO_TELEFONO_MESSAGE,
     SAVE_CHANGES_BUTTON_TEXT,
     SAVE_BUTTON_TEXT,
+    SEARCH_EMPLOYEE_NAME_OR_EMAIL,
     SAVING_CHANGES_BUTTON_TEXT,
     SAVING_BUTTON_TEXT,
     SCREEN_TITLE,
+    searchEmpleadoByNameOrEmailRoute,
     SUCCESS_MESSAGE,
     updateEmpleadoByIdRoute,
     UPDATE_SUCCESS_MESSAGE,
@@ -65,6 +72,11 @@ const Empleados: React.FC<EmpleadosProps> = ({ route, navigation }) => {
     const [deletingEmpleadoId, setDeletingEmpleadoId] = useState<number | null>(null);
     const [confirmDeleteEmpleadoId, setConfirmDeleteEmpleadoId] = useState<number | null>(null);
     const [editingEmpleadoId, setEditingEmpleadoId] = useState<number | null>(null);
+    const [searchText, setSearchText] = useState("");
+    const [selectedEmpleado, setSelectedEmpleado] = useState<Empleado | null>(null);
+    const [detailVisible, setDetailVisible] = useState(false);
+    const [detailLoading, setDetailLoading] = useState(false);
+    const [detailError, setDetailError] = useState("");
 
     const [nombre, setNombre] = useState("");
     const [apellido1, setApellido1] = useState("");
@@ -110,10 +122,50 @@ const Empleados: React.FC<EmpleadosProps> = ({ route, navigation }) => {
         }
     }, [canManageEmpleados, negocio.id_negocio]);
 
+    const fetchSearchEmpleados = useCallback(async () => {
+        if (!canManageEmpleados) {
+            setEmpleados([]);
+            setListError(NO_ACCESS_MESSAGE);
+            return;
+        }
+
+        setLoading(true);
+        setListError("");
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(searchEmpleadoByNameOrEmailRoute(negocio.id_negocio, searchText), {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setListError(data.message || DEFAULT_FETCH_ERROR);
+                setEmpleados([]);
+                return;
+            }
+
+            const data = await response.json();
+            setEmpleados(data.empleados || []);
+        } catch (error) {
+            setListError(CONNECTION_ERROR);
+            setEmpleados([]);
+        } finally {
+            setLoading(false);
+        }
+    }, [canManageEmpleados, negocio.id_negocio, searchText]);
+
     useFocusEffect(
         useCallback(() => {
+            if (searchText.trim()) {
+                fetchSearchEmpleados();
+                return;
+            }
+
             fetchEmpleados();
-        }, [fetchEmpleados])
+        }, [fetchEmpleados, fetchSearchEmpleados, searchText])
     );
 
     const resetForm = () => {
@@ -164,6 +216,42 @@ const Empleados: React.FC<EmpleadosProps> = ({ route, navigation }) => {
         setEditingEmpleadoId(empleado.id_empleado);
         setModalError("");
         setModalVisible(true);
+    };
+
+    const handleOpenEmpleadoDetail = async (idEmpleado: number) => {
+        setDetailVisible(true);
+        setDetailLoading(true);
+        setDetailError("");
+        setSelectedEmpleado(null);
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(empleadoByIdRoute(idEmpleado), {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setDetailError(data.message || DEFAULT_FETCH_ERROR);
+                return;
+            }
+
+            const data = await response.json();
+            setSelectedEmpleado(data.empleado || null);
+        } catch (error) {
+            setDetailError(CONNECTION_ERROR);
+        } finally {
+            setDetailLoading(false);
+        }
+    };
+
+    const handleCloseEmpleadoDetail = () => {
+        setDetailVisible(false);
+        setDetailLoading(false);
+        setDetailError("");
+        setSelectedEmpleado(null);
     };
 
     const handleToggleModal = () => {
@@ -284,6 +372,19 @@ const Empleados: React.FC<EmpleadosProps> = ({ route, navigation }) => {
                 ) : null}
             </View>
 
+            <View style={styles.searchContainer}>
+                <MaterialIcons name="search" size={20} color="#6b7280" style={styles.searchIcon} />
+                <TextInput
+                    placeholder={SEARCH_EMPLOYEE_NAME_OR_EMAIL}
+                    placeholderTextColor="#000000"
+                    value={searchText}
+                    onChangeText={setSearchText}
+                    style={styles.searchInput}
+                    autoCapitalize="none"
+                    testID="empleado-search-input"
+                />
+            </View>
+
             <Modal
                 visible={modalVisible}
                 transparent
@@ -362,6 +463,58 @@ const Empleados: React.FC<EmpleadosProps> = ({ route, navigation }) => {
                 </View>
             </Modal>
 
+            <Modal
+                visible={detailVisible}
+                transparent
+                animationType="none"
+                onRequestClose={handleCloseEmpleadoDetail}
+                testID="empleado-detail-modal"
+            >
+                <View style={styles.modalBackdrop}>
+                    <View style={styles.formContainer}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>{DETAIL_EMPLOYEE_TITLE}</Text>
+                            <TouchableOpacity onPress={handleCloseEmpleadoDetail} testID="empleado-detail-close-button">
+                                <MaterialIcons name="close" size={22} color="#6b7280" />
+                            </TouchableOpacity>
+                        </View>
+
+                        {detailLoading ? (
+                            <View style={styles.detailLoadingContainer}>
+                                <ActivityIndicator size="large" color="#1976D2" />
+                            </View>
+                        ) : null}
+
+                        {!detailLoading && detailError ? (
+                            <View style={styles.feedbackError} testID="empleado-detail-error-message">
+                                <Text style={styles.feedbackErrorText}>{detailError}</Text>
+                            </View>
+                        ) : null}
+
+                        {!detailLoading && !detailError && selectedEmpleado ? (
+                            <>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.detailLabel}>{DETAIL_NAME_LABEL}</Text>
+                                    <Text style={styles.detailValue}>
+                                        {selectedEmpleado.nombre} {selectedEmpleado.apellido1} {selectedEmpleado.apellido2 || ""}
+                                    </Text>
+                                </View>
+
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.detailLabel}>{DETAIL_EMAIL_LABEL}</Text>
+                                    <Text style={styles.detailValue}>{selectedEmpleado.email || NO_EMAIL_MESSAGE}</Text>
+                                </View>
+
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.detailLabel}>{DETAIL_PHONE_LABEL}</Text>
+                                    <Text style={styles.detailValue}>{selectedEmpleado.numero_telefono || NO_TELEFONO_MESSAGE}</Text>
+                                </View>
+                            </>
+                        ) : null}
+                    </View>
+                </View>
+            </Modal>
+
             {listError ? (
                 <View style={styles.feedbackError} testID="empleados-list-error-message">
                     <Text style={styles.feedbackErrorText}>{listError}</Text>
@@ -386,13 +539,17 @@ const Empleados: React.FC<EmpleadosProps> = ({ route, navigation }) => {
                         empleados.map((empleado) => (
                             <View key={empleado.id_empleado} style={styles.card} testID={`empleado-item-${empleado.id_empleado}`}>
                                 <View style={styles.cardContent}>
-                                    <View style={styles.clientInfo}>
+                                    <TouchableOpacity
+                                        style={styles.clientInfo}
+                                        onPress={() => void handleOpenEmpleadoDetail(empleado.id_empleado)}
+                                        testID={`empleado-open-detail-${empleado.id_empleado}`}
+                                    >
                                         <Text style={styles.clientName}>
                                             {empleado.nombre} {empleado.apellido1} {empleado.apellido2 || ""}
                                         </Text>
                                         <Text style={styles.clientMeta}>{empleado.email || NO_EMAIL_MESSAGE}</Text>
                                         <Text style={styles.clientMeta}>{empleado.numero_telefono || NO_TELEFONO_MESSAGE}</Text>
-                                    </View>
+                                    </TouchableOpacity>
                                     <View style={styles.actionsRow}>
                                         <TouchableOpacity
                                             style={[styles.actionButton, styles.editButton]}
@@ -490,6 +647,25 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontWeight: "600",
         fontSize: 13,
+    },
+    searchContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#fff",
+        marginHorizontal: 12,
+        marginBottom: 12,
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+    },
+    searchIcon: {
+        marginRight: 8,
+    },
+    searchInput: {
+        flex: 1,
+        color: "#111827",
     },
     formContainer: {
         backgroundColor: "#fff",
@@ -665,5 +841,24 @@ const styles = StyleSheet.create({
     clientMeta: {
         color: "#4b5563",
         fontSize: 13,
+    },
+    detailLoadingContainer: {
+        paddingVertical: 24,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    detailRow: {
+        marginBottom: 12,
+    },
+    detailLabel: {
+        fontSize: 12,
+        fontWeight: "700",
+        color: "#6b7280",
+        marginBottom: 4,
+        textTransform: "uppercase",
+    },
+    detailValue: {
+        fontSize: 15,
+        color: "#111827",
     },
 });

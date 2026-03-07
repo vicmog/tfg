@@ -1,6 +1,9 @@
 import { API_ROUTES } from "@/app/constants/apiRoutes";
 
+export const empleadoByIdRoute = (idEmpleado: number) => API_ROUTES.empleadoById(idEmpleado);
 export const empleadosByNegocioRoute = (idNegocio: number) => API_ROUTES.empleadosByNegocio(idNegocio);
+export const searchEmpleadoByNameOrEmailRoute = (idNegocio: number, search: string) =>
+	API_ROUTES.searchEmpleadoByNameOrEmail(idNegocio, search);
 export const createEmpleadoRoute = API_ROUTES.empleados;
 export const updateEmpleadoByIdRoute = (idEmpleado: number) => API_ROUTES.updateEmpleadoById(idEmpleado);
 export const deleteEmpleadoByIdRoute = (idEmpleado: number) => API_ROUTES.deleteEmpleadoById(idEmpleado);
@@ -32,9 +35,14 @@ export const DELETE_SUCCESS_MESSAGE = "Empleado eliminado correctamente";
 export const EMPTY_EMPLEADOS_MESSAGE = "No hay empleados registrados";
 export const FORM_TITLE = "Nuevo empleado";
 export const EDIT_FORM_TITLE = "Editar empleado";
+export const DETAIL_EMPLOYEE_TITLE = "Detalles del empleado";
+export const DETAIL_NAME_LABEL = "Nombre";
+export const DETAIL_EMAIL_LABEL = "Email";
+export const DETAIL_PHONE_LABEL = "Teléfono";
 export const NO_ACCESS_MESSAGE = "Solo jefe y administrador pueden gestionar empleados";
 export const NO_EMAIL_MESSAGE = "Sin email";
 export const NO_TELEFONO_MESSAGE = "Sin teléfono";
+export const SEARCH_EMPLOYEE_NAME_OR_EMAIL = "Buscar por nombre o email";
 
 export const JEFE_ROLE = "jefe";
 export const ADMIN_ROLE = "admin";

@@ -1,5 +1,6 @@
 import { Empleado } from "../../models/Empleado.js";
 import { UsuarioNegocio } from "../../models/UsuarioNegocio.js";
+import { Op } from "sequelize";
 import {
     EMAIL_REGEX,
     EMPLEADO_ERRORS,
@@ -115,6 +116,90 @@ export const getEmpleadosByNegocio = async (req, res) => {
 
         const empleados = await Empleado.findAll({
             where: { id_negocio },
+            order: [["createdAt", "DESC"]],
+        });
+
+        return res.status(200).json({ empleados: empleados.map(serializeEmpleado) });
+    } catch (error) {
+        return res.status(500).json({ message: EMPLEADO_ERRORS.SERVER_ERROR });
+    }
+};
+
+export const getEmpleadoById = async (req, res) => {
+    const { id_empleado } = req.params;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: EMPLEADO_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (!id_empleado) {
+        return res.status(400).json({ message: EMPLEADO_ERRORS.EMPLEADO_ID_REQUIRED });
+    }
+
+    try {
+        const empleado = await Empleado.findByPk(id_empleado);
+
+        if (!empleado) {
+            return res.status(404).json({ message: EMPLEADO_ERRORS.EMPLEADO_NOT_FOUND });
+        }
+
+        const usuarioNegocio = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio: empleado.id_negocio },
+        });
+
+        if (!usuarioNegocio) {
+            return res.status(403).json({ message: EMPLEADO_ERRORS.NO_ACCESS_TO_NEGOCIO });
+        }
+
+        if (!canManageEmpleados(usuarioNegocio.rol)) {
+            return res.status(403).json({ message: EMPLEADO_ERRORS.NO_CREATE_PERMISSION });
+        }
+
+        return res.status(200).json({ empleado: serializeEmpleado(empleado) });
+    } catch (error) {
+        return res.status(500).json({ message: EMPLEADO_ERRORS.SERVER_ERROR });
+    }
+};
+
+export const searchEmpleados = async (req, res) => {
+    const { id_negocio } = req.params;
+    const searchTerm = typeof req.query.searchTerm === "string" ? req.query.searchTerm.trim() : "";
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_negocio) {
+        return res.status(400).json({ message: EMPLEADO_ERRORS.NEGOCIO_ID_REQUIRED });
+    }
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: EMPLEADO_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    try {
+        const usuarioNegocio = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio },
+        });
+
+        if (!usuarioNegocio) {
+            return res.status(403).json({ message: EMPLEADO_ERRORS.NO_ACCESS_TO_NEGOCIO });
+        }
+
+        if (!canManageEmpleados(usuarioNegocio.rol)) {
+            return res.status(403).json({ message: EMPLEADO_ERRORS.NO_CREATE_PERMISSION });
+        }
+
+        if (!searchTerm) {
+            return res.status(200).json({ empleados: [] });
+        }
+
+        const empleados = await Empleado.findAll({
+            where: {
+                id_negocio,
+                [Op.or]: [
+                    { nombre: { [Op.like]: `%${searchTerm}%` } },
+                    { email: { [Op.like]: `%${searchTerm}%` } },
+                ],
+            },
             order: [["createdAt", "DESC"]],
         });
 

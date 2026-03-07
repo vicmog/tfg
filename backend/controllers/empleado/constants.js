@@ -19,6 +19,10 @@ export const EMPLEADO_MESSAGES = {
     EMPLEADO_DELETED: "Empleado eliminado correctamente",
 };
 
+export const EMPLEADO_SEARCH = {
+    QUERY_PARAM: "searchTerm",
+};
+
 export const EMPLEADO_ROLES = {
     ADMIN: "admin",
     JEFE: "jefe",

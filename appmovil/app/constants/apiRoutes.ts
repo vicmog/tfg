@@ -20,7 +20,10 @@ export const API_ROUTES = {
   searchClientByNameOrPhone: (idNegocio: number, search: string) =>
     `${API_BASE_URL}${API_PREFIX}/clientes/${idNegocio}/search?searchTerm=${encodeURIComponent(search)}`,
   empleados: `${API_BASE_URL}${API_PREFIX}/empleados`,
+  empleadoById: (idEmpleado: number) => `${API_BASE_URL}${API_PREFIX}/empleados/empleado/${idEmpleado}`,
   empleadosByNegocio: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/empleados/${idNegocio}`,
+  searchEmpleadoByNameOrEmail: (idNegocio: number, search: string) =>
+    `${API_BASE_URL}${API_PREFIX}/empleados/${idNegocio}/search?searchTerm=${encodeURIComponent(search)}`,
   updateEmpleadoById: (idEmpleado: number) => `${API_BASE_URL}${API_PREFIX}/empleados/${idEmpleado}`,
   deleteEmpleadoById: (idEmpleado: number) => `${API_BASE_URL}${API_PREFIX}/empleados/${idEmpleado}`,
   users: `${API_BASE_URL}${API_PREFIX}/users`,

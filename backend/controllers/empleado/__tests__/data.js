@@ -48,6 +48,45 @@ export const getEmpleadosReq = {
     user: { id_usuario: 1 },
 };
 
+export const getEmpleadoByIdReq = {
+    params: { id_empleado: "11" },
+    user: { id_usuario: 1 },
+};
+
+export const getEmpleadoByIdReqSinAuth = {
+    params: { id_empleado: "11" },
+    user: null,
+};
+
+export const getEmpleadoByIdReqSinPermiso = {
+    params: { id_empleado: "11" },
+    user: { id_usuario: 2 },
+};
+
+export const searchEmpleadosReq = {
+    params: { id_negocio: "10" },
+    query: { searchTerm: "Laura" },
+    user: { id_usuario: 1 },
+};
+
+export const searchEmpleadosReqSinTermino = {
+    params: { id_negocio: "10" },
+    query: { searchTerm: "   " },
+    user: { id_usuario: 1 },
+};
+
+export const searchEmpleadosReqSinAuth = {
+    params: { id_negocio: "10" },
+    query: { searchTerm: "Laura" },
+    user: null,
+};
+
+export const searchEmpleadosReqSinPermiso = {
+    params: { id_negocio: "10" },
+    query: { searchTerm: "Laura" },
+    user: { id_usuario: 2 },
+};
+
 export const updateEmpleadoReq = {
     params: { id_empleado: "11" },
     body: {
@@ -146,6 +185,18 @@ export const mockEmpleadoData = {
     numero_telefono: null,
     email: "laura@mail.com",
 };
+
+export const mockEmpleadosBusqueda = [
+    {
+        id_empleado: 12,
+        id_negocio: 10,
+        nombre: "Laura María",
+        apellido1: "Gil",
+        apellido2: null,
+        numero_telefono: "611111111",
+        email: "laura.gil@mail.com",
+    },
+];
 
 export const mockEmpleadoConDestroy = {
     ...mockEmpleadoData,
