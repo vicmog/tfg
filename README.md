@@ -27,7 +27,7 @@ This project aims to develop a **comprehensive tool for managing small businesse
 
 ## Project Status
 Currently in **early development**, which means:  
-- 90% of features are incomplete.  
+- 80% of features are incomplete.  
 - There may be bugs or frequent changes in structure.  
 - New improvements will be added continuously.
 
