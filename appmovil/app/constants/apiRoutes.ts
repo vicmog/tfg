@@ -26,6 +26,8 @@ export const API_ROUTES = {
     `${API_BASE_URL}${API_PREFIX}/empleados/${idNegocio}/search?searchTerm=${encodeURIComponent(search)}`,
   updateEmpleadoById: (idEmpleado: number) => `${API_BASE_URL}${API_PREFIX}/empleados/${idEmpleado}`,
   deleteEmpleadoById: (idEmpleado: number) => `${API_BASE_URL}${API_PREFIX}/empleados/${idEmpleado}`,
+  servicios: `${API_BASE_URL}${API_PREFIX}/servicios`,
+  serviciosByNegocio: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/servicios/${idNegocio}`,
   users: `${API_BASE_URL}${API_PREFIX}/users`,
   userById: (idUsuario: string | number) => `${API_BASE_URL}${API_PREFIX}/users/user/${idUsuario}`,
 } as const;

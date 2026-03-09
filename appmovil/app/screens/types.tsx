@@ -42,3 +42,12 @@ export type Empleado = {
     numero_telefono?: string | null;
     email?: string | null;
 };
+
+export type Servicio = {
+    id_servicio: number;
+    id_negocio: number;
+    nombre: string;
+    precio: number;
+    duracion: number;
+    descripcion: string;
+};
