@@ -143,6 +143,101 @@ describe("Servicios", () => {
         });
     });
 
+    it("elimina servicio desde la lista y refresca servicios", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    servicios: [
+                        {
+                            id_servicio: 3,
+                            id_negocio: 1,
+                            nombre: "Corte premium",
+                            precio: 25.5,
+                            duracion: 45,
+                            descripcion: "Corte con lavado y peinado",
+                        },
+                    ],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ message: "Servicio eliminado correctamente" }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ servicios: [] }),
+            });
+
+        const { getByTestId, getByText } = render(
+            <Servicios navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("servicio-delete-button-3")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("servicio-delete-button-3"));
+
+        await waitFor(() => {
+            expect(getByTestId("servicio-delete-confirm-3")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("servicio-delete-confirm-button-3"));
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.deleteServicioById(3),
+                expect.objectContaining({
+                    method: "DELETE",
+                    headers: { Authorization: "Bearer mock-token" },
+                })
+            );
+        });
+
+        await waitFor(() => {
+            expect(getByText("Servicio eliminado correctamente")).toBeTruthy();
+        });
+    });
+
+    it("muestra error si falla el borrado", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    servicios: [
+                        {
+                            id_servicio: 3,
+                            id_negocio: 1,
+                            nombre: "Corte premium",
+                            precio: 25.5,
+                            duracion: 45,
+                            descripcion: "Corte con lavado y peinado",
+                        },
+                    ],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: false,
+                json: async () => ({ message: "No tienes permisos para gestionar servicios" }),
+            });
+
+        const { getByTestId, getByText } = render(
+            <Servicios navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("servicio-delete-button-3")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("servicio-delete-button-3"));
+        fireEvent.press(getByTestId("servicio-delete-confirm-button-3"));
+
+        await waitFor(() => {
+            expect(getByText("No tienes permisos para gestionar servicios")).toBeTruthy();
+        });
+    });
+
     it("muestra mensaje de acceso para trabajador", async () => {
         const { getByText, queryByTestId } = render(
             <Servicios navigation={mockNavigation} route={mockRouteTrabajador} />

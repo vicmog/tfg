@@ -17,10 +17,18 @@ import {
     ADD_SERVICE_BUTTON,
     ADMIN_ROLE,
     CONNECTION_ERROR,
+    CONFIRM_DELETE_ACCEPT,
+    CONFIRM_DELETE_CANCEL,
+    CONFIRM_DELETE_MESSAGE,
+    CONFIRM_DELETE_TITLE,
     createServicioRoute,
     DEFAULT_CREATE_ERROR,
+    DEFAULT_DELETE_ERROR,
     DEFAULT_FETCH_ERROR,
+    DELETE_SUCCESS_MESSAGE,
+    deleteServicioByIdRoute,
     DESCRIPCION_PLACEHOLDER,
+    DELETING_BUTTON_TEXT,
     DURACION_LABEL,
     EMPTY_DESCRIPCION_ERROR,
     EMPTY_DURACION_ERROR,
@@ -55,6 +63,8 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
     const [listError, setListError] = useState("");
     const [listSuccess, setListSuccess] = useState("");
     const [modalError, setModalError] = useState("");
+    const [deletingServicioId, setDeletingServicioId] = useState<number | null>(null);
+    const [confirmDeleteServicioId, setConfirmDeleteServicioId] = useState<number | null>(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [nombre, setNombre] = useState("");
     const [precio, setPrecio] = useState("");
@@ -223,6 +233,46 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
         }
     };
 
+    const handleDeleteServicio = async (idServicio: number) => {
+        setListError("");
+        setListSuccess("");
+        setDeletingServicioId(idServicio);
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(deleteServicioByIdRoute(idServicio), {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setListError(data.message || DEFAULT_DELETE_ERROR);
+                return;
+            }
+
+            setListSuccess(DELETE_SUCCESS_MESSAGE);
+            setConfirmDeleteServicioId(null);
+            await fetchServicios();
+        } catch (error) {
+            setListError(CONNECTION_ERROR);
+        } finally {
+            setDeletingServicioId(null);
+        }
+    };
+
+    const handleAskDeleteServicio = (idServicio: number) => {
+        setListError("");
+        setListSuccess("");
+        setConfirmDeleteServicioId(idServicio);
+    };
+
+    const handleCancelDeleteServicio = () => {
+        setConfirmDeleteServicioId(null);
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -338,12 +388,58 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
                     ) : (
                         servicios.map((servicio) => (
                             <View key={servicio.id_servicio} style={styles.card} testID={`servicio-item-${servicio.id_servicio}`}>
-                                <Text style={styles.serviceName}>{servicio.nombre}</Text>
-                                <View style={styles.metaRow}>
-                                    <Text style={styles.serviceMeta}>{formatPrice(servicio.precio)}</Text>
-                                    <Text style={styles.serviceMeta}>{formatDuration(servicio.duracion)}</Text>
+                                <View style={styles.cardContent}>
+                                    <View style={styles.serviceInfo}>
+                                        <Text style={styles.serviceName}>{servicio.nombre}</Text>
+                                        <View style={styles.metaRow}>
+                                            <Text style={styles.serviceMeta}>{formatPrice(servicio.precio)}</Text>
+                                            <Text style={styles.serviceMeta}>{formatDuration(servicio.duracion)}</Text>
+                                        </View>
+                                        <Text style={styles.serviceDescription}>{servicio.descripcion}</Text>
+                                    </View>
+                                    <View style={styles.actionsRow}>
+                                        <TouchableOpacity
+                                            style={[styles.actionButton, styles.deleteButton]}
+                                            onPress={() => handleAskDeleteServicio(servicio.id_servicio)}
+                                            disabled={deletingServicioId === servicio.id_servicio}
+                                            testID={`servicio-delete-button-${servicio.id_servicio}`}
+                                        >
+                                            {deletingServicioId === servicio.id_servicio ? (
+                                                <ActivityIndicator size="small" color="#fff" />
+                                            ) : (
+                                                <MaterialIcons name="delete" size={16} color="#fff" />
+                                            )}
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
-                                <Text style={styles.serviceDescription}>{servicio.descripcion}</Text>
+
+                                {confirmDeleteServicioId === servicio.id_servicio ? (
+                                    <View style={styles.confirmBox} testID={`servicio-delete-confirm-${servicio.id_servicio}`}>
+                                        <Text style={styles.confirmTitle}>{CONFIRM_DELETE_TITLE}</Text>
+                                        <Text style={styles.confirmMessage}>{CONFIRM_DELETE_MESSAGE}</Text>
+                                        <View style={styles.confirmActions}>
+                                            <TouchableOpacity
+                                                style={styles.confirmCancelButton}
+                                                onPress={handleCancelDeleteServicio}
+                                                testID={`servicio-delete-cancel-${servicio.id_servicio}`}
+                                            >
+                                                <Text style={styles.confirmCancelText}>{CONFIRM_DELETE_CANCEL}</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={styles.confirmDeleteButton}
+                                                onPress={() => handleDeleteServicio(servicio.id_servicio)}
+                                                disabled={deletingServicioId === servicio.id_servicio}
+                                                testID={`servicio-delete-confirm-button-${servicio.id_servicio}`}
+                                            >
+                                                <Text style={styles.confirmDeleteText}>
+                                                    {deletingServicioId === servicio.id_servicio
+                                                        ? DELETING_BUTTON_TEXT
+                                                        : CONFIRM_DELETE_ACCEPT}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                ) : null}
                             </View>
                         ))
                     )}
@@ -490,6 +586,15 @@ const styles = StyleSheet.create({
         padding: 12,
         marginBottom: 10,
     },
+    cardContent: {
+        flexDirection: "row",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+    },
+    serviceInfo: {
+        flex: 1,
+        paddingRight: 10,
+    },
     serviceName: {
         fontWeight: "700",
         color: "#0D47A1",
@@ -508,5 +613,62 @@ const styles = StyleSheet.create({
     serviceDescription: {
         color: "#111827",
         lineHeight: 20,
+    },
+    actionsRow: {
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        alignSelf: "center",
+    },
+    actionButton: {
+        height: 34,
+        width: 34,
+        borderRadius: 10,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    deleteButton: {
+        backgroundColor: "#dc2626",
+    },
+    confirmBox: {
+        marginTop: 10,
+        borderWidth: 1,
+        borderColor: "#fecaca",
+        backgroundColor: "#fff1f2",
+        borderRadius: 8,
+        padding: 10,
+    },
+    confirmTitle: {
+        color: "#03045E",
+        fontWeight: "700",
+        marginBottom: 4,
+    },
+    confirmMessage: {
+        color: "#03045E",
+        marginBottom: 8,
+    },
+    confirmActions: {
+        flexDirection: "row",
+        justifyContent: "flex-end",
+    },
+    confirmCancelButton: {
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        marginRight: 8,
+    },
+    confirmCancelText: {
+        color: "#6b7280",
+        fontWeight: "600",
+    },
+    confirmDeleteButton: {
+        backgroundColor: "#dc2626",
+        borderRadius: 6,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+    },
+    confirmDeleteText: {
+        color: "#fff",
+        fontWeight: "700",
     },
 });

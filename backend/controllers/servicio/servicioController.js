@@ -162,3 +162,42 @@ export const getServiciosByNegocio = async (req, res) => {
         return res.status(500).json({ message: SERVICIO_ERRORS.SERVER_ERROR });
     }
 };
+
+export const deleteServicio = async (req, res) => {
+    const { id_servicio } = req.params;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: SERVICIO_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (!id_servicio) {
+        return res.status(400).json({ message: SERVICIO_ERRORS.SERVICIO_ID_REQUIRED });
+    }
+
+    try {
+        const servicio = await Servicio.findByPk(id_servicio);
+
+        if (!servicio) {
+            return res.status(404).json({ message: SERVICIO_ERRORS.SERVICIO_NOT_FOUND });
+        }
+
+        const usuarioNegocio = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio: servicio.id_negocio },
+        });
+
+        if (!usuarioNegocio) {
+            return res.status(403).json({ message: SERVICIO_ERRORS.NO_ACCESS_TO_NEGOCIO });
+        }
+
+        if (!canManageServicios(usuarioNegocio.rol)) {
+            return res.status(403).json({ message: SERVICIO_ERRORS.NO_MANAGE_PERMISSION });
+        }
+
+        await servicio.destroy();
+
+        return res.status(200).json({ message: SERVICIO_MESSAGES.SERVICIO_DELETED });
+    } catch (error) {
+        return res.status(500).json({ message: SERVICIO_ERRORS.SERVER_ERROR });
+    }
+};

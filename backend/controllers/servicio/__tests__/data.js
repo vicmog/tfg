@@ -94,6 +94,26 @@ export const getServiciosReqSinPermiso = {
     user: { id_usuario: 2 },
 };
 
+export const deleteServicioReq = {
+    params: { id_servicio: "5" },
+    user: { id_usuario: 1 },
+};
+
+export const deleteServicioReqAdmin = {
+    params: { id_servicio: "5" },
+    user: { id_usuario: 3 },
+};
+
+export const deleteServicioReqSinAuth = {
+    params: { id_servicio: "5" },
+    user: null,
+};
+
+export const deleteServicioReqSinPermiso = {
+    params: { id_servicio: "5" },
+    user: { id_usuario: 2 },
+};
+
 export const mockServicioData = {
     id_servicio: 5,
     id_negocio: 10,
@@ -114,6 +134,11 @@ export const mockServicios = [
         descripcion: "Aplicación de color con secado",
     },
 ];
+
+export const mockServicioConDestroy = {
+    ...mockServicioData,
+    destroy: jest.fn(),
+};
 
 export const buildRes = () => {
     const jsonMock = jest.fn();

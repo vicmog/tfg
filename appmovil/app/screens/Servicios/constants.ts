@@ -2,11 +2,18 @@ import { API_ROUTES } from "@/app/constants/apiRoutes";
 
 export const serviciosByNegocioRoute = (idNegocio: number) => API_ROUTES.serviciosByNegocio(idNegocio);
 export const createServicioRoute = API_ROUTES.servicios;
+export const deleteServicioByIdRoute = (idServicio: number) => API_ROUTES.deleteServicioById(idServicio);
 
 export const SCREEN_TITLE = "Servicios";
 export const ADD_SERVICE_BUTTON = "Añadir servicio";
 export const SAVE_BUTTON_TEXT = "Guardar";
 export const SAVING_BUTTON_TEXT = "Guardando...";
+export const DELETE_BUTTON_TEXT = "Eliminar";
+export const DELETING_BUTTON_TEXT = "Eliminando...";
+export const CONFIRM_DELETE_TITLE = "Eliminar servicio";
+export const CONFIRM_DELETE_MESSAGE = "¿Seguro que quieres eliminar este servicio?";
+export const CONFIRM_DELETE_CANCEL = "Cancelar";
+export const CONFIRM_DELETE_ACCEPT = "Eliminar";
 export const EMPTY_NOMBRE_ERROR = "El nombre del servicio es obligatorio";
 export const EMPTY_PRECIO_ERROR = "El precio del servicio es obligatorio";
 export const INVALID_PRECIO_ERROR = "El precio del servicio debe ser mayor que 0";
@@ -15,8 +22,10 @@ export const INVALID_DURACION_ERROR = "La duración del servicio debe ser un nú
 export const EMPTY_DESCRIPCION_ERROR = "La descripción del servicio es obligatoria";
 export const DEFAULT_FETCH_ERROR = "No se pudieron obtener los servicios";
 export const DEFAULT_CREATE_ERROR = "No se pudo crear el servicio";
+export const DEFAULT_DELETE_ERROR = "No se pudo eliminar el servicio";
 export const CONNECTION_ERROR = "Error de conexión. Inténtalo de nuevo.";
 export const SUCCESS_MESSAGE = "Servicio creado correctamente";
+export const DELETE_SUCCESS_MESSAGE = "Servicio eliminado correctamente";
 export const EMPTY_SERVICIOS_MESSAGE = "No hay servicios registrados";
 export const FORM_TITLE = "Nuevo servicio";
 export const NO_ACCESS_MESSAGE = "Solo jefe y administrador pueden gestionar servicios";

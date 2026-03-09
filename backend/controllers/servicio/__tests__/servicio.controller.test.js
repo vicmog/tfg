@@ -1,4 +1,4 @@
-import { createServicio, getServiciosByNegocio } from "../servicioController.js";
+import { createServicio, deleteServicio, getServiciosByNegocio } from "../servicioController.js";
 import { Servicio } from "../../../models/Servicio.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
 import {
@@ -10,9 +10,14 @@ import {
     createServicioReqSinDescripcion,
     createServicioReqSinNombre,
     createServicioReqSinPermiso,
+    deleteServicioReq,
+    deleteServicioReqAdmin,
+    deleteServicioReqSinAuth,
+    deleteServicioReqSinPermiso,
     getServiciosReq,
     getServiciosReqSinAuth,
     getServiciosReqSinPermiso,
+    mockServicioConDestroy,
     mockServicioData,
     mockServicios,
     mockUsuarioAdmin,
@@ -174,6 +179,75 @@ describe("ServicioController Unit Tests", () => {
             await getServiciosByNegocio(getServiciosReqSinPermiso, res);
 
             expect(Servicio.findAll).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "No tienes permisos para gestionar servicios",
+            });
+        });
+    });
+
+    describe("deleteServicio", () => {
+        it("debería eliminar servicio correctamente para jefe", async () => {
+            (Servicio.findByPk).mockResolvedValue(mockServicioConDestroy);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+
+            const { res, jsonMock } = buildRes();
+
+            await deleteServicio(deleteServicioReq, res);
+
+            expect(mockServicioConDestroy.destroy).toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Servicio eliminado correctamente",
+            });
+        });
+
+        it("debería eliminar servicio correctamente para admin", async () => {
+            (Servicio.findByPk).mockResolvedValue(mockServicioConDestroy);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioAdmin);
+
+            const { res } = buildRes();
+
+            await deleteServicio(deleteServicioReqAdmin, res);
+
+            expect(mockServicioConDestroy.destroy).toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(200);
+        });
+
+        it("debería fallar si no está autenticado", async () => {
+            const { res, jsonMock } = buildRes();
+
+            await deleteServicio(deleteServicioReqSinAuth, res);
+
+            expect(Servicio.findByPk).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(401);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Usuario no autenticado",
+            });
+        });
+
+        it("debería fallar si el servicio no existe", async () => {
+            (Servicio.findByPk).mockResolvedValue(null);
+
+            const { res, jsonMock } = buildRes();
+
+            await deleteServicio(deleteServicioReq, res);
+
+            expect(res.status).toHaveBeenCalledWith(404);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Servicio no encontrado",
+            });
+        });
+
+        it("debería fallar si el usuario no es jefe ni admin", async () => {
+            (Servicio.findByPk).mockResolvedValue(mockServicioConDestroy);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioTrabajador);
+
+            const { res, jsonMock } = buildRes();
+
+            await deleteServicio(deleteServicioReqSinPermiso, res);
+
+            expect(mockServicioConDestroy.destroy).not.toHaveBeenCalled();
             expect(res.status).toHaveBeenCalledWith(403);
             expect(jsonMock).toHaveBeenCalledWith({
                 message: "No tienes permisos para gestionar servicios",
