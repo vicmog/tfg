@@ -25,6 +25,7 @@ import {
     DEFAULT_CREATE_ERROR,
     DEFAULT_DELETE_ERROR,
     DEFAULT_FETCH_ERROR,
+    DEFAULT_UPDATE_ERROR,
     DELETE_SUCCESS_MESSAGE,
     deleteServicioByIdRoute,
     DESCRIPCION_PLACEHOLDER,
@@ -35,6 +36,8 @@ import {
     EMPTY_NOMBRE_ERROR,
     EMPTY_PRECIO_ERROR,
     EMPTY_SERVICIOS_MESSAGE,
+    EDIT_BUTTON_TEXT,
+    EDIT_FORM_TITLE,
     FORM_TITLE,
     INVALID_DURACION_ERROR,
     INVALID_PRECIO_ERROR,
@@ -42,10 +45,14 @@ import {
     NO_ACCESS_MESSAGE,
     PRECIO_LABEL,
     SAVE_BUTTON_TEXT,
+    SAVE_CHANGES_BUTTON_TEXT,
     SAVING_BUTTON_TEXT,
+    SAVING_CHANGES_BUTTON_TEXT,
     SCREEN_TITLE,
     serviciosByNegocioRoute,
     SUCCESS_MESSAGE,
+    UPDATE_SUCCESS_MESSAGE,
+    updateServicioByIdRoute,
 } from "./constants";
 import { ServiciosProps } from "./types";
 
@@ -66,6 +73,7 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
     const [deletingServicioId, setDeletingServicioId] = useState<number | null>(null);
     const [confirmDeleteServicioId, setConfirmDeleteServicioId] = useState<number | null>(null);
     const [modalVisible, setModalVisible] = useState(false);
+    const [editingServicioId, setEditingServicioId] = useState<number | null>(null);
     const [nombre, setNombre] = useState("");
     const [precio, setPrecio] = useState("");
     const [duracion, setDuracion] = useState("");
@@ -79,6 +87,7 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
         setPrecio("");
         setDuracion("");
         setDescripcion("");
+        setEditingServicioId(null);
     };
 
     const fetchServicios = useCallback(async () => {
@@ -180,6 +189,16 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
         setModalVisible(true);
     };
 
+    const handleOpenEditModal = (servicio: Servicio) => {
+        setNombre(servicio.nombre || "");
+        setPrecio(`${servicio.precio}`);
+        setDuracion(`${servicio.duracion}`);
+        setDescripcion(servicio.descripcion || "");
+        setEditingServicioId(servicio.id_servicio);
+        setModalError("");
+        setModalVisible(true);
+    };
+
     const handleToggleModal = () => {
         setModalVisible(!modalVisible);
         setModalError("");
@@ -201,14 +220,17 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
 
         try {
             const token = await AsyncStorage.getItem("token");
-            const response = await fetch(createServicioRoute, {
-                method: "POST",
+            const isEditing = !!editingServicioId;
+            const route = isEditing ? updateServicioByIdRoute(editingServicioId) : createServicioRoute;
+            const method = isEditing ? "PUT" : "POST";
+            const response = await fetch(route, {
+                method,
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    id_negocio: negocio.id_negocio,
+                    ...(isEditing ? {} : { id_negocio: negocio.id_negocio }),
                     nombre: nombre.trim(),
                     precio: precio.trim(),
                     duracion: duracion.trim(),
@@ -218,13 +240,13 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
 
             if (!response.ok) {
                 const data = await response.json();
-                setModalError(data.message || DEFAULT_CREATE_ERROR);
+                setModalError(data.message || (isEditing ? DEFAULT_UPDATE_ERROR : DEFAULT_CREATE_ERROR));
                 return;
             }
 
             setModalVisible(false);
             resetForm();
-            setListSuccess(SUCCESS_MESSAGE);
+            setListSuccess(isEditing ? UPDATE_SUCCESS_MESSAGE : SUCCESS_MESSAGE);
             await fetchServicios();
         } catch (error) {
             setModalError(CONNECTION_ERROR);
@@ -273,6 +295,12 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
         setConfirmDeleteServicioId(null);
     };
 
+    const isEditing = !!editingServicioId;
+    const modalTitle = isEditing ? EDIT_FORM_TITLE : FORM_TITLE;
+    const saveButtonLabel = saving
+        ? (isEditing ? SAVING_CHANGES_BUTTON_TEXT : SAVING_BUTTON_TEXT)
+        : (isEditing ? SAVE_CHANGES_BUTTON_TEXT : SAVE_BUTTON_TEXT);
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -306,7 +334,7 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
                 <View style={styles.modalBackdrop}>
                     <View style={styles.formContainer}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>{FORM_TITLE}</Text>
+                            <Text style={styles.modalTitle}>{modalTitle}</Text>
                             <TouchableOpacity onPress={handleToggleModal} testID="close-servicio-form-button">
                                 <MaterialIcons name="close" size={22} color="#6b7280" />
                             </TouchableOpacity>
@@ -359,7 +387,7 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
                             testID="servicio-save-button"
                         >
                             {saving ? <ActivityIndicator size="small" color="#fff" /> : null}
-                            <Text style={styles.saveButtonText}>{saving ? SAVING_BUTTON_TEXT : SAVE_BUTTON_TEXT}</Text>
+                            <Text style={styles.saveButtonText}>{saveButtonLabel}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -398,6 +426,14 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
                                         <Text style={styles.serviceDescription}>{servicio.descripcion}</Text>
                                     </View>
                                     <View style={styles.actionsRow}>
+                                        <TouchableOpacity
+                                            style={[styles.actionButton, styles.editButton]}
+                                            onPress={() => handleOpenEditModal(servicio)}
+                                            testID={`servicio-edit-button-${servicio.id_servicio}`}
+                                            accessibilityLabel={`${EDIT_BUTTON_TEXT} ${servicio.nombre}`}
+                                        >
+                                            <MaterialIcons name="edit" size={16} color="#fff" />
+                                        </TouchableOpacity>
                                         <TouchableOpacity
                                             style={[styles.actionButton, styles.deleteButton]}
                                             onPress={() => handleAskDeleteServicio(servicio.id_servicio)}
@@ -627,6 +663,10 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
+    },
+    editButton: {
+        backgroundColor: "#2563eb",
+        marginBottom: 8,
     },
     deleteButton: {
         backgroundColor: "#dc2626",

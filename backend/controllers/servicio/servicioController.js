@@ -59,6 +59,37 @@ const normalizeDuracion = (duracion) => {
     return { value: parsedDuracion };
 };
 
+const validateServicioFields = ({ nombre, precio, duracion, descripcion }) => {
+    if (!nombre || !nombre.trim()) {
+        return { error: SERVICIO_ERRORS.NOMBRE_REQUIRED };
+    }
+
+    if (!descripcion || !descripcion.trim()) {
+        return { error: SERVICIO_ERRORS.DESCRIPCION_REQUIRED };
+    }
+
+    const precioResult = normalizePrecio(precio);
+
+    if (precioResult.error) {
+        return { error: precioResult.error };
+    }
+
+    const duracionResult = normalizeDuracion(duracion);
+
+    if (duracionResult.error) {
+        return { error: duracionResult.error };
+    }
+
+    return {
+        value: {
+            nombre: nombre.trim(),
+            precio: precioResult.value,
+            duracion: duracionResult.value,
+            descripcion: descripcion.trim(),
+        },
+    };
+};
+
 export const createServicio = async (req, res) => {
     const {
         id_negocio,
@@ -77,24 +108,15 @@ export const createServicio = async (req, res) => {
         return res.status(400).json({ message: SERVICIO_ERRORS.NEGOCIO_ID_REQUIRED });
     }
 
-    if (!nombre || !nombre.trim()) {
-        return res.status(400).json({ message: SERVICIO_ERRORS.NOMBRE_REQUIRED });
-    }
+    const servicioFieldsResult = validateServicioFields({
+        nombre,
+        precio,
+        duracion,
+        descripcion,
+    });
 
-    if (!descripcion || !descripcion.trim()) {
-        return res.status(400).json({ message: SERVICIO_ERRORS.DESCRIPCION_REQUIRED });
-    }
-
-    const precioResult = normalizePrecio(precio);
-
-    if (precioResult.error) {
-        return res.status(400).json({ message: precioResult.error });
-    }
-
-    const duracionResult = normalizeDuracion(duracion);
-
-    if (duracionResult.error) {
-        return res.status(400).json({ message: duracionResult.error });
+    if (servicioFieldsResult.error) {
+        return res.status(400).json({ message: servicioFieldsResult.error });
     }
 
     try {
@@ -112,10 +134,7 @@ export const createServicio = async (req, res) => {
 
         const servicio = await Servicio.create({
             id_negocio,
-            nombre: nombre.trim(),
-            precio: precioResult.value,
-            duracion: duracionResult.value,
-            descripcion: descripcion.trim(),
+            ...servicioFieldsResult.value,
         });
 
         return res.status(201).json({
@@ -158,6 +177,65 @@ export const getServiciosByNegocio = async (req, res) => {
         });
 
         return res.status(200).json({ servicios: servicios.map(serializeServicio) });
+    } catch (error) {
+        return res.status(500).json({ message: SERVICIO_ERRORS.SERVER_ERROR });
+    }
+};
+
+export const updateServicio = async (req, res) => {
+    const { id_servicio } = req.params;
+    const {
+        nombre,
+        precio,
+        duracion,
+        descripcion,
+    } = req.body;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: SERVICIO_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (!id_servicio) {
+        return res.status(400).json({ message: SERVICIO_ERRORS.SERVICIO_ID_REQUIRED });
+    }
+
+    try {
+        const servicio = await Servicio.findByPk(id_servicio);
+
+        if (!servicio) {
+            return res.status(404).json({ message: SERVICIO_ERRORS.SERVICIO_NOT_FOUND });
+        }
+
+        const usuarioNegocio = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio: servicio.id_negocio },
+        });
+
+        if (!usuarioNegocio) {
+            return res.status(403).json({ message: SERVICIO_ERRORS.NO_ACCESS_TO_NEGOCIO });
+        }
+
+        if (!canManageServicios(usuarioNegocio.rol)) {
+            return res.status(403).json({ message: SERVICIO_ERRORS.NO_MANAGE_PERMISSION });
+        }
+
+        const servicioFieldsResult = validateServicioFields({
+            nombre,
+            precio,
+            duracion,
+            descripcion,
+        });
+
+        if (servicioFieldsResult.error) {
+            return res.status(400).json({ message: servicioFieldsResult.error });
+        }
+
+        await servicio.update(servicioFieldsResult.value);
+
+        return res.status(200).json({
+            message: SERVICIO_MESSAGES.SERVICIO_UPDATED,
+            servicio: serializeServicio(servicio),
+        });
     } catch (error) {
         return res.status(500).json({ message: SERVICIO_ERRORS.SERVER_ERROR });
     }

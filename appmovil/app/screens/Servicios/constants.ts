@@ -2,12 +2,16 @@ import { API_ROUTES } from "@/app/constants/apiRoutes";
 
 export const serviciosByNegocioRoute = (idNegocio: number) => API_ROUTES.serviciosByNegocio(idNegocio);
 export const createServicioRoute = API_ROUTES.servicios;
+export const updateServicioByIdRoute = (idServicio: number) => API_ROUTES.updateServicioById(idServicio);
 export const deleteServicioByIdRoute = (idServicio: number) => API_ROUTES.deleteServicioById(idServicio);
 
 export const SCREEN_TITLE = "Servicios";
 export const ADD_SERVICE_BUTTON = "Añadir servicio";
 export const SAVE_BUTTON_TEXT = "Guardar";
+export const SAVE_CHANGES_BUTTON_TEXT = "Guardar cambios";
 export const SAVING_BUTTON_TEXT = "Guardando...";
+export const SAVING_CHANGES_BUTTON_TEXT = "Guardando cambios...";
+export const EDIT_BUTTON_TEXT = "Editar";
 export const DELETE_BUTTON_TEXT = "Eliminar";
 export const DELETING_BUTTON_TEXT = "Eliminando...";
 export const CONFIRM_DELETE_TITLE = "Eliminar servicio";
@@ -22,12 +26,15 @@ export const INVALID_DURACION_ERROR = "La duración del servicio debe ser un nú
 export const EMPTY_DESCRIPCION_ERROR = "La descripción del servicio es obligatoria";
 export const DEFAULT_FETCH_ERROR = "No se pudieron obtener los servicios";
 export const DEFAULT_CREATE_ERROR = "No se pudo crear el servicio";
+export const DEFAULT_UPDATE_ERROR = "No se pudieron guardar los cambios";
 export const DEFAULT_DELETE_ERROR = "No se pudo eliminar el servicio";
 export const CONNECTION_ERROR = "Error de conexión. Inténtalo de nuevo.";
 export const SUCCESS_MESSAGE = "Servicio creado correctamente";
+export const UPDATE_SUCCESS_MESSAGE = "Servicio actualizado correctamente";
 export const DELETE_SUCCESS_MESSAGE = "Servicio eliminado correctamente";
 export const EMPTY_SERVICIOS_MESSAGE = "No hay servicios registrados";
 export const FORM_TITLE = "Nuevo servicio";
+export const EDIT_FORM_TITLE = "Editar servicio";
 export const NO_ACCESS_MESSAGE = "Solo jefe y administrador pueden gestionar servicios";
 export const PRECIO_LABEL = "Precio";
 export const DURACION_LABEL = "Duración";

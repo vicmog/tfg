@@ -16,6 +16,7 @@ export const SERVICIO_ERRORS = {
 
 export const SERVICIO_MESSAGES = {
     SERVICIO_CREATED: "Servicio creado correctamente",
+    SERVICIO_UPDATED: "Servicio actualizado correctamente",
     SERVICIO_DELETED: "Servicio eliminado correctamente",
 };
 
