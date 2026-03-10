@@ -94,6 +94,61 @@ export const getServiciosReqSinPermiso = {
     user: { id_usuario: 2 },
 };
 
+export const updateServicioReq = {
+    params: { id_servicio: "5" },
+    body: {
+        nombre: "Corte premium actualizado",
+        precio: "30",
+        duracion: "50",
+        descripcion: "Corte con lavado, peinado y tratamiento",
+    },
+    user: { id_usuario: 1 },
+};
+
+export const updateServicioReqAdmin = {
+    params: { id_servicio: "5" },
+    body: {
+        nombre: "Color actualizado",
+        precio: 70,
+        duracion: 95,
+        descripcion: "Aplicacion de color con secado y peinado",
+    },
+    user: { id_usuario: 3 },
+};
+
+export const updateServicioReqSinAuth = {
+    params: { id_servicio: "5" },
+    body: {
+        nombre: "Corte premium actualizado",
+        precio: "30",
+        duracion: "50",
+        descripcion: "Corte con lavado, peinado y tratamiento",
+    },
+    user: null,
+};
+
+export const updateServicioReqSinNombre = {
+    params: { id_servicio: "5" },
+    body: {
+        nombre: "   ",
+        precio: "30",
+        duracion: "50",
+        descripcion: "Corte con lavado, peinado y tratamiento",
+    },
+    user: { id_usuario: 1 },
+};
+
+export const updateServicioReqSinPermiso = {
+    params: { id_servicio: "5" },
+    body: {
+        nombre: "Corte premium actualizado",
+        precio: "30",
+        duracion: "50",
+        descripcion: "Corte con lavado, peinado y tratamiento",
+    },
+    user: { id_usuario: 2 },
+};
+
 export const deleteServicioReq = {
     params: { id_servicio: "5" },
     user: { id_usuario: 1 },
@@ -138,6 +193,14 @@ export const mockServicios = [
 export const mockServicioConDestroy = {
     ...mockServicioData,
     destroy: jest.fn(),
+};
+
+export const mockServicioConUpdate = {
+    ...mockServicioData,
+    update: jest.fn(async function updateServicioMock(data) {
+        Object.assign(this, data);
+        return this;
+    }),
 };
 
 export const buildRes = () => {

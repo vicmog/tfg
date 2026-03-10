@@ -143,6 +143,137 @@ describe("Servicios", () => {
         });
     });
 
+    it("edita servicio y guarda cambios", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    servicios: [
+                        {
+                            id_servicio: 3,
+                            id_negocio: 1,
+                            nombre: "Corte premium",
+                            precio: 25.5,
+                            duracion: 45,
+                            descripcion: "Corte con lavado y peinado",
+                        },
+                    ],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    message: "Servicio actualizado correctamente",
+                    servicio: {
+                        id_servicio: 3,
+                        id_negocio: 1,
+                        nombre: "Corte premium actualizado",
+                        precio: 30,
+                        duracion: 50,
+                        descripcion: "Corte con tratamiento",
+                    },
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    servicios: [
+                        {
+                            id_servicio: 3,
+                            id_negocio: 1,
+                            nombre: "Corte premium actualizado",
+                            precio: 30,
+                            duracion: 50,
+                            descripcion: "Corte con tratamiento",
+                        },
+                    ],
+                }),
+            });
+
+        const { getByTestId, getByDisplayValue, getByText } = render(
+            <Servicios navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("servicio-edit-button-3")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("servicio-edit-button-3"));
+
+        expect(getByDisplayValue("Corte premium")).toBeTruthy();
+        expect(getByDisplayValue("25.5")).toBeTruthy();
+        expect(getByText("Editar servicio")).toBeTruthy();
+
+        fireEvent.changeText(getByTestId("servicio-nombre-input"), "Corte premium actualizado");
+        fireEvent.changeText(getByTestId("servicio-precio-input"), "30");
+        fireEvent.changeText(getByTestId("servicio-duracion-input"), "50");
+        fireEvent.changeText(getByTestId("servicio-descripcion-input"), "Corte con tratamiento");
+        fireEvent.press(getByTestId("servicio-save-button"));
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.updateServicioById(3),
+                expect.objectContaining({
+                    method: "PUT",
+                    headers: expect.objectContaining({
+                        "Content-Type": "application/json",
+                        Authorization: "Bearer mock-token",
+                    }),
+                    body: JSON.stringify({
+                        nombre: "Corte premium actualizado",
+                        precio: "30",
+                        duracion: "50",
+                        descripcion: "Corte con tratamiento",
+                    }),
+                })
+            );
+        });
+
+        await waitFor(() => {
+            expect(getByText("Servicio actualizado correctamente")).toBeTruthy();
+            expect(getByText("Corte premium actualizado")).toBeTruthy();
+        });
+    });
+
+    it("muestra error si falla la edición", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    servicios: [
+                        {
+                            id_servicio: 3,
+                            id_negocio: 1,
+                            nombre: "Corte premium",
+                            precio: 25.5,
+                            duracion: 45,
+                            descripcion: "Corte con lavado y peinado",
+                        },
+                    ],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: false,
+                json: async () => ({ message: "No tienes permisos para gestionar servicios" }),
+            });
+
+        const { getByTestId, getByText } = render(
+            <Servicios navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("servicio-edit-button-3")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("servicio-edit-button-3"));
+        fireEvent.changeText(getByTestId("servicio-nombre-input"), "Corte premium actualizado");
+        fireEvent.press(getByTestId("servicio-save-button"));
+
+        await waitFor(() => {
+            expect(getByText("No tienes permisos para gestionar servicios")).toBeTruthy();
+        });
+    });
+
     it("elimina servicio desde la lista y refresca servicios", async () => {
         (fetch as jest.Mock)
             .mockResolvedValueOnce({
