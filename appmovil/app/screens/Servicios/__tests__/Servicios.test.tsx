@@ -63,7 +63,7 @@ describe("Servicios", () => {
             json: async () => ({ servicios: [] }),
         });
 
-        const { getByTestId, getByText } = render(
+        const { getByTestId, getByText, getAllByText } = render(
             <Servicios navigation={mockNavigation} route={mockRoute} />
         );
 
@@ -114,7 +114,7 @@ describe("Servicios", () => {
                 }),
             });
 
-        const { getByTestId, getByText } = render(
+        const { getByTestId, getByText, getAllByText } = render(
             <Servicios navigation={mockNavigation} route={mockRoute} />
         );
 
@@ -366,6 +366,102 @@ describe("Servicios", () => {
 
         await waitFor(() => {
             expect(getByText("No tienes permisos para gestionar servicios")).toBeTruthy();
+        });
+    });
+
+    it("abre popup de detalle y muestra precio y duración", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    servicios: [
+                        {
+                            id_servicio: 3,
+                            id_negocio: 1,
+                            nombre: "Corte premium",
+                            precio: 25.5,
+                            duracion: 45,
+                            descripcion: "Corte con lavado y peinado",
+                        },
+                    ],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    servicio: {
+                        id_servicio: 3,
+                        id_negocio: 1,
+                        nombre: "Corte premium",
+                        precio: 25.5,
+                        duracion: 45,
+                        descripcion: "Corte con lavado y peinado",
+                    },
+                }),
+            });
+
+        const { getByTestId, getByText, getAllByText } = render(
+            <Servicios navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("servicio-open-detail-3")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("servicio-open-detail-3"));
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.servicioById(3),
+                expect.objectContaining({
+                    headers: { Authorization: "Bearer mock-token" },
+                })
+            );
+        });
+
+        await waitFor(() => {
+            expect(getByTestId("servicio-detail-modal")).toBeTruthy();
+            expect(getByText("Detalles del servicio")).toBeTruthy();
+            expect(getAllByText("25.50 EUR").length).toBeGreaterThan(0);
+            expect(getAllByText("45 min").length).toBeGreaterThan(0);
+        });
+    });
+
+    it("muestra error en popup de detalle cuando falla el endpoint", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    servicios: [
+                        {
+                            id_servicio: 3,
+                            id_negocio: 1,
+                            nombre: "Corte premium",
+                            precio: 25.5,
+                            duracion: 45,
+                            descripcion: "Corte con lavado y peinado",
+                        },
+                    ],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: false,
+                json: async () => ({ message: "Servicio no encontrado" }),
+            });
+
+        const { getByTestId, getByText } = render(
+            <Servicios navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("servicio-open-detail-3")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("servicio-open-detail-3"));
+
+        await waitFor(() => {
+            expect(getByTestId("servicio-detail-error-message")).toBeTruthy();
+            expect(getByText("Servicio no encontrado")).toBeTruthy();
         });
     });
 

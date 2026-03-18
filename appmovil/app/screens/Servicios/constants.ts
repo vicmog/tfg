@@ -1,6 +1,7 @@
 import { API_ROUTES } from "@/app/constants/apiRoutes";
 
 export const serviciosByNegocioRoute = (idNegocio: number) => API_ROUTES.serviciosByNegocio(idNegocio);
+export const servicioByIdRoute = (idServicio: number) => API_ROUTES.servicioById(idServicio);
 export const createServicioRoute = API_ROUTES.servicios;
 export const updateServicioByIdRoute = (idServicio: number) => API_ROUTES.updateServicioById(idServicio);
 export const deleteServicioByIdRoute = (idServicio: number) => API_ROUTES.deleteServicioById(idServicio);
@@ -35,6 +36,11 @@ export const DELETE_SUCCESS_MESSAGE = "Servicio eliminado correctamente";
 export const EMPTY_SERVICIOS_MESSAGE = "No hay servicios registrados";
 export const FORM_TITLE = "Nuevo servicio";
 export const EDIT_FORM_TITLE = "Editar servicio";
+export const DETAIL_SERVICE_TITLE = "Detalles del servicio";
+export const DETAIL_NAME_LABEL = "Nombre";
+export const DETAIL_PRICE_LABEL = "Precio";
+export const DETAIL_DURATION_LABEL = "Duración";
+export const DETAIL_DESCRIPTION_LABEL = "Descripción";
 export const NO_ACCESS_MESSAGE = "Solo jefe y administrador pueden gestionar servicios";
 export const PRECIO_LABEL = "Precio";
 export const DURACION_LABEL = "Duración";

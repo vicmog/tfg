@@ -279,3 +279,78 @@ export const deleteServicio = async (req, res) => {
         return res.status(500).json({ message: SERVICIO_ERRORS.SERVER_ERROR });
     }
 };
+
+export const getServicioById = async (req, res) => {
+    const { id_servicio } = req.params;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: SERVICIO_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (!id_servicio) {
+        return res.status(400).json({ message: SERVICIO_ERRORS.SERVICIO_ID_REQUIRED });
+    }
+
+    try {
+        const servicio = await Servicio.findByPk(id_servicio);
+
+        if (!servicio) {
+            return res.status(404).json({ message: SERVICIO_ERRORS.SERVICIO_NOT_FOUND });
+        }
+
+        const usuarioNegocio = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio: servicio.id_negocio },
+        });
+
+        if (!usuarioNegocio) {
+            return res.status(403).json({ message: SERVICIO_ERRORS.NO_ACCESS_TO_NEGOCIO });
+        }
+
+        return res.status(200).json({ servicio: serializeServicio(servicio) });
+    } catch (error) {
+        return res.status(500).json({ message: SERVICIO_ERRORS.SERVER_ERROR });
+    }
+};
+
+export const searchServicios = async (req, res) => {
+    const { id_negocio, q } = req.query;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: SERVICIO_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (!id_negocio) {
+        return res.status(400).json({ message: SERVICIO_ERRORS.NEGOCIO_ID_REQUIRED });
+    }
+
+    try {
+        const usuarioNegocio = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio },
+        });
+
+        if (!usuarioNegocio) {
+            return res.status(403).json({ message: SERVICIO_ERRORS.NO_ACCESS_TO_NEGOCIO });
+        }
+
+        const { Op } = await import("sequelize");
+        const whereClause = { id_negocio };
+
+        if (q) {
+            whereClause[Op.or] = [
+                { nombre: { [Op.iLike]: `%${q}%` } },
+                { descripcion: { [Op.iLike]: `%${q}%` } },
+            ];
+        }
+
+        const servicios = await Servicio.findAll({
+            where: whereClause,
+            order: [["nombre", "ASC"]],
+        });
+
+        return res.status(200).json({ servicios: servicios.map(serializeServicio) });
+    } catch (error) {
+        return res.status(500).json({ message: SERVICIO_ERRORS.SERVER_ERROR });
+    }
+};

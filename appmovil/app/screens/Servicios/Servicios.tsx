@@ -22,6 +22,7 @@ import {
     CONFIRM_DELETE_MESSAGE,
     CONFIRM_DELETE_TITLE,
     createServicioRoute,
+    servicioByIdRoute,
     DEFAULT_CREATE_ERROR,
     DEFAULT_DELETE_ERROR,
     DEFAULT_FETCH_ERROR,
@@ -38,6 +39,11 @@ import {
     EMPTY_SERVICIOS_MESSAGE,
     EDIT_BUTTON_TEXT,
     EDIT_FORM_TITLE,
+    DETAIL_DESCRIPTION_LABEL,
+    DETAIL_DURATION_LABEL,
+    DETAIL_NAME_LABEL,
+    DETAIL_PRICE_LABEL,
+    DETAIL_SERVICE_TITLE,
     FORM_TITLE,
     INVALID_DURACION_ERROR,
     INVALID_PRECIO_ERROR,
@@ -65,6 +71,8 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
     const { negocio } = route.params;
 
     const [servicios, setServicios] = useState<Servicio[]>([]);
+    const [filteredServicios, setFilteredServicios] = useState<Servicio[]>([]);
+    const [searchQuery, setSearchQuery] = useState("");
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [listError, setListError] = useState("");
@@ -74,6 +82,10 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
     const [confirmDeleteServicioId, setConfirmDeleteServicioId] = useState<number | null>(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [editingServicioId, setEditingServicioId] = useState<number | null>(null);
+    const [selectedServicio, setSelectedServicio] = useState<Servicio | null>(null);
+    const [detailVisible, setDetailVisible] = useState(false);
+    const [detailLoading, setDetailLoading] = useState(false);
+    const [detailError, setDetailError] = useState("");
     const [nombre, setNombre] = useState("");
     const [precio, setPrecio] = useState("");
     const [duracion, setDuracion] = useState("");
@@ -90,9 +102,29 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
         setEditingServicioId(null);
     };
 
+    const filterServicios = (serviciosToFilter: Servicio[], query: string) => {
+        if (!query.trim()) {
+            return serviciosToFilter;
+        }
+
+        const lowerQuery = query.toLowerCase();
+        return serviciosToFilter.filter(
+            (servicio) =>
+                servicio.nombre.toLowerCase().includes(lowerQuery) ||
+                servicio.descripcion?.toLowerCase().includes(lowerQuery)
+        );
+    };
+
+    const handleSearchChange = (text: string) => {
+        setSearchQuery(text);
+        const filtered = filterServicios(servicios, text);
+        setFilteredServicios(filtered);
+    };
+
     const fetchServicios = useCallback(async () => {
         if (!canManageServicios) {
             setServicios([]);
+            setFilteredServicios([]);
             setListError(NO_ACCESS_MESSAGE);
             return;
         }
@@ -112,14 +144,18 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
                 const data = await response.json();
                 setListError(data.message || DEFAULT_FETCH_ERROR);
                 setServicios([]);
+                setFilteredServicios([]);
                 return;
             }
 
             const data = await response.json();
-            setServicios(data.servicios || []);
+            const allServicios = data.servicios || [];
+            setServicios(allServicios);
+            setFilteredServicios(allServicios);
         } catch (error) {
             setListError(CONNECTION_ERROR);
             setServicios([]);
+            setFilteredServicios([]);
         } finally {
             setLoading(false);
         }
@@ -247,6 +283,7 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
             setModalVisible(false);
             resetForm();
             setListSuccess(isEditing ? UPDATE_SUCCESS_MESSAGE : SUCCESS_MESSAGE);
+            setSearchQuery("");
             await fetchServicios();
         } catch (error) {
             setModalError(CONNECTION_ERROR);
@@ -295,6 +332,42 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
         setConfirmDeleteServicioId(null);
     };
 
+    const handleOpenServicioDetail = async (idServicio: number) => {
+        setDetailVisible(true);
+        setDetailLoading(true);
+        setDetailError("");
+        setSelectedServicio(null);
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(servicioByIdRoute(idServicio), {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setDetailError(data.message || DEFAULT_FETCH_ERROR);
+                return;
+            }
+
+            const data = await response.json();
+            setSelectedServicio(data.servicio || null);
+        } catch (error) {
+            setDetailError(CONNECTION_ERROR);
+        } finally {
+            setDetailLoading(false);
+        }
+    };
+
+    const handleCloseServicioDetail = () => {
+        setDetailVisible(false);
+        setDetailLoading(false);
+        setDetailError("");
+        setSelectedServicio(null);
+    };
+
     const isEditing = !!editingServicioId;
     const modalTitle = isEditing ? EDIT_FORM_TITLE : FORM_TITLE;
     const saveButtonLabel = saving
@@ -323,6 +396,89 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
                     </TouchableOpacity>
                 ) : null}
             </View>
+
+            {canManageServicios ? (
+                <View style={styles.searchContainer}>
+                    <MaterialIcons name="search" size={20} color="#6b7280" style={styles.searchIcon} />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Buscar por nombre o descripción..."
+                        value={searchQuery}
+                        onChangeText={handleSearchChange}
+                        testID="servicio-search-input"
+                        placeholderTextColor="#9ca3af"
+                    />
+                    {searchQuery ? (
+                        <TouchableOpacity
+                            onPress={() => handleSearchChange("")}
+                            testID="servicio-clear-search-button"
+                        >
+                            <MaterialIcons name="close" size={20} color="#6b7280" />
+                        </TouchableOpacity>
+                    ) : null}
+                </View>
+            ) : null}
+
+            <Modal
+                visible={detailVisible}
+                transparent
+                animationType="none"
+                onRequestClose={handleCloseServicioDetail}
+                testID="servicio-detail-modal"
+            >
+                <View style={styles.modalBackdrop}>
+                    <View style={styles.formContainer}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>{DETAIL_SERVICE_TITLE}</Text>
+                            <TouchableOpacity onPress={handleCloseServicioDetail} testID="servicio-detail-close-button">
+                                <MaterialIcons name="close" size={22} color="#6b7280" />
+                            </TouchableOpacity>
+                        </View>
+
+                        {detailLoading ? (
+                            <View style={styles.detailLoadingContainer}>
+                                <ActivityIndicator size="large" color="#1976D2" />
+                            </View>
+                        ) : null}
+
+                        {!detailLoading && detailError ? (
+                            <View style={styles.feedbackError} testID="servicio-detail-error-message">
+                                <Text style={styles.feedbackErrorText}>{detailError}</Text>
+                            </View>
+                        ) : null}
+
+                        {!detailLoading && !detailError && selectedServicio ? (
+                            <>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.detailLabel}>{DETAIL_NAME_LABEL}</Text>
+                                    <Text style={styles.detailValue}>{selectedServicio.nombre}</Text>
+                                </View>
+
+                                <View style={styles.detailRowWithIcon}>
+                                    <View style={styles.detailLabelWithIcon}>
+                                        <MaterialIcons name="attach-money" size={16} color="#1976D2" />
+                                        <Text style={[styles.detailLabel, styles.detailLabelIconText]}>{DETAIL_PRICE_LABEL}</Text>
+                                    </View>
+                                    <Text style={styles.detailValue}>{formatPrice(selectedServicio.precio)}</Text>
+                                </View>
+
+                                <View style={styles.detailRowWithIcon}>
+                                    <View style={styles.detailLabelWithIcon}>
+                                        <MaterialIcons name="schedule" size={16} color="#1976D2" />
+                                        <Text style={[styles.detailLabel, styles.detailLabelIconText]}>{DETAIL_DURATION_LABEL}</Text>
+                                    </View>
+                                    <Text style={styles.detailValue}>{formatDuration(selectedServicio.duracion)}</Text>
+                                </View>
+
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.detailLabel}>{DETAIL_DESCRIPTION_LABEL}</Text>
+                                    <Text style={styles.detailValue}>{selectedServicio.descripcion}</Text>
+                                </View>
+                            </>
+                        ) : null}
+                    </View>
+                </View>
+            </Modal>
 
             <Modal
                 visible={modalVisible}
@@ -411,20 +567,25 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
                 </View>
             ) : (
                 <ScrollView contentContainerStyle={styles.listContainer}>
-                    {servicios.length === 0 ? (
+                    {filteredServicios.length === 0 ? (
                         <Text style={styles.emptyText}>{EMPTY_SERVICIOS_MESSAGE}</Text>
                     ) : (
-                        servicios.map((servicio) => (
+                        filteredServicios.map((servicio) => (
                             <View key={servicio.id_servicio} style={styles.card} testID={`servicio-item-${servicio.id_servicio}`}>
                                 <View style={styles.cardContent}>
-                                    <View style={styles.serviceInfo}>
+                                    <TouchableOpacity
+                                        style={styles.serviceInfo}
+                                        onPress={() => void handleOpenServicioDetail(servicio.id_servicio)}
+                                        testID={`servicio-open-detail-${servicio.id_servicio}`}
+                                        accessibilityLabel={`Ver detalles de ${servicio.nombre}`}
+                                    >
                                         <Text style={styles.serviceName}>{servicio.nombre}</Text>
                                         <View style={styles.metaRow}>
                                             <Text style={styles.serviceMeta}>{formatPrice(servicio.precio)}</Text>
                                             <Text style={styles.serviceMeta}>{formatDuration(servicio.duracion)}</Text>
                                         </View>
                                         <Text style={styles.serviceDescription}>{servicio.descripcion}</Text>
-                                    </View>
+                                    </TouchableOpacity>
                                     <View style={styles.actionsRow}>
                                         <TouchableOpacity
                                             style={[styles.actionButton, styles.editButton]}
@@ -650,6 +811,37 @@ const styles = StyleSheet.create({
         color: "#111827",
         lineHeight: 20,
     },
+    detailLoadingContainer: {
+        paddingVertical: 24,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    detailRow: {
+        marginBottom: 12,
+    },
+    detailRowWithIcon: {
+        marginBottom: 12,
+    },
+    detailLabelWithIcon: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 4,
+    },
+    detailLabelIconText: {
+        marginLeft: 4,
+        marginBottom: 0,
+    },
+    detailLabel: {
+        fontSize: 12,
+        fontWeight: "700",
+        color: "#6b7280",
+        marginBottom: 4,
+        textTransform: "uppercase",
+    },
+    detailValue: {
+        fontSize: 15,
+        color: "#111827",
+    },
     actionsRow: {
         flexDirection: "column",
         alignItems: "center",
@@ -710,5 +902,25 @@ const styles = StyleSheet.create({
     confirmDeleteText: {
         color: "#fff",
         fontWeight: "700",
+    },
+    searchContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#fff",
+        marginHorizontal: 12,
+        marginBottom: 12,
+        paddingHorizontal: 12,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: "#d1d5db",
+    },
+    searchIcon: {
+        marginRight: 8,
+    },
+    searchInput: {
+        flex: 1,
+        paddingVertical: 10,
+        fontSize: 14,
+        color: "#111827",
     },
 });
