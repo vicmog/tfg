@@ -187,7 +187,7 @@ describe("Proveedores", () => {
         await waitFor(() => {
             expect(getByTestId("proveedor-detail-modal")).toBeTruthy();
             expect(getByText("Detalles del proveedor")).toBeTruthy();
-            expect(getAllByText("B12345678").length).toBeGreaterThan(1);
+            expect(getByText("B12345678").length).toBeGreaterThan(1);
         });
     });
 
