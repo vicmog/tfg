@@ -1,0 +1,660 @@
+import React, { useCallback, useMemo, useState } from "react";
+import {
+    ActivityIndicator,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
+import { Proveedor } from "../types";
+import {
+    ADD_SUPPLIER_BUTTON,
+    ADMIN_ROLE,
+    CONNECTION_ERROR,
+    CONTACT_METHOD_REQUIRED_ERROR,
+    createProveedorRoute,
+    DEFAULT_CREATE_ERROR,
+    DEFAULT_FETCH_ERROR,
+    DETAIL_ADDRESS_LABEL,
+    DETAIL_CIF_LABEL,
+    DETAIL_CONTACT_LABEL,
+    DETAIL_EMAIL_LABEL,
+    DETAIL_NAME_LABEL,
+    DETAIL_PHONE_LABEL,
+    DETAIL_SUPPLIER_TITLE,
+    DETAIL_TYPE_LABEL,
+    EMPTY_CIF_ERROR,
+    EMPTY_CONTACTO_ERROR,
+    EMPTY_NOMBRE_ERROR,
+    EMPTY_SUPPLIERS_MESSAGE,
+    EMPTY_TIPO_ERROR,
+    EMAIL_REGEX,
+    FORM_TITLE,
+    INVALID_EMAIL_ERROR,
+    JEFE_ROLE,
+    NO_ACCESS_MESSAGE,
+    NO_ADDRESS_MESSAGE,
+    NO_EMAIL_MESSAGE,
+    NO_PHONE_MESSAGE,
+    SAVE_BUTTON_TEXT,
+    SAVING_BUTTON_TEXT,
+    SCREEN_TITLE,
+    SEARCH_SUPPLIER,
+    SUCCESS_MESSAGE,
+    proveedoresByNegocioRoute,
+} from "./constants";
+import { ProveedoresProps } from "./types";
+
+const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
+    const { negocio } = route.params;
+
+    const [proveedores, setProveedores] = useState<Proveedor[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [listError, setListError] = useState("");
+    const [listSuccess, setListSuccess] = useState("");
+    const [modalError, setModalError] = useState("");
+
+    const [searchText, setSearchText] = useState("");
+
+    const [modalVisible, setModalVisible] = useState(false);
+    const [selectedProveedor, setSelectedProveedor] = useState<Proveedor | null>(null);
+
+    const [nombre, setNombre] = useState("");
+    const [cifNif, setCifNif] = useState("");
+    const [contacto, setContacto] = useState("");
+    const [telefono, setTelefono] = useState("");
+    const [email, setEmail] = useState("");
+    const [tipoProveedor, setTipoProveedor] = useState("");
+    const [direccion, setDireccion] = useState("");
+
+    const normalizedRole = (negocio.rol || "").toLowerCase();
+    const canManageProveedores = normalizedRole === JEFE_ROLE || normalizedRole === ADMIN_ROLE;
+
+    const filteredProveedores = useMemo(() => {
+        const query = searchText.trim().toLowerCase();
+        if (!query) {
+            return proveedores;
+        }
+
+        return proveedores.filter((proveedor) =>
+            proveedor.nombre.toLowerCase().includes(query)
+            || proveedor.cif_nif.toLowerCase().includes(query)
+            || proveedor.contacto.toLowerCase().includes(query)
+            || proveedor.tipo_proveedor.toLowerCase().includes(query)
+        );
+    }, [proveedores, searchText]);
+
+    const resetForm = () => {
+        setNombre("");
+        setCifNif("");
+        setContacto("");
+        setTelefono("");
+        setEmail("");
+        setTipoProveedor("");
+        setDireccion("");
+    };
+
+    const fetchProveedores = useCallback(async () => {
+        if (!canManageProveedores) {
+            setProveedores([]);
+            setListError(NO_ACCESS_MESSAGE);
+            return;
+        }
+
+        setLoading(true);
+        setListError("");
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(proveedoresByNegocioRoute(negocio.id_negocio), {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setListError(data.message || DEFAULT_FETCH_ERROR);
+                setProveedores([]);
+                return;
+            }
+
+            const data = await response.json();
+            setProveedores(data.proveedores || []);
+        } catch (error) {
+            setListError(CONNECTION_ERROR);
+            setProveedores([]);
+        } finally {
+            setLoading(false);
+        }
+    }, [canManageProveedores, negocio.id_negocio]);
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchProveedores();
+        }, [fetchProveedores])
+    );
+
+    const validateForm = () => {
+        if (!nombre.trim()) {
+            setModalError(EMPTY_NOMBRE_ERROR);
+            return false;
+        }
+
+        if (!cifNif.trim()) {
+            setModalError(EMPTY_CIF_ERROR);
+            return false;
+        }
+
+        if (!contacto.trim()) {
+            setModalError(EMPTY_CONTACTO_ERROR);
+            return false;
+        }
+
+        if (!tipoProveedor.trim()) {
+            setModalError(EMPTY_TIPO_ERROR);
+            return false;
+        }
+
+        if (!telefono.trim() && !email.trim()) {
+            setModalError(CONTACT_METHOD_REQUIRED_ERROR);
+            return false;
+        }
+
+        if (email.trim() && !EMAIL_REGEX.test(email.trim())) {
+            setModalError(INVALID_EMAIL_ERROR);
+            return false;
+        }
+
+        return true;
+    };
+
+    const handleOpenCreateModal = () => {
+        resetForm();
+        setModalError("");
+        setModalVisible(true);
+    };
+
+    const handleToggleModal = () => {
+        setModalVisible(!modalVisible);
+        setModalError("");
+
+        if (modalVisible) {
+            resetForm();
+        }
+    };
+
+    const handleOpenProveedorDetail = (proveedor: Proveedor) => {
+        setSelectedProveedor(proveedor);
+    };
+
+    const handleCloseProveedorDetail = () => {
+        setSelectedProveedor(null);
+    };
+
+    const handleSave = async () => {
+        setModalError("");
+        setListSuccess("");
+
+        if (!validateForm()) {
+            return;
+        }
+
+        setSaving(true);
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(createProveedorRoute, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    id_negocio: negocio.id_negocio,
+                    nombre: nombre.trim(),
+                    cif_nif: cifNif.trim(),
+                    contacto: contacto.trim(),
+                    telefono: telefono.trim(),
+                    email: email.trim(),
+                    tipo_proveedor: tipoProveedor.trim(),
+                    direccion: direccion.trim(),
+                }),
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setModalError(data.message || DEFAULT_CREATE_ERROR);
+                return;
+            }
+
+            setModalVisible(false);
+            resetForm();
+            setListSuccess(SUCCESS_MESSAGE);
+            await fetchProveedores();
+        } catch (error) {
+            setModalError(CONNECTION_ERROR);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <View style={styles.container}>
+            <View style={styles.header}>
+                <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={() => navigation.goBack()}
+                    testID="back-button"
+                >
+                    <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
+                </TouchableOpacity>
+                <Text style={styles.title}>{SCREEN_TITLE}</Text>
+                {canManageProveedores ? (
+                    <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={handleOpenCreateModal}
+                        testID="toggle-proveedor-form-button"
+                    >
+                        <MaterialIcons name="local-shipping" size={18} color="#fff" style={{ marginRight: 6 }} />
+                        <Text style={styles.addButtonText}>{ADD_SUPPLIER_BUTTON}</Text>
+                    </TouchableOpacity>
+                ) : null}
+            </View>
+
+            <View style={styles.searchContainer}>
+                <MaterialIcons name="search" size={20} color="#6b7280" style={styles.searchIcon} />
+                <TextInput
+                    placeholder={SEARCH_SUPPLIER}
+                    placeholderTextColor="#000000"
+                    value={searchText}
+                    onChangeText={setSearchText}
+                    style={styles.searchInput}
+                    autoCapitalize="none"
+                    testID="proveedor-search-input"
+                />
+            </View>
+
+            <Modal
+                visible={modalVisible}
+                transparent
+                animationType="none"
+                onRequestClose={handleToggleModal}
+                testID="proveedor-form-modal"
+            >
+                <View style={styles.modalBackdrop}>
+                    <View style={styles.formContainer}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>{FORM_TITLE}</Text>
+                            <TouchableOpacity onPress={handleToggleModal} testID="close-proveedor-form-button">
+                                <MaterialIcons name="close" size={22} color="#6b7280" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Nombre"
+                            value={nombre}
+                            onChangeText={setNombre}
+                            testID="proveedor-nombre-input"
+                        />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="CIF/NIF"
+                            value={cifNif}
+                            onChangeText={setCifNif}
+                            autoCapitalize="characters"
+                            testID="proveedor-cif-input"
+                        />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Persona de contacto"
+                            value={contacto}
+                            onChangeText={setContacto}
+                            testID="proveedor-contacto-input"
+                        />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Teléfono"
+                            value={telefono}
+                            onChangeText={setTelefono}
+                            keyboardType="phone-pad"
+                            testID="proveedor-telefono-input"
+                        />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Email"
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            testID="proveedor-email-input"
+                        />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Tipo de proveedor"
+                            value={tipoProveedor}
+                            onChangeText={setTipoProveedor}
+                            testID="proveedor-tipo-input"
+                        />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Dirección (opcional)"
+                            value={direccion}
+                            onChangeText={setDireccion}
+                            testID="proveedor-direccion-input"
+                        />
+
+                        {modalError ? (
+                            <View style={styles.feedbackError} testID="proveedor-error-message">
+                                <Text style={styles.feedbackErrorText}>{modalError}</Text>
+                            </View>
+                        ) : null}
+
+                        <TouchableOpacity
+                            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                            onPress={handleSave}
+                            disabled={saving}
+                            testID="proveedor-save-button"
+                        >
+                            {saving ? <ActivityIndicator size="small" color="#fff" /> : null}
+                            <Text style={styles.saveButtonText}>{saving ? SAVING_BUTTON_TEXT : SAVE_BUTTON_TEXT}</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal
+                visible={!!selectedProveedor}
+                transparent
+                animationType="none"
+                onRequestClose={handleCloseProveedorDetail}
+                testID="proveedor-detail-modal"
+            >
+                <View style={styles.modalBackdrop}>
+                    <View style={styles.formContainer}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>{DETAIL_SUPPLIER_TITLE}</Text>
+                            <TouchableOpacity onPress={handleCloseProveedorDetail} testID="proveedor-detail-close-button">
+                                <MaterialIcons name="close" size={22} color="#6b7280" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>{DETAIL_NAME_LABEL}</Text>
+                            <Text style={styles.detailValue}>{selectedProveedor?.nombre}</Text>
+                        </View>
+
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>{DETAIL_CIF_LABEL}</Text>
+                            <Text style={styles.detailValue}>{selectedProveedor?.cif_nif}</Text>
+                        </View>
+
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>{DETAIL_CONTACT_LABEL}</Text>
+                            <Text style={styles.detailValue}>{selectedProveedor?.contacto}</Text>
+                        </View>
+
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>{DETAIL_PHONE_LABEL}</Text>
+                            <Text style={styles.detailValue}>{selectedProveedor?.telefono || NO_PHONE_MESSAGE}</Text>
+                        </View>
+
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>{DETAIL_EMAIL_LABEL}</Text>
+                            <Text style={styles.detailValue}>{selectedProveedor?.email || NO_EMAIL_MESSAGE}</Text>
+                        </View>
+
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>{DETAIL_TYPE_LABEL}</Text>
+                            <Text style={styles.detailValue}>{selectedProveedor?.tipo_proveedor}</Text>
+                        </View>
+
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>{DETAIL_ADDRESS_LABEL}</Text>
+                            <Text style={styles.detailValue}>{selectedProveedor?.direccion || NO_ADDRESS_MESSAGE}</Text>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {listError ? (
+                <View style={styles.feedbackError} testID="proveedores-list-error-message">
+                    <Text style={styles.feedbackErrorText}>{listError}</Text>
+                </View>
+            ) : null}
+
+            {listSuccess ? (
+                <View style={styles.feedbackSuccess} testID="proveedores-list-success-message">
+                    <Text style={styles.feedbackSuccessText}>{listSuccess}</Text>
+                </View>
+            ) : null}
+
+            {loading ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#1976D2" />
+                </View>
+            ) : (
+                <ScrollView contentContainerStyle={styles.listContainer}>
+                    {filteredProveedores.length === 0 ? (
+                        <Text style={styles.emptyText}>{EMPTY_SUPPLIERS_MESSAGE}</Text>
+                    ) : (
+                        filteredProveedores.map((proveedor) => (
+                            <View key={proveedor.id_proveedor} style={styles.card} testID={`proveedor-item-${proveedor.id_proveedor}`}>
+                                <TouchableOpacity
+                                    style={styles.cardContent}
+                                    onPress={() => handleOpenProveedorDetail(proveedor)}
+                                    testID={`proveedor-open-detail-${proveedor.id_proveedor}`}
+                                >
+                                    <View style={styles.supplierInfo}>
+                                        <Text style={styles.supplierName}>{proveedor.nombre}</Text>
+                                        <Text style={styles.supplierMeta}>{proveedor.cif_nif}</Text>
+                                        <Text style={styles.supplierMeta}>{proveedor.contacto}</Text>
+                                        <Text style={styles.supplierMeta}>{proveedor.tipo_proveedor}</Text>
+                                        <Text style={styles.supplierMeta}>{proveedor.email || NO_EMAIL_MESSAGE}</Text>
+                                        <Text style={styles.supplierMeta}>{proveedor.telefono || NO_PHONE_MESSAGE}</Text>
+                                    </View>
+                                </TouchableOpacity>
+                            </View>
+                        ))
+                    )}
+                </ScrollView>
+            )}
+        </View>
+    );
+};
+
+export default Proveedores;
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: "#f7fafc",
+        paddingTop: 12,
+    },
+    header: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 12,
+        marginBottom: 12,
+    },
+    iconButton: {
+        padding: 8,
+        borderRadius: 8,
+        backgroundColor: "#f0f7ff",
+    },
+    title: {
+        flex: 1,
+        marginLeft: 12,
+        fontSize: 22,
+        color: "#0D47A1",
+        fontWeight: "700",
+    },
+    addButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#1976D2",
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        borderRadius: 8,
+    },
+    addButtonText: {
+        color: "#fff",
+        fontWeight: "600",
+        fontSize: 13,
+    },
+    searchContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#fff",
+        marginHorizontal: 12,
+        marginBottom: 12,
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+    },
+    searchIcon: {
+        marginRight: 8,
+    },
+    searchInput: {
+        flex: 1,
+        color: "#111827",
+    },
+    formContainer: {
+        backgroundColor: "#fff",
+        borderRadius: 12,
+        marginHorizontal: 12,
+        padding: 12,
+        width: "90%",
+        maxWidth: 420,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    modalBackdrop: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.35)",
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 12,
+    },
+    modalHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 8,
+    },
+    modalTitle: {
+        color: "#0D47A1",
+        fontSize: 18,
+        fontWeight: "700",
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: "#d1d5db",
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        marginBottom: 10,
+        backgroundColor: "#f9fafb",
+    },
+    saveButton: {
+        backgroundColor: "#1976D2",
+        borderRadius: 10,
+        paddingVertical: 12,
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "row",
+    },
+    saveButtonDisabled: {
+        backgroundColor: "#93c5fd",
+    },
+    saveButtonText: {
+        color: "#fff",
+        fontWeight: "700",
+    },
+    feedbackError: {
+        marginHorizontal: 12,
+        backgroundColor: "#fef2f2",
+        borderRadius: 8,
+        padding: 10,
+        marginBottom: 8,
+    },
+    feedbackErrorText: {
+        color: "#dc2626",
+    },
+    feedbackSuccess: {
+        marginHorizontal: 12,
+        backgroundColor: "#f0fdf4",
+        borderRadius: 8,
+        padding: 10,
+        marginBottom: 8,
+    },
+    feedbackSuccessText: {
+        color: "#16a34a",
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    listContainer: {
+        paddingHorizontal: 12,
+        paddingBottom: 24,
+    },
+    emptyText: {
+        textAlign: "center",
+        color: "#6b7280",
+        marginTop: 40,
+    },
+    card: {
+        backgroundColor: "#fff",
+        borderRadius: 10,
+        padding: 12,
+        marginBottom: 10,
+    },
+    cardContent: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    supplierInfo: {
+        flex: 1,
+        paddingRight: 10,
+    },
+    supplierName: {
+        fontWeight: "700",
+        color: "#0D47A1",
+        fontSize: 16,
+        marginBottom: 6,
+    },
+    supplierMeta: {
+        color: "#4b5563",
+        fontSize: 13,
+    },
+    detailRow: {
+        marginBottom: 12,
+    },
+    detailLabel: {
+        fontSize: 12,
+        fontWeight: "700",
+        color: "#6b7280",
+        marginBottom: 4,
+        textTransform: "uppercase",
+    },
+    detailValue: {
+        fontSize: 15,
+        color: "#111827",
+    },
+});

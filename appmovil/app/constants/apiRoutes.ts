@@ -36,6 +36,8 @@ export const API_ROUTES = {
   },
   updateServicioById: (idServicio: number) => `${API_BASE_URL}${API_PREFIX}/servicios/${idServicio}`,
   deleteServicioById: (idServicio: number) => `${API_BASE_URL}${API_PREFIX}/servicios/${idServicio}`,
+  proveedores: `${API_BASE_URL}${API_PREFIX}/proveedores`,
+  proveedoresByNegocio: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/proveedores/${idNegocio}`,
   users: `${API_BASE_URL}${API_PREFIX}/users`,
   userById: (idUsuario: string | number) => `${API_BASE_URL}${API_PREFIX}/users/user/${idUsuario}`,
 } as const;

@@ -53,3 +53,15 @@ export type Servicio = {
     createdAt?: string;
     updatedAt?: string;
 };
+
+export type Proveedor = {
+    id_proveedor: number;
+    id_negocio: number;
+    nombre: string;
+    cif_nif: string;
+    contacto: string;
+    telefono?: string | null;
+    email?: string | null;
+    tipo_proveedor: string;
+    direccion?: string | null;
+};
