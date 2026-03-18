@@ -50,4 +50,6 @@ export type Servicio = {
     precio: number;
     duracion: number;
     descripcion: string;
+    createdAt?: string;
+    updatedAt?: string;
 };

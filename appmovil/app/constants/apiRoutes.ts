@@ -28,6 +28,12 @@ export const API_ROUTES = {
   deleteEmpleadoById: (idEmpleado: number) => `${API_BASE_URL}${API_PREFIX}/empleados/${idEmpleado}`,
   servicios: `${API_BASE_URL}${API_PREFIX}/servicios`,
   serviciosByNegocio: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/servicios/${idNegocio}`,
+  servicioById: (idServicio: number) => `${API_BASE_URL}${API_PREFIX}/servicios/detalle/${idServicio}`,
+  searchServicios: (idNegocio: number, searchTerm?: string) => {
+    const params = new URLSearchParams({ id_negocio: idNegocio.toString() });
+    if (searchTerm) params.append("q", searchTerm);
+    return `${API_BASE_URL}${API_PREFIX}/servicios/search?${params.toString()}`;
+  },
   updateServicioById: (idServicio: number) => `${API_BASE_URL}${API_PREFIX}/servicios/${idServicio}`,
   deleteServicioById: (idServicio: number) => `${API_BASE_URL}${API_PREFIX}/servicios/${idServicio}`,
   users: `${API_BASE_URL}${API_PREFIX}/users`,

@@ -1,4 +1,4 @@
-import { createServicio, deleteServicio, getServiciosByNegocio, updateServicio } from "../servicioController.js";
+import { createServicio, deleteServicio, getServiciosByNegocio, updateServicio, getServicioById, searchServicios } from "../servicioController.js";
 import { Servicio } from "../../../models/Servicio.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
 import {
@@ -211,11 +211,12 @@ describe("ServicioController Unit Tests", () => {
             expect(jsonMock).toHaveBeenCalledWith({
                 message: "Servicio actualizado correctamente",
                 servicio: {
-                    ...mockServicioData,
                     nombre: "Corte premium actualizado",
                     precio: 30,
                     duracion: 50,
                     descripcion: "Corte con lavado, peinado y tratamiento",
+                    id_servicio: 5,
+                    id_negocio: 10,
                 },
             });
         });
@@ -358,6 +359,172 @@ describe("ServicioController Unit Tests", () => {
             expect(res.status).toHaveBeenCalledWith(403);
             expect(jsonMock).toHaveBeenCalledWith({
                 message: "No tienes permisos para gestionar servicios",
+            });
+        });
+    });
+
+    describe("getServicioById", () => {
+        it("debería obtener servicio por ID correctamente", async () => {
+            (Servicio.findByPk).mockResolvedValue(mockServicioData);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+
+            const { res, jsonMock } = buildRes();
+            const req = {
+                params: { id_servicio: 5 },
+                user: { id_usuario: 1 },
+            };
+
+            await getServicioById(req, res);
+
+            expect(Servicio.findByPk).toHaveBeenCalledWith(5);
+            expect(UsuarioNegocio.findOne).toHaveBeenCalledWith({
+                where: { id_usuario: 1, id_negocio: 10 },
+            });
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({ servicio: mockServicioData });
+        });
+
+        it("debería fallar si el servicio no existe", async () => {
+            (Servicio.findByPk).mockResolvedValue(null);
+
+            const { res, jsonMock } = buildRes();
+            const req = {
+                params: { id_servicio: 999 },
+                user: { id_usuario: 1 },
+            };
+
+            await getServicioById(req, res);
+
+            expect(res.status).toHaveBeenCalledWith(404);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Servicio no encontrado",
+            });
+        });
+
+        it("debería fallar si no está autenticado", async () => {
+            const { res, jsonMock } = buildRes();
+            const req = {
+                params: { id_servicio: 5 },
+                user: {},
+            };
+
+            await getServicioById(req, res);
+
+            expect(Servicio.findByPk).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(401);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Usuario no autenticado",
+            });
+        });
+
+        it("debería fallar si no tiene acceso al negocio", async () => {
+            (Servicio.findByPk).mockResolvedValue(mockServicioData);
+            (UsuarioNegocio.findOne).mockResolvedValue(null);
+
+            const { res, jsonMock } = buildRes();
+            const req = {
+                params: { id_servicio: 5 },
+                user: { id_usuario: 99 },
+            };
+
+            await getServicioById(req, res);
+
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "No tienes acceso a este negocio",
+            });
+        });
+    });
+
+    describe("searchServicios", () => {
+        it("debería buscar servicios por nombre", async () => {
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+            (Servicio.findAll).mockResolvedValue([mockServicioData]);
+
+            const { res, jsonMock } = buildRes();
+            const req = {
+                query: { id_negocio: 10, q: "Corte" },
+                user: { id_usuario: 1 },
+            };
+
+            await searchServicios(req, res);
+
+            expect(UsuarioNegocio.findOne).toHaveBeenCalledWith({
+                where: { id_usuario: 1, id_negocio: 10 },
+            });
+            expect(Servicio.findAll).toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({
+                servicios: [mockServicioData],
+            });
+        });
+
+        it("debería buscar servicios por texto de búsqueda", async () => {
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+            (Servicio.findAll).mockResolvedValue(mockServicios);
+
+            const { res, jsonMock } = buildRes();
+            const req = {
+                query: { id_negocio: 10, q: "Color" },
+                user: { id_usuario: 1 },
+            };
+
+            await searchServicios(req, res);
+
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({
+                servicios: mockServicios,
+            });
+        });
+
+        it("debería retornar todos los servicios sin parámetros de búsqueda", async () => {
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+            (Servicio.findAll).mockResolvedValue(mockServicios);
+
+            const { res, jsonMock } = buildRes();
+            const req = {
+                query: { id_negocio: 10 },
+                user: { id_usuario: 1 },
+            };
+
+            await searchServicios(req, res);
+
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({
+                servicios: mockServicios,
+            });
+        });
+
+        it("debería fallar si no está autenticado", async () => {
+            const { res, jsonMock } = buildRes();
+            const req = {
+                query: { id_negocio: 10 },
+                user: {},
+            };
+
+            await searchServicios(req, res);
+
+            expect(res.status).toHaveBeenCalledWith(401);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Usuario no autenticado",
+            });
+        });
+
+        it("debería fallar si no tiene acceso al negocio", async () => {
+            (UsuarioNegocio.findOne).mockResolvedValue(null);
+
+            const { res, jsonMock } = buildRes();
+            const req = {
+                query: { id_negocio: 10 },
+                user: { id_usuario: 1 },
+            };
+
+            await searchServicios(req, res);
+
+            expect(Servicio.findAll).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "No tienes acceso a este negocio",
             });
         });
     });
