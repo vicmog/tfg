@@ -1,4 +1,4 @@
-import { createProveedor, getProveedoresByNegocio } from "../proveedorController.js";
+import { createProveedor, deleteProveedor, getProveedoresByNegocio } from "../proveedorController.js";
 import { Proveedor } from "../../../models/Proveedor.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
 import {
@@ -12,10 +12,15 @@ import {
     createProveedorReqSinNombre,
     createProveedorReqSinPermiso,
     createProveedorReqSinTipo,
+    deleteProveedorReq,
+    deleteProveedorReqAdmin,
+    deleteProveedorReqSinAuth,
+    deleteProveedorReqSinPermiso,
     getProveedoresReq,
     getProveedoresReqSinAuth,
     getProveedoresReqSinPermiso,
     mockProveedorData,
+    mockProveedorEntity,
     mockProveedores,
     mockUsuarioAdmin,
     mockUsuarioJefe,
@@ -203,6 +208,96 @@ describe("ProveedorController Unit Tests", () => {
             await getProveedoresByNegocio(getProveedoresReqSinPermiso, res);
 
             expect(Proveedor.findAll).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "No tienes permisos para gestionar proveedores",
+            });
+        });
+    });
+
+    describe("deleteProveedor", () => {
+        it("debería eliminar proveedor correctamente para jefe", async () => {
+            (Proveedor.findByPk).mockResolvedValue(mockProveedorEntity);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+
+            const { res, jsonMock } = buildRes();
+
+            await deleteProveedor(deleteProveedorReq, res);
+
+            expect(Proveedor.findByPk).toHaveBeenCalledWith("7");
+            expect(UsuarioNegocio.findOne).toHaveBeenCalledWith({
+                where: { id_usuario: 1, id_negocio: 10 },
+            });
+            expect(mockProveedorEntity.destroy).toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Proveedor eliminado correctamente",
+            });
+        });
+
+        it("debería eliminar proveedor correctamente para admin", async () => {
+            const proveedor = { ...mockProveedorEntity, destroy: jest.fn() };
+            (Proveedor.findByPk).mockResolvedValue(proveedor);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioAdmin);
+
+            const { res } = buildRes();
+
+            await deleteProveedor(deleteProveedorReqAdmin, res);
+
+            expect(proveedor.destroy).toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(200);
+        });
+
+        it("debería fallar si no está autenticado", async () => {
+            const { res, jsonMock } = buildRes();
+
+            await deleteProveedor(deleteProveedorReqSinAuth, res);
+
+            expect(Proveedor.findByPk).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(401);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Usuario no autenticado",
+            });
+        });
+
+        it("debería fallar si el proveedor no existe", async () => {
+            (Proveedor.findByPk).mockResolvedValue(null);
+
+            const { res, jsonMock } = buildRes();
+
+            await deleteProveedor(deleteProveedorReq, res);
+
+            expect(UsuarioNegocio.findOne).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(404);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Proveedor no encontrado",
+            });
+        });
+
+        it("debería fallar si no tiene acceso al negocio", async () => {
+            (Proveedor.findByPk).mockResolvedValue(mockProveedorEntity);
+            (UsuarioNegocio.findOne).mockResolvedValue(null);
+
+            const { res, jsonMock } = buildRes();
+
+            await deleteProveedor(deleteProveedorReq, res);
+
+            expect(mockProveedorEntity.destroy).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "No tienes acceso a este negocio",
+            });
+        });
+
+        it("debería fallar si no tiene permisos de gestión", async () => {
+            (Proveedor.findByPk).mockResolvedValue(mockProveedorEntity);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioTrabajador);
+
+            const { res, jsonMock } = buildRes();
+
+            await deleteProveedor(deleteProveedorReqSinPermiso, res);
+
+            expect(mockProveedorEntity.destroy).not.toHaveBeenCalled();
             expect(res.status).toHaveBeenCalledWith(403);
             expect(jsonMock).toHaveBeenCalledWith({
                 message: "No tienes permisos para gestionar proveedores",

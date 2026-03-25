@@ -2,11 +2,13 @@ import { API_ROUTES } from "@/app/constants/apiRoutes";
 
 export const proveedoresByNegocioRoute = (idNegocio: number) => API_ROUTES.proveedoresByNegocio(idNegocio);
 export const createProveedorRoute = API_ROUTES.proveedores;
+export const deleteProveedorRoute = (idProveedor: number) => API_ROUTES.deleteProveedorById(idProveedor);
 
 export const SCREEN_TITLE = "Proveedores";
 export const ADD_SUPPLIER_BUTTON = "Añadir proveedor";
 export const SAVE_BUTTON_TEXT = "Guardar";
 export const SAVING_BUTTON_TEXT = "Guardando...";
+export const DELETE_BUTTON_TEXT = "Eliminar";
 
 export const FORM_TITLE = "Nuevo proveedor";
 export const DETAIL_SUPPLIER_TITLE = "Detalles del proveedor";
@@ -28,12 +30,18 @@ export const INVALID_EMAIL_ERROR = "El email no tiene un formato válido";
 
 export const DEFAULT_FETCH_ERROR = "No se pudieron obtener los proveedores";
 export const DEFAULT_CREATE_ERROR = "No se pudo crear el proveedor";
+export const DEFAULT_DELETE_ERROR = "No se pudo eliminar el proveedor";
 export const CONNECTION_ERROR = "Error de conexión. Inténtalo de nuevo.";
 
 export const SUCCESS_MESSAGE = "Proveedor creado correctamente";
+export const DELETE_SUCCESS_MESSAGE = "Proveedor eliminado correctamente";
 export const EMPTY_SUPPLIERS_MESSAGE = "No hay proveedores registrados";
 export const SEARCH_SUPPLIER = "Buscar por nombre, CIF o contacto";
 export const NO_ACCESS_MESSAGE = "Solo jefe y administrador pueden gestionar proveedores";
+
+export const DELETE_CONFIRM_TITLE = "Eliminar proveedor";
+export const DELETE_CONFIRM_MESSAGE = "¿Seguro que quieres eliminar este proveedor? Esta acción no se puede deshacer.";
+export const CANCEL_TEXT = "Cancelar";
 
 export const NO_EMAIL_MESSAGE = "Sin email";
 export const NO_PHONE_MESSAGE = "Sin teléfono";

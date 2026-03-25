@@ -172,3 +172,42 @@ export const getProveedoresByNegocio = async (req, res) => {
         return res.status(500).json({ message: PROVEEDOR_ERRORS.SERVER_ERROR });
     }
 };
+
+export const deleteProveedor = async (req, res) => {
+    const { id_proveedor } = req.params;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: PROVEEDOR_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (!id_proveedor) {
+        return res.status(400).json({ message: PROVEEDOR_ERRORS.PROVEEDOR_ID_REQUIRED });
+    }
+
+    try {
+        const proveedor = await Proveedor.findByPk(id_proveedor);
+
+        if (!proveedor) {
+            return res.status(404).json({ message: PROVEEDOR_ERRORS.PROVEEDOR_NOT_FOUND });
+        }
+
+        const usuarioNegocio = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio: proveedor.id_negocio },
+        });
+
+        if (!usuarioNegocio) {
+            return res.status(403).json({ message: PROVEEDOR_ERRORS.NO_ACCESS_TO_NEGOCIO });
+        }
+
+        if (!canManageProveedores(usuarioNegocio.rol)) {
+            return res.status(403).json({ message: PROVEEDOR_ERRORS.NO_MANAGE_PERMISSION });
+        }
+
+        await proveedor.destroy();
+
+        return res.status(200).json({ message: PROVEEDOR_MESSAGES.PROVEEDOR_DELETED });
+    } catch (error) {
+        return res.status(500).json({ message: PROVEEDOR_ERRORS.SERVER_ERROR });
+    }
+};
