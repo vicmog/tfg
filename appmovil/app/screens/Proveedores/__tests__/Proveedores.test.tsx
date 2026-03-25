@@ -1,5 +1,4 @@
 import React from "react";
-import { Alert } from "react-native";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Proveedores from "../Proveedores";
@@ -32,7 +31,6 @@ describe("Proveedores", () => {
         jest.clearAllMocks();
         (fetch as jest.Mock).mockReset();
         (AsyncStorage.getItem as jest.Mock).mockResolvedValue("mock-token");
-        jest.spyOn(Alert, "alert").mockImplementation(jest.fn());
     });
 
     it("renderiza y obtiene proveedores", async () => {
@@ -339,12 +337,11 @@ describe("Proveedores", () => {
 
         fireEvent.press(getByTestId("proveedor-delete-button-5"));
 
-        expect(Alert.alert).toHaveBeenCalled();
+        await waitFor(() => {
+            expect(getByTestId("proveedor-delete-confirm-button-5")).toBeTruthy();
+        });
 
-        const alertCall = (Alert.alert as jest.Mock).mock.calls[0];
-        const alertButtons = alertCall[2] as Array<{ text: string; onPress?: () => void }>;
-        const confirmButton = alertButtons.find((button) => button.text === "Eliminar");
-        confirmButton?.onPress?.();
+        fireEvent.press(getByTestId("proveedor-delete-confirm-button-5"));
 
         await waitFor(() => {
             expect(fetch).toHaveBeenCalledWith(
@@ -399,10 +396,11 @@ describe("Proveedores", () => {
 
         fireEvent.press(getByTestId("proveedor-delete-button-5"));
 
-        const alertCall = (Alert.alert as jest.Mock).mock.calls[0];
-        const alertButtons = alertCall[2] as Array<{ text: string; onPress?: () => void }>;
-        const confirmButton = alertButtons.find((button) => button.text === "Eliminar");
-        confirmButton?.onPress?.();
+        await waitFor(() => {
+            expect(getByTestId("proveedor-delete-confirm-button-5")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("proveedor-delete-confirm-button-5"));
 
         await waitFor(() => {
             expect(getByText("No tienes permisos para gestionar proveedores")).toBeTruthy();

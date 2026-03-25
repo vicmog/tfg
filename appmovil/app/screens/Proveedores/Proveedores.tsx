@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     Modal,
     ScrollView,
     StyleSheet,
@@ -17,7 +16,6 @@ import { Proveedor } from "../types";
 import {
     ADD_SUPPLIER_BUTTON,
     ADMIN_ROLE,
-    CANCEL_TEXT,
     CONNECTION_ERROR,
     CONTACT_METHOD_REQUIRED_ERROR,
     createProveedorRoute,
@@ -73,6 +71,7 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [deletingProveedorId, setDeletingProveedorId] = useState<number | null>(null);
+    const [confirmDeleteProveedorId, setConfirmDeleteProveedorId] = useState<number | null>(null);
     const [listError, setListError] = useState("");
     const [listSuccess, setListSuccess] = useState("");
     const [modalError, setModalError] = useState("");
@@ -308,6 +307,7 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
             }
 
             setListSuccess(DELETE_SUCCESS_MESSAGE);
+            setConfirmDeleteProveedorId(null);
             await fetchProveedores();
         } catch (error) {
             setListError(CONNECTION_ERROR);
@@ -316,20 +316,14 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
         }
     };
 
-    const confirmDeleteProveedor = (proveedor: Proveedor) => {
-        Alert.alert(DELETE_CONFIRM_TITLE, DELETE_CONFIRM_MESSAGE, [
-            {
-                text: CANCEL_TEXT,
-                style: "cancel",
-            },
-            {
-                text: DELETE_BUTTON_TEXT,
-                style: "destructive",
-                onPress: () => {
-                    void handleDeleteProveedor(proveedor.id_proveedor);
-                },
-            },
-        ]);
+    const handleAskDeleteProveedor = (idProveedor: number) => {
+        setListError("");
+        setListSuccess("");
+        setConfirmDeleteProveedorId(idProveedor);
+    };
+
+    const handleCancelDeleteProveedor = () => {
+        setConfirmDeleteProveedorId(null);
     };
 
     const isEditing = !!editingProveedorId;
@@ -564,7 +558,7 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
                                             </TouchableOpacity>
                                             <TouchableOpacity
                                                 style={[styles.actionButton, styles.deleteButton]}
-                                                onPress={() => confirmDeleteProveedor(proveedor)}
+                                                onPress={() => handleAskDeleteProveedor(proveedor.id_proveedor)}
                                                 disabled={deletingProveedorId === proveedor.id_proveedor}
                                                 testID={`proveedor-delete-button-${proveedor.id_proveedor}`}
                                             >
@@ -577,6 +571,30 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
                                         </View>
                                     ) : null}
                                 </View>
+
+                                {confirmDeleteProveedorId === proveedor.id_proveedor ? (
+                                    <View style={styles.confirmBox} testID={`proveedor-delete-confirm-${proveedor.id_proveedor}`}>
+                                        <Text style={styles.confirmTitle}>{DELETE_CONFIRM_TITLE}</Text>
+                                        <Text style={styles.confirmMessage}>{DELETE_CONFIRM_MESSAGE}</Text>
+                                        <View style={styles.confirmActions}>
+                                            <TouchableOpacity
+                                                style={styles.confirmCancelButton}
+                                                onPress={handleCancelDeleteProveedor}
+                                                testID={`proveedor-delete-cancel-${proveedor.id_proveedor}`}
+                                            >
+                                                <Text style={styles.confirmCancelText}>Cancelar</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={styles.confirmDeleteButton}
+                                                onPress={() => handleDeleteProveedor(proveedor.id_proveedor)}
+                                                disabled={deletingProveedorId === proveedor.id_proveedor}
+                                                testID={`proveedor-delete-confirm-button-${proveedor.id_proveedor}`}
+                                            >
+                                                <Text style={styles.confirmDeleteText}>{DELETE_BUTTON_TEXT}</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                ) : null}
                             </View>
                         ))
                     )}
@@ -778,6 +796,46 @@ const styles = StyleSheet.create({
     editButton: {
         backgroundColor: "#2563eb",
         marginBottom: 8,
+    },
+    confirmBox: {
+        marginTop: 10,
+        borderWidth: 1,
+        borderColor: "#fecaca",
+        backgroundColor: "#fff1f2",
+        borderRadius: 8,
+        padding: 10,
+    },
+    confirmTitle: {
+        color: "#03045E",
+        fontWeight: "700",
+        marginBottom: 4,
+    },
+    confirmMessage: {
+        color: "#03045E",
+        marginBottom: 8,
+    },
+    confirmActions: {
+        flexDirection: "row",
+        justifyContent: "flex-end",
+    },
+    confirmCancelButton: {
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        marginRight: 8,
+    },
+    confirmCancelText: {
+        color: "#6b7280",
+        fontWeight: "600",
+    },
+    confirmDeleteButton: {
+        backgroundColor: "#dc2626",
+        borderRadius: 6,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+    },
+    confirmDeleteText: {
+        color: "#fff",
+        fontWeight: "700",
     },
     detailRow: {
         marginBottom: 12,
