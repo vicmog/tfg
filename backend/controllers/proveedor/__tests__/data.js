@@ -129,6 +129,26 @@ export const getProveedoresReqSinPermiso = {
     user: { id_usuario: 2 },
 };
 
+export const deleteProveedorReq = {
+    params: { id_proveedor: "7" },
+    user: { id_usuario: 1 },
+};
+
+export const deleteProveedorReqAdmin = {
+    params: { id_proveedor: "7" },
+    user: { id_usuario: 3 },
+};
+
+export const deleteProveedorReqSinAuth = {
+    params: { id_proveedor: "7" },
+    user: null,
+};
+
+export const deleteProveedorReqSinPermiso = {
+    params: { id_proveedor: "7" },
+    user: { id_usuario: 2 },
+};
+
 export const mockProveedorData = {
     id_proveedor: 7,
     id_negocio: 10,
@@ -155,6 +175,12 @@ export const mockProveedores = [
         direccion: "Avenida Sol 12",
     },
 ];
+
+export const mockProveedorEntity = {
+    id_proveedor: 7,
+    id_negocio: 10,
+    destroy: jest.fn(),
+};
 
 export const buildRes = () => {
     const jsonMock = jest.fn();

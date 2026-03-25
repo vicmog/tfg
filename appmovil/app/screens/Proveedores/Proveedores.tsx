@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     Modal,
     ScrollView,
     StyleSheet,
@@ -16,11 +17,17 @@ import { Proveedor } from "../types";
 import {
     ADD_SUPPLIER_BUTTON,
     ADMIN_ROLE,
+    CANCEL_TEXT,
     CONNECTION_ERROR,
     CONTACT_METHOD_REQUIRED_ERROR,
     createProveedorRoute,
+    DEFAULT_DELETE_ERROR,
     DEFAULT_CREATE_ERROR,
     DEFAULT_FETCH_ERROR,
+    DELETE_BUTTON_TEXT,
+    DELETE_CONFIRM_MESSAGE,
+    DELETE_CONFIRM_TITLE,
+    DELETE_SUCCESS_MESSAGE,
     DETAIL_ADDRESS_LABEL,
     DETAIL_CIF_LABEL,
     DETAIL_CONTACT_LABEL,
@@ -47,6 +54,7 @@ import {
     SCREEN_TITLE,
     SEARCH_SUPPLIER,
     SUCCESS_MESSAGE,
+    deleteProveedorRoute,
     proveedoresByNegocioRoute,
 } from "./constants";
 import { ProveedoresProps } from "./types";
@@ -57,6 +65,7 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
     const [proveedores, setProveedores] = useState<Proveedor[]>([]);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [deletingProveedorId, setDeletingProveedorId] = useState<number | null>(null);
     const [listError, setListError] = useState("");
     const [listSuccess, setListSuccess] = useState("");
     const [modalError, setModalError] = useState("");
@@ -244,6 +253,55 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleDeleteProveedor = async (idProveedor: number) => {
+        setListError("");
+        setListSuccess("");
+        setDeletingProveedorId(idProveedor);
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(deleteProveedorRoute(idProveedor), {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setListError(data.message || DEFAULT_DELETE_ERROR);
+                return;
+            }
+
+            if (selectedProveedor?.id_proveedor === idProveedor) {
+                setSelectedProveedor(null);
+            }
+
+            setListSuccess(DELETE_SUCCESS_MESSAGE);
+            await fetchProveedores();
+        } catch (error) {
+            setListError(CONNECTION_ERROR);
+        } finally {
+            setDeletingProveedorId(null);
+        }
+    };
+
+    const confirmDeleteProveedor = (proveedor: Proveedor) => {
+        Alert.alert(DELETE_CONFIRM_TITLE, DELETE_CONFIRM_MESSAGE, [
+            {
+                text: CANCEL_TEXT,
+                style: "cancel",
+            },
+            {
+                text: DELETE_BUTTON_TEXT,
+                style: "destructive",
+                onPress: () => {
+                    void handleDeleteProveedor(proveedor.id_proveedor);
+                },
+            },
+        ]);
     };
 
     return (
@@ -448,20 +506,36 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
                     ) : (
                         filteredProveedores.map((proveedor) => (
                             <View key={proveedor.id_proveedor} style={styles.card} testID={`proveedor-item-${proveedor.id_proveedor}`}>
-                                <TouchableOpacity
-                                    style={styles.cardContent}
-                                    onPress={() => handleOpenProveedorDetail(proveedor)}
-                                    testID={`proveedor-open-detail-${proveedor.id_proveedor}`}
-                                >
-                                    <View style={styles.supplierInfo}>
+                                <View style={styles.cardContent}>
+                                    <TouchableOpacity
+                                        style={styles.supplierInfo}
+                                        onPress={() => handleOpenProveedorDetail(proveedor)}
+                                        testID={`proveedor-open-detail-${proveedor.id_proveedor}`}
+                                    >
                                         <Text style={styles.supplierName}>{proveedor.nombre}</Text>
                                         <Text style={styles.supplierMeta}>{proveedor.cif_nif}</Text>
                                         <Text style={styles.supplierMeta}>{proveedor.contacto}</Text>
                                         <Text style={styles.supplierMeta}>{proveedor.tipo_proveedor}</Text>
                                         <Text style={styles.supplierMeta}>{proveedor.email || NO_EMAIL_MESSAGE}</Text>
                                         <Text style={styles.supplierMeta}>{proveedor.telefono || NO_PHONE_MESSAGE}</Text>
+                                    </TouchableOpacity>
+                                    {canManageProveedores ? (
+                                        <View style={styles.actionsRow}>
+                                            <TouchableOpacity
+                                                style={[styles.actionButton, styles.deleteButton]}
+                                                onPress={() => confirmDeleteProveedor(proveedor)}
+                                                disabled={deletingProveedorId === proveedor.id_proveedor}
+                                                testID={`proveedor-delete-button-${proveedor.id_proveedor}`}
+                                            >
+                                                {deletingProveedorId === proveedor.id_proveedor ? (
+                                                    <ActivityIndicator size="small" color="#fff" />
+                                                ) : (
+                                                    <MaterialIcons name="delete" size={16} color="#fff" />
+                                                )}
+                                            </TouchableOpacity>
+                                        </View>
+                                    ) : null}
                                     </View>
-                                </TouchableOpacity>
                             </View>
                         ))
                     )}
@@ -642,6 +716,23 @@ const styles = StyleSheet.create({
     supplierMeta: {
         color: "#4b5563",
         fontSize: 13,
+    },
+    actionsRow: {
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        alignSelf: "center",
+    },
+    actionButton: {
+        height: 34,
+        width: 34,
+        borderRadius: 10,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    deleteButton: {
+        backgroundColor: "#dc2626",
     },
     detailRow: {
         marginBottom: 12,
