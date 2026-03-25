@@ -2,15 +2,20 @@ import { API_ROUTES } from "@/app/constants/apiRoutes";
 
 export const proveedoresByNegocioRoute = (idNegocio: number) => API_ROUTES.proveedoresByNegocio(idNegocio);
 export const createProveedorRoute = API_ROUTES.proveedores;
+export const updateProveedorRoute = (idProveedor: number) => API_ROUTES.updateProveedorById(idProveedor);
 export const deleteProveedorRoute = (idProveedor: number) => API_ROUTES.deleteProveedorById(idProveedor);
 
 export const SCREEN_TITLE = "Proveedores";
 export const ADD_SUPPLIER_BUTTON = "Añadir proveedor";
 export const SAVE_BUTTON_TEXT = "Guardar";
+export const SAVE_CHANGES_BUTTON_TEXT = "Guardar cambios";
 export const SAVING_BUTTON_TEXT = "Guardando...";
+export const SAVING_CHANGES_BUTTON_TEXT = "Guardando cambios...";
+export const EDIT_BUTTON_TEXT = "Editar";
 export const DELETE_BUTTON_TEXT = "Eliminar";
 
 export const FORM_TITLE = "Nuevo proveedor";
+export const EDIT_FORM_TITLE = "Editar proveedor";
 export const DETAIL_SUPPLIER_TITLE = "Detalles del proveedor";
 
 export const DETAIL_NAME_LABEL = "Nombre";
@@ -30,10 +35,12 @@ export const INVALID_EMAIL_ERROR = "El email no tiene un formato válido";
 
 export const DEFAULT_FETCH_ERROR = "No se pudieron obtener los proveedores";
 export const DEFAULT_CREATE_ERROR = "No se pudo crear el proveedor";
+export const DEFAULT_UPDATE_ERROR = "No se pudieron guardar los cambios";
 export const DEFAULT_DELETE_ERROR = "No se pudo eliminar el proveedor";
 export const CONNECTION_ERROR = "Error de conexión. Inténtalo de nuevo.";
 
 export const SUCCESS_MESSAGE = "Proveedor creado correctamente";
+export const UPDATE_SUCCESS_MESSAGE = "Proveedor actualizado correctamente";
 export const DELETE_SUCCESS_MESSAGE = "Proveedor eliminado correctamente";
 export const EMPTY_SUPPLIERS_MESSAGE = "No hay proveedores registrados";
 export const SEARCH_SUPPLIER = "Buscar por nombre, CIF o contacto";

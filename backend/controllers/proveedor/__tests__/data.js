@@ -149,6 +149,57 @@ export const deleteProveedorReqSinPermiso = {
     user: { id_usuario: 2 },
 };
 
+export const updateProveedorReq = {
+    params: { id_proveedor: "7" },
+    body: {
+        nombre: "Distribuciones Norte 2",
+        cif_nif: "B12345678",
+        contacto: "Laura Pérez",
+        telefono: "699000111",
+        email: "nuevo@mail.com",
+        tipo_proveedor: "Material de peluquería",
+        direccion: "Calle Mayor 22",
+    },
+    user: { id_usuario: 1 },
+};
+
+export const updateProveedorReqSinNombre = {
+    params: { id_proveedor: "7" },
+    body: {
+        nombre: "  ",
+        cif_nif: "B12345678",
+        contacto: "Laura Pérez",
+        telefono: "699000111",
+        tipo_proveedor: "Material de peluquería",
+    },
+    user: { id_usuario: 1 },
+};
+
+export const updateProveedorReqSinCanal = {
+    params: { id_proveedor: "7" },
+    body: {
+        nombre: "Distribuciones Norte 2",
+        cif_nif: "B12345678",
+        contacto: "Laura Pérez",
+        telefono: " ",
+        email: " ",
+        tipo_proveedor: "Material de peluquería",
+    },
+    user: { id_usuario: 1 },
+};
+
+export const updateProveedorReqSinPermiso = {
+    params: { id_proveedor: "7" },
+    body: {
+        nombre: "Distribuciones Norte 2",
+        cif_nif: "B12345678",
+        contacto: "Laura Pérez",
+        telefono: "699000111",
+        tipo_proveedor: "Material de peluquería",
+    },
+    user: { id_usuario: 2 },
+};
+
 export const mockProveedorData = {
     id_proveedor: 7,
     id_negocio: 10,
@@ -179,6 +230,17 @@ export const mockProveedores = [
 export const mockProveedorEntity = {
     id_proveedor: 7,
     id_negocio: 10,
+    nombre: "Distribuciones Norte",
+    cif_nif: "B12345678",
+    contacto: "Laura Pérez",
+    telefono: "600123123",
+    email: "proveedor@mail.com",
+    tipo_proveedor: "Material de peluquería",
+    direccion: "Calle Mayor 1",
+    update: jest.fn(async function updateProveedor(data) {
+        Object.assign(this, data);
+        return this;
+    }),
     destroy: jest.fn(),
 };
 

@@ -38,6 +38,7 @@ export const API_ROUTES = {
   deleteServicioById: (idServicio: number) => `${API_BASE_URL}${API_PREFIX}/servicios/${idServicio}`,
   proveedores: `${API_BASE_URL}${API_PREFIX}/proveedores`,
   proveedoresByNegocio: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/proveedores/${idNegocio}`,
+  updateProveedorById: (idProveedor: number) => `${API_BASE_URL}${API_PREFIX}/proveedores/${idProveedor}`,
   deleteProveedorById: (idProveedor: number) => `${API_BASE_URL}${API_PREFIX}/proveedores/${idProveedor}`,
   users: `${API_BASE_URL}${API_PREFIX}/users`,
   userById: (idUsuario: string | number) => `${API_BASE_URL}${API_PREFIX}/users/user/${idUsuario}`,

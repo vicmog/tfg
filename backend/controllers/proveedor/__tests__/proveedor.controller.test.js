@@ -1,4 +1,9 @@
-import { createProveedor, deleteProveedor, getProveedoresByNegocio } from "../proveedorController.js";
+import {
+    createProveedor,
+    deleteProveedor,
+    getProveedoresByNegocio,
+    updateProveedor,
+} from "../proveedorController.js";
 import { Proveedor } from "../../../models/Proveedor.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
 import {
@@ -25,6 +30,10 @@ import {
     mockUsuarioAdmin,
     mockUsuarioJefe,
     mockUsuarioTrabajador,
+    updateProveedorReq,
+    updateProveedorReqSinCanal,
+    updateProveedorReqSinNombre,
+    updateProveedorReqSinPermiso,
 } from "./data.js";
 
 jest.mock("../../../models/Proveedor.js");
@@ -298,6 +307,102 @@ describe("ProveedorController Unit Tests", () => {
             await deleteProveedor(deleteProveedorReqSinPermiso, res);
 
             expect(mockProveedorEntity.destroy).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "No tienes permisos para gestionar proveedores",
+            });
+        });
+    });
+
+    describe("updateProveedor", () => {
+        it("debería actualizar proveedor correctamente para jefe", async () => {
+            const proveedor = {
+                ...mockProveedorEntity,
+                update: jest.fn(async function updateProveedor(data) {
+                    Object.assign(this, data);
+                    return this;
+                }),
+            };
+            (Proveedor.findByPk).mockResolvedValue(proveedor);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+
+            const { res, jsonMock } = buildRes();
+
+            await updateProveedor(updateProveedorReq, res);
+
+            expect(Proveedor.findByPk).toHaveBeenCalledWith("7");
+            expect(proveedor.update).toHaveBeenCalledWith({
+                nombre: "Distribuciones Norte 2",
+                cif_nif: "B12345678",
+                contacto: "Laura Pérez",
+                telefono: "699000111",
+                email: "nuevo@mail.com",
+                tipo_proveedor: "Material de peluquería",
+                direccion: "Calle Mayor 22",
+            });
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Proveedor actualizado correctamente",
+                proveedor: expect.objectContaining({
+                    id_proveedor: 7,
+                    nombre: "Distribuciones Norte 2",
+                    telefono: "699000111",
+                    email: "nuevo@mail.com",
+                }),
+            });
+        });
+
+        it("debería fallar si falta nombre", async () => {
+            const { res, jsonMock } = buildRes();
+
+            await updateProveedor(updateProveedorReqSinNombre, res);
+
+            expect(Proveedor.findByPk).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "El nombre del proveedor es obligatorio",
+            });
+        });
+
+        it("debería fallar si faltan teléfono y email", async () => {
+            const { res, jsonMock } = buildRes();
+
+            await updateProveedor(updateProveedorReqSinCanal, res);
+
+            expect(Proveedor.findByPk).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Debes indicar teléfono o email",
+            });
+        });
+
+        it("debería fallar si el proveedor no existe", async () => {
+            (Proveedor.findByPk).mockResolvedValue(null);
+
+            const { res, jsonMock } = buildRes();
+
+            await updateProveedor(updateProveedorReq, res);
+
+            expect(UsuarioNegocio.findOne).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(404);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Proveedor no encontrado",
+            });
+        });
+
+        it("debería fallar si no tiene permisos de gestión", async () => {
+            const proveedor = {
+                ...mockProveedorEntity,
+                update: jest.fn(),
+            };
+            (Proveedor.findByPk).mockResolvedValue(proveedor);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioTrabajador);
+
+            const { res, jsonMock } = buildRes();
+
+            await updateProveedor(updateProveedorReqSinPermiso, res);
+
+            expect(proveedor.update).not.toHaveBeenCalled();
             expect(res.status).toHaveBeenCalledWith(403);
             expect(jsonMock).toHaveBeenCalledWith({
                 message: "No tienes permisos para gestionar proveedores",

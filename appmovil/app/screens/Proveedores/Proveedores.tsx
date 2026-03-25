@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     Modal,
     ScrollView,
     StyleSheet,
@@ -17,13 +16,15 @@ import { Proveedor } from "../types";
 import {
     ADD_SUPPLIER_BUTTON,
     ADMIN_ROLE,
-    CANCEL_TEXT,
     CONNECTION_ERROR,
     CONTACT_METHOD_REQUIRED_ERROR,
     createProveedorRoute,
     DEFAULT_DELETE_ERROR,
     DEFAULT_CREATE_ERROR,
     DEFAULT_FETCH_ERROR,
+    DEFAULT_UPDATE_ERROR,
+    EDIT_BUTTON_TEXT,
+    EDIT_FORM_TITLE,
     DELETE_BUTTON_TEXT,
     DELETE_CONFIRM_MESSAGE,
     DELETE_CONFIRM_TITLE,
@@ -49,11 +50,15 @@ import {
     NO_ADDRESS_MESSAGE,
     NO_EMAIL_MESSAGE,
     NO_PHONE_MESSAGE,
+    SAVE_CHANGES_BUTTON_TEXT,
     SAVE_BUTTON_TEXT,
+    SAVING_CHANGES_BUTTON_TEXT,
     SAVING_BUTTON_TEXT,
     SCREEN_TITLE,
     SEARCH_SUPPLIER,
     SUCCESS_MESSAGE,
+    UPDATE_SUCCESS_MESSAGE,
+    updateProveedorRoute,
     deleteProveedorRoute,
     proveedoresByNegocioRoute,
 } from "./constants";
@@ -66,6 +71,7 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [deletingProveedorId, setDeletingProveedorId] = useState<number | null>(null);
+    const [confirmDeleteProveedorId, setConfirmDeleteProveedorId] = useState<number | null>(null);
     const [listError, setListError] = useState("");
     const [listSuccess, setListSuccess] = useState("");
     const [modalError, setModalError] = useState("");
@@ -73,6 +79,7 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
     const [searchText, setSearchText] = useState("");
 
     const [modalVisible, setModalVisible] = useState(false);
+    const [editingProveedorId, setEditingProveedorId] = useState<number | null>(null);
     const [selectedProveedor, setSelectedProveedor] = useState<Proveedor | null>(null);
 
     const [nombre, setNombre] = useState("");
@@ -187,6 +194,20 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
 
     const handleOpenCreateModal = () => {
         resetForm();
+        setEditingProveedorId(null);
+        setModalError("");
+        setModalVisible(true);
+    };
+
+    const handleOpenEditModal = (proveedor: Proveedor) => {
+        setEditingProveedorId(proveedor.id_proveedor);
+        setNombre(proveedor.nombre);
+        setCifNif(proveedor.cif_nif);
+        setContacto(proveedor.contacto);
+        setTelefono(proveedor.telefono || "");
+        setEmail(proveedor.email || "");
+        setTipoProveedor(proveedor.tipo_proveedor);
+        setDireccion(proveedor.direccion || "");
         setModalError("");
         setModalVisible(true);
     };
@@ -197,6 +218,7 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
 
         if (modalVisible) {
             resetForm();
+            setEditingProveedorId(null);
         }
     };
 
@@ -220,14 +242,17 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
 
         try {
             const token = await AsyncStorage.getItem("token");
-            const response = await fetch(createProveedorRoute, {
-                method: "POST",
+            const isEditing = !!editingProveedorId;
+            const response = await fetch(
+                isEditing ? updateProveedorRoute(editingProveedorId) : createProveedorRoute,
+                {
+                method: isEditing ? "PUT" : "POST",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    id_negocio: negocio.id_negocio,
+                    ...(isEditing ? {} : { id_negocio: negocio.id_negocio }),
                     nombre: nombre.trim(),
                     cif_nif: cifNif.trim(),
                     contacto: contacto.trim(),
@@ -236,17 +261,19 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
                     tipo_proveedor: tipoProveedor.trim(),
                     direccion: direccion.trim(),
                 }),
-            });
+            }
+            );
 
             if (!response.ok) {
                 const data = await response.json();
-                setModalError(data.message || DEFAULT_CREATE_ERROR);
+                setModalError(data.message || (isEditing ? DEFAULT_UPDATE_ERROR : DEFAULT_CREATE_ERROR));
                 return;
             }
 
             setModalVisible(false);
             resetForm();
-            setListSuccess(SUCCESS_MESSAGE);
+            setEditingProveedorId(null);
+            setListSuccess(isEditing ? UPDATE_SUCCESS_MESSAGE : SUCCESS_MESSAGE);
             await fetchProveedores();
         } catch (error) {
             setModalError(CONNECTION_ERROR);
@@ -280,6 +307,7 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
             }
 
             setListSuccess(DELETE_SUCCESS_MESSAGE);
+            setConfirmDeleteProveedorId(null);
             await fetchProveedores();
         } catch (error) {
             setListError(CONNECTION_ERROR);
@@ -288,21 +316,21 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
         }
     };
 
-    const confirmDeleteProveedor = (proveedor: Proveedor) => {
-        Alert.alert(DELETE_CONFIRM_TITLE, DELETE_CONFIRM_MESSAGE, [
-            {
-                text: CANCEL_TEXT,
-                style: "cancel",
-            },
-            {
-                text: DELETE_BUTTON_TEXT,
-                style: "destructive",
-                onPress: () => {
-                    void handleDeleteProveedor(proveedor.id_proveedor);
-                },
-            },
-        ]);
+    const handleAskDeleteProveedor = (idProveedor: number) => {
+        setListError("");
+        setListSuccess("");
+        setConfirmDeleteProveedorId(idProveedor);
     };
+
+    const handleCancelDeleteProveedor = () => {
+        setConfirmDeleteProveedorId(null);
+    };
+
+    const isEditing = !!editingProveedorId;
+    const modalTitle = isEditing ? EDIT_FORM_TITLE : FORM_TITLE;
+    const saveButtonLabel = saving
+        ? (isEditing ? SAVING_CHANGES_BUTTON_TEXT : SAVING_BUTTON_TEXT)
+        : (isEditing ? SAVE_CHANGES_BUTTON_TEXT : SAVE_BUTTON_TEXT);
 
     return (
         <View style={styles.container}>
@@ -350,7 +378,7 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
                 <View style={styles.modalBackdrop}>
                     <View style={styles.formContainer}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>{FORM_TITLE}</Text>
+                            <Text style={styles.modalTitle}>{modalTitle}</Text>
                             <TouchableOpacity onPress={handleToggleModal} testID="close-proveedor-form-button">
                                 <MaterialIcons name="close" size={22} color="#6b7280" />
                             </TouchableOpacity>
@@ -423,7 +451,7 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
                             testID="proveedor-save-button"
                         >
                             {saving ? <ActivityIndicator size="small" color="#fff" /> : null}
-                            <Text style={styles.saveButtonText}>{saving ? SAVING_BUTTON_TEXT : SAVE_BUTTON_TEXT}</Text>
+                            <Text style={styles.saveButtonText}>{saveButtonLabel}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -522,8 +550,15 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
                                     {canManageProveedores ? (
                                         <View style={styles.actionsRow}>
                                             <TouchableOpacity
+                                                style={[styles.actionButton, styles.editButton]}
+                                                onPress={() => handleOpenEditModal(proveedor)}
+                                                testID={`proveedor-edit-button-${proveedor.id_proveedor}`}
+                                            >
+                                                <MaterialIcons name="edit" size={16} color="#fff" />
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
                                                 style={[styles.actionButton, styles.deleteButton]}
-                                                onPress={() => confirmDeleteProveedor(proveedor)}
+                                                onPress={() => handleAskDeleteProveedor(proveedor.id_proveedor)}
                                                 disabled={deletingProveedorId === proveedor.id_proveedor}
                                                 testID={`proveedor-delete-button-${proveedor.id_proveedor}`}
                                             >
@@ -535,7 +570,31 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
                                             </TouchableOpacity>
                                         </View>
                                     ) : null}
+                                </View>
+
+                                {confirmDeleteProveedorId === proveedor.id_proveedor ? (
+                                    <View style={styles.confirmBox} testID={`proveedor-delete-confirm-${proveedor.id_proveedor}`}>
+                                        <Text style={styles.confirmTitle}>{DELETE_CONFIRM_TITLE}</Text>
+                                        <Text style={styles.confirmMessage}>{DELETE_CONFIRM_MESSAGE}</Text>
+                                        <View style={styles.confirmActions}>
+                                            <TouchableOpacity
+                                                style={styles.confirmCancelButton}
+                                                onPress={handleCancelDeleteProveedor}
+                                                testID={`proveedor-delete-cancel-${proveedor.id_proveedor}`}
+                                            >
+                                                <Text style={styles.confirmCancelText}>Cancelar</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={styles.confirmDeleteButton}
+                                                onPress={() => handleDeleteProveedor(proveedor.id_proveedor)}
+                                                disabled={deletingProveedorId === proveedor.id_proveedor}
+                                                testID={`proveedor-delete-confirm-button-${proveedor.id_proveedor}`}
+                                            >
+                                                <Text style={styles.confirmDeleteText}>{DELETE_BUTTON_TEXT}</Text>
+                                            </TouchableOpacity>
+                                        </View>
                                     </View>
+                                ) : null}
                             </View>
                         ))
                     )}
@@ -733,6 +792,50 @@ const styles = StyleSheet.create({
     },
     deleteButton: {
         backgroundColor: "#dc2626",
+    },
+    editButton: {
+        backgroundColor: "#2563eb",
+        marginBottom: 8,
+    },
+    confirmBox: {
+        marginTop: 10,
+        borderWidth: 1,
+        borderColor: "#fecaca",
+        backgroundColor: "#fff1f2",
+        borderRadius: 8,
+        padding: 10,
+    },
+    confirmTitle: {
+        color: "#03045E",
+        fontWeight: "700",
+        marginBottom: 4,
+    },
+    confirmMessage: {
+        color: "#03045E",
+        marginBottom: 8,
+    },
+    confirmActions: {
+        flexDirection: "row",
+        justifyContent: "flex-end",
+    },
+    confirmCancelButton: {
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        marginRight: 8,
+    },
+    confirmCancelText: {
+        color: "#6b7280",
+        fontWeight: "600",
+    },
+    confirmDeleteButton: {
+        backgroundColor: "#dc2626",
+        borderRadius: 6,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+    },
+    confirmDeleteText: {
+        color: "#fff",
+        fontWeight: "700",
     },
     detailRow: {
         marginBottom: 12,
