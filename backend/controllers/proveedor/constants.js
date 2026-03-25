@@ -16,6 +16,7 @@ export const PROVEEDOR_ERRORS = {
 
 export const PROVEEDOR_MESSAGES = {
     PROVEEDOR_CREATED: "Proveedor creado correctamente",
+    PROVEEDOR_UPDATED: "Proveedor actualizado correctamente",
     PROVEEDOR_DELETED: "Proveedor eliminado correctamente",
 };
 

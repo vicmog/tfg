@@ -24,6 +24,9 @@ import {
     DEFAULT_DELETE_ERROR,
     DEFAULT_CREATE_ERROR,
     DEFAULT_FETCH_ERROR,
+    DEFAULT_UPDATE_ERROR,
+    EDIT_BUTTON_TEXT,
+    EDIT_FORM_TITLE,
     DELETE_BUTTON_TEXT,
     DELETE_CONFIRM_MESSAGE,
     DELETE_CONFIRM_TITLE,
@@ -49,11 +52,15 @@ import {
     NO_ADDRESS_MESSAGE,
     NO_EMAIL_MESSAGE,
     NO_PHONE_MESSAGE,
+    SAVE_CHANGES_BUTTON_TEXT,
     SAVE_BUTTON_TEXT,
+    SAVING_CHANGES_BUTTON_TEXT,
     SAVING_BUTTON_TEXT,
     SCREEN_TITLE,
     SEARCH_SUPPLIER,
     SUCCESS_MESSAGE,
+    UPDATE_SUCCESS_MESSAGE,
+    updateProveedorRoute,
     deleteProveedorRoute,
     proveedoresByNegocioRoute,
 } from "./constants";
@@ -73,6 +80,7 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
     const [searchText, setSearchText] = useState("");
 
     const [modalVisible, setModalVisible] = useState(false);
+    const [editingProveedorId, setEditingProveedorId] = useState<number | null>(null);
     const [selectedProveedor, setSelectedProveedor] = useState<Proveedor | null>(null);
 
     const [nombre, setNombre] = useState("");
@@ -187,6 +195,20 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
 
     const handleOpenCreateModal = () => {
         resetForm();
+        setEditingProveedorId(null);
+        setModalError("");
+        setModalVisible(true);
+    };
+
+    const handleOpenEditModal = (proveedor: Proveedor) => {
+        setEditingProveedorId(proveedor.id_proveedor);
+        setNombre(proveedor.nombre);
+        setCifNif(proveedor.cif_nif);
+        setContacto(proveedor.contacto);
+        setTelefono(proveedor.telefono || "");
+        setEmail(proveedor.email || "");
+        setTipoProveedor(proveedor.tipo_proveedor);
+        setDireccion(proveedor.direccion || "");
         setModalError("");
         setModalVisible(true);
     };
@@ -197,6 +219,7 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
 
         if (modalVisible) {
             resetForm();
+            setEditingProveedorId(null);
         }
     };
 
@@ -220,14 +243,17 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
 
         try {
             const token = await AsyncStorage.getItem("token");
-            const response = await fetch(createProveedorRoute, {
-                method: "POST",
+            const isEditing = !!editingProveedorId;
+            const response = await fetch(
+                isEditing ? updateProveedorRoute(editingProveedorId) : createProveedorRoute,
+                {
+                method: isEditing ? "PUT" : "POST",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    id_negocio: negocio.id_negocio,
+                    ...(isEditing ? {} : { id_negocio: negocio.id_negocio }),
                     nombre: nombre.trim(),
                     cif_nif: cifNif.trim(),
                     contacto: contacto.trim(),
@@ -236,17 +262,19 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
                     tipo_proveedor: tipoProveedor.trim(),
                     direccion: direccion.trim(),
                 }),
-            });
+            }
+            );
 
             if (!response.ok) {
                 const data = await response.json();
-                setModalError(data.message || DEFAULT_CREATE_ERROR);
+                setModalError(data.message || (isEditing ? DEFAULT_UPDATE_ERROR : DEFAULT_CREATE_ERROR));
                 return;
             }
 
             setModalVisible(false);
             resetForm();
-            setListSuccess(SUCCESS_MESSAGE);
+            setEditingProveedorId(null);
+            setListSuccess(isEditing ? UPDATE_SUCCESS_MESSAGE : SUCCESS_MESSAGE);
             await fetchProveedores();
         } catch (error) {
             setModalError(CONNECTION_ERROR);
@@ -304,6 +332,12 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
         ]);
     };
 
+    const isEditing = !!editingProveedorId;
+    const modalTitle = isEditing ? EDIT_FORM_TITLE : FORM_TITLE;
+    const saveButtonLabel = saving
+        ? (isEditing ? SAVING_CHANGES_BUTTON_TEXT : SAVING_BUTTON_TEXT)
+        : (isEditing ? SAVE_CHANGES_BUTTON_TEXT : SAVE_BUTTON_TEXT);
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -350,7 +384,7 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
                 <View style={styles.modalBackdrop}>
                     <View style={styles.formContainer}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>{FORM_TITLE}</Text>
+                            <Text style={styles.modalTitle}>{modalTitle}</Text>
                             <TouchableOpacity onPress={handleToggleModal} testID="close-proveedor-form-button">
                                 <MaterialIcons name="close" size={22} color="#6b7280" />
                             </TouchableOpacity>
@@ -423,7 +457,7 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
                             testID="proveedor-save-button"
                         >
                             {saving ? <ActivityIndicator size="small" color="#fff" /> : null}
-                            <Text style={styles.saveButtonText}>{saving ? SAVING_BUTTON_TEXT : SAVE_BUTTON_TEXT}</Text>
+                            <Text style={styles.saveButtonText}>{saveButtonLabel}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -522,6 +556,13 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
                                     {canManageProveedores ? (
                                         <View style={styles.actionsRow}>
                                             <TouchableOpacity
+                                                style={[styles.actionButton, styles.editButton]}
+                                                onPress={() => handleOpenEditModal(proveedor)}
+                                                testID={`proveedor-edit-button-${proveedor.id_proveedor}`}
+                                            >
+                                                <MaterialIcons name="edit" size={16} color="#fff" />
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
                                                 style={[styles.actionButton, styles.deleteButton]}
                                                 onPress={() => confirmDeleteProveedor(proveedor)}
                                                 disabled={deletingProveedorId === proveedor.id_proveedor}
@@ -535,7 +576,7 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
                                             </TouchableOpacity>
                                         </View>
                                     ) : null}
-                                    </View>
+                                </View>
                             </View>
                         ))
                     )}
@@ -733,6 +774,10 @@ const styles = StyleSheet.create({
     },
     deleteButton: {
         backgroundColor: "#dc2626",
+    },
+    editButton: {
+        backgroundColor: "#2563eb",
+        marginBottom: 8,
     },
     detailRow: {
         marginBottom: 12,

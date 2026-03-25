@@ -206,6 +206,100 @@ describe("Proveedores", () => {
         expect(fetch).not.toHaveBeenCalled();
     });
 
+    it("edita proveedor y guarda cambios", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    proveedores: [
+                        {
+                            id_proveedor: 5,
+                            id_negocio: 1,
+                            nombre: "Distribuciones Norte",
+                            cif_nif: "B12345678",
+                            contacto: "Laura Pérez",
+                            telefono: "600123123",
+                            email: "proveedor@mail.com",
+                            tipo_proveedor: "Material de peluquería",
+                            direccion: "Calle Mayor 1",
+                        },
+                    ],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    message: "Proveedor actualizado correctamente",
+                    proveedor: {
+                        id_proveedor: 5,
+                        id_negocio: 1,
+                        nombre: "Distribuciones Norte Editado",
+                        cif_nif: "B12345678",
+                        contacto: "Laura Pérez",
+                        telefono: "699000111",
+                        email: "proveedor@mail.com",
+                        tipo_proveedor: "Material de peluquería",
+                        direccion: "Calle Mayor 1",
+                    },
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    proveedores: [
+                        {
+                            id_proveedor: 5,
+                            id_negocio: 1,
+                            nombre: "Distribuciones Norte Editado",
+                            cif_nif: "B12345678",
+                            contacto: "Laura Pérez",
+                            telefono: "699000111",
+                            email: "proveedor@mail.com",
+                            tipo_proveedor: "Material de peluquería",
+                            direccion: "Calle Mayor 1",
+                        },
+                    ],
+                }),
+            });
+
+        const { getByTestId, getByText } = render(
+            <Proveedores navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("proveedor-edit-button-5")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("proveedor-edit-button-5"));
+
+        await waitFor(() => {
+            expect(getByText("Editar proveedor")).toBeTruthy();
+            expect(getByText("Guardar cambios")).toBeTruthy();
+        });
+
+        fireEvent.changeText(getByTestId("proveedor-nombre-input"), "Distribuciones Norte Editado");
+        fireEvent.changeText(getByTestId("proveedor-telefono-input"), "699000111");
+        fireEvent.press(getByTestId("proveedor-save-button"));
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.updateProveedorById(5),
+                expect.objectContaining({
+                    method: "PUT",
+                    headers: expect.objectContaining({
+                        "Content-Type": "application/json",
+                        Authorization: "Bearer mock-token",
+                    }),
+                })
+            );
+        });
+
+        await waitFor(() => {
+            expect(getByText("Proveedor actualizado correctamente")).toBeTruthy();
+            expect(getByText("Distribuciones Norte Editado")).toBeTruthy();
+        });
+    });
+
     it("elimina proveedor después de confirmar", async () => {
         (fetch as jest.Mock)
             .mockResolvedValueOnce({
