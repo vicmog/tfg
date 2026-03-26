@@ -15,6 +15,7 @@ import Clientes from "./screens/Clientes/Clientes";
 import Empleados from "./screens/Empleados/Empleados";
 import Servicios from "./screens/Servicios/Servicios";
 import Proveedores from "./screens/Proveedores/Proveedores";
+import Productos from "./screens/Productos/Productos";
 import { Negocio } from "./screens/types";
 
 
@@ -35,6 +36,7 @@ export type NavigationScreenList = {
   Empleados: { negocio: Negocio };
   Servicios: { negocio: Negocio };
   Proveedores: { negocio: Negocio };
+  Productos: { negocio: Negocio };
 };
 
 const Stack = createNativeStackNavigator<NavigationScreenList>();
@@ -69,6 +71,7 @@ const App: React.FC = () => {
           <Stack.Screen name="Empleados" component={Empleados} />
           <Stack.Screen name="Servicios" component={Servicios} />
           <Stack.Screen name="Proveedores" component={Proveedores} />
+          <Stack.Screen name="Productos" component={Productos} />
         </>
       ) : (
         <>
