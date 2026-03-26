@@ -114,7 +114,7 @@ describe("CrearProducto", () => {
         fireEvent.changeText(getByTestId("producto-nombre-input"), "Champu");
         fireEvent.changeText(getByTestId("producto-referencia-input"), "CH-001");
         fireEvent.press(getByTestId("producto-proveedor-option-7"));
-        fireEvent.changeText(getByTestId("producto-categoria-input"), "Cosmetica");
+        fireEvent.press(getByTestId("producto-categoria-option-cosmetica"));
         fireEvent.changeText(getByTestId("producto-precio-compra-input"), "5.2");
         fireEvent.changeText(getByTestId("producto-precio-venta-input"), "10");
         fireEvent.changeText(getByTestId("producto-stock-input"), "8");
@@ -135,6 +135,51 @@ describe("CrearProducto", () => {
 
         await waitFor(() => {
             expect(getByText("Producto creado correctamente")).toBeTruthy();
+        });
+    });
+
+    it("permite usar categoria otra", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    proveedores: [
+                        { id_proveedor: 7, id_negocio: 1, nombre: "Proveedor Norte", cif_nif: "B123", contacto: "Ana", tipo_proveedor: "General" },
+                    ],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    message: "Producto creado correctamente",
+                }),
+            });
+
+        const { getByTestId } = render(
+            <CrearProducto navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("producto-categoria-option-otra")).toBeTruthy();
+        });
+
+        fireEvent.changeText(getByTestId("producto-nombre-input"), "Secador");
+        fireEvent.changeText(getByTestId("producto-referencia-input"), "SC-100");
+        fireEvent.press(getByTestId("producto-proveedor-option-7"));
+        fireEvent.press(getByTestId("producto-categoria-option-otra"));
+        fireEvent.changeText(getByTestId("producto-categoria-otra-input"), "Electrodomesticos");
+        fireEvent.changeText(getByTestId("producto-precio-compra-input"), "15");
+        fireEvent.changeText(getByTestId("producto-precio-venta-input"), "35");
+        fireEvent.changeText(getByTestId("producto-stock-input"), "6");
+        fireEvent.press(getByTestId("producto-save-button"));
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.productos,
+                expect.objectContaining({
+                    body: expect.stringContaining("Electrodomesticos"),
+                })
+            );
         });
     });
 

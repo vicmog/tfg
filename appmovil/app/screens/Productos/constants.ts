@@ -14,6 +14,16 @@ export const DEFAULT_PRODUCTS_ERROR = "No se pudieron obtener los productos";
 export const FORM_TITLE = "Datos del producto";
 export const PROVIDER_SEARCH_PLACEHOLDER = "Buscar proveedor";
 export const EMPTY_PROVIDER_SEARCH_MESSAGE = "No hay proveedores que coincidan con la busqueda";
+export const CATEGORY_OTHER_OPTION = "Otra";
+export const PRODUCT_CATEGORIES = [
+	"Cosmetica",
+	"Herramienta",
+	"Higiene",
+	"Accesorios",
+	"Coloracion",
+	"Tratamiento",
+	CATEGORY_OTHER_OPTION,
+] as const;
 
 export const SAVE_BUTTON_TEXT = "Guardar";
 export const SAVING_BUTTON_TEXT = "Guardando...";

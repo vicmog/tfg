@@ -14,6 +14,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Proveedor } from "../types";
 import {
     ADMIN_ROLE,
+    CATEGORY_OTHER_OPTION,
     CONNECTION_ERROR,
     CREATE_SCREEN_TITLE,
     DEFAULT_CREATE_ERROR,
@@ -34,6 +35,7 @@ import {
     JEFE_ROLE,
     NO_ACCESS_MESSAGE,
     PROVIDER_SEARCH_PLACEHOLDER,
+    PRODUCT_CATEGORIES,
     SAVE_BUTTON_TEXT,
     SAVING_BUTTON_TEXT,
     SUCCESS_MESSAGE,
@@ -44,16 +46,20 @@ import { CrearProductoProps } from "./types";
 
 const PRICE_REGEX = /^\d+(?:[.,]\d{1,2})?$/;
 const INTEGER_REGEX = /^\d+$/;
+const CATEGORY_OPTION_TEST_ID_PREFIX = "producto-categoria-option-";
+const buildCategoryOptionTestId = (category: string) =>
+    `${CATEGORY_OPTION_TEST_ID_PREFIX}${category.toLowerCase().replace(/\s+/g, "-")}`;
 
 const CrearProducto: React.FC<CrearProductoProps> = ({ route, navigation }) => {
     const { negocio } = route.params;
 
     const [nombre, setNombre] = useState("");
     const [referencia, setReferencia] = useState("");
-    const [categoria, setCategoria] = useState("");
+    const [selectedCategoria, setSelectedCategoria] = useState("");
+    const [customCategoria, setCustomCategoria] = useState("");
     const [precioCompra, setPrecioCompra] = useState("");
     const [precioVenta, setPrecioVenta] = useState("");
-    const [stock, setStock] = useState("");
+    const [stock, setStock] = useState("0");
     const [stockMinimo, setStockMinimo] = useState("");
     const [descripcion, setDescripcion] = useState("");
     const [proveedores, setProveedores] = useState<Proveedor[]>([]);
@@ -87,6 +93,14 @@ const CrearProducto: React.FC<CrearProductoProps> = ({ route, navigation }) => {
         () => proveedores.find((proveedor) => proveedor.id_proveedor === selectedProveedorId) || null,
         [proveedores, selectedProveedorId]
     );
+
+    const categoriaValue = useMemo(() => {
+        if (selectedCategoria === CATEGORY_OTHER_OPTION) {
+            return customCategoria.trim();
+        }
+
+        return selectedCategoria.trim();
+    }, [customCategoria, selectedCategoria]);
 
     const fetchProveedores = useCallback(async () => {
         if (!canManageProductos) {
@@ -131,10 +145,11 @@ const CrearProducto: React.FC<CrearProductoProps> = ({ route, navigation }) => {
     const resetForm = () => {
         setNombre("");
         setReferencia("");
-        setCategoria("");
+        setSelectedCategoria("");
+        setCustomCategoria("");
         setPrecioCompra("");
         setPrecioVenta("");
-        setStock("");
+        setStock("0");
         setStockMinimo("");
         setDescripcion("");
         setProviderSearch("");
@@ -157,7 +172,7 @@ const CrearProducto: React.FC<CrearProductoProps> = ({ route, navigation }) => {
             return false;
         }
 
-        if (!categoria.trim()) {
+        if (!categoriaValue) {
             setError(EMPTY_CATEGORIA_ERROR);
             return false;
         }
@@ -229,7 +244,7 @@ const CrearProducto: React.FC<CrearProductoProps> = ({ route, navigation }) => {
                     id_proveedor: selectedProveedorId,
                     nombre: nombre.trim(),
                     referencia: referencia.trim(),
-                    categoria: categoria.trim(),
+                    categoria: categoriaValue,
                     precio_compra: precioCompra.trim(),
                     precio_venta: precioVenta.trim(),
                     stock: stock.trim(),
@@ -341,13 +356,45 @@ const CrearProducto: React.FC<CrearProductoProps> = ({ route, navigation }) => {
                             </Text>
                         ) : null}
 
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Categoria"
-                            value={categoria}
-                            onChangeText={setCategoria}
-                            testID="producto-categoria-input"
-                        />
+                        <Text style={styles.label}>Categoria</Text>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            style={styles.categoriesScroll}
+                            contentContainerStyle={styles.categoriesContainer}
+                            testID="producto-categorias-scroll"
+                        >
+                            {PRODUCT_CATEGORIES.map((categoryOption) => (
+                                <TouchableOpacity
+                                    key={categoryOption}
+                                    style={[
+                                        styles.categoryChip,
+                                        selectedCategoria === categoryOption && styles.categoryChipSelected,
+                                    ]}
+                                    onPress={() => setSelectedCategoria(categoryOption)}
+                                    testID={buildCategoryOptionTestId(categoryOption)}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.categoryChipText,
+                                            selectedCategoria === categoryOption && styles.categoryChipTextSelected,
+                                        ]}
+                                    >
+                                        {categoryOption}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+
+                        {selectedCategoria === CATEGORY_OTHER_OPTION ? (
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Escribe la categoria"
+                                value={customCategoria}
+                                onChangeText={setCustomCategoria}
+                                testID="producto-categoria-otra-input"
+                            />
+                        ) : null}
 
                         <TextInput
                             style={styles.input}
@@ -511,6 +558,33 @@ const styles = StyleSheet.create({
         fontWeight: "600",
     },
     providerChipTextSelected: {
+        color: "#fff",
+    },
+    categoriesScroll: {
+        marginBottom: 4,
+    },
+    categoriesContainer: {
+        paddingBottom: 2,
+        paddingRight: 8,
+    },
+    categoryChip: {
+        borderWidth: 1,
+        borderColor: "#93c5fd",
+        backgroundColor: "#eff6ff",
+        borderRadius: 14,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        marginRight: 8,
+    },
+    categoryChipSelected: {
+        backgroundColor: "#1976D2",
+        borderColor: "#1976D2",
+    },
+    categoryChipText: {
+        color: "#1d4ed8",
+        fontWeight: "600",
+    },
+    categoryChipTextSelected: {
         color: "#fff",
     },
     emptyProvidersText: {
