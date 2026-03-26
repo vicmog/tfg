@@ -117,6 +117,106 @@ describe("Productos listado", () => {
         });
     });
 
+    it("muestra confirmacion antes de eliminar", async () => {
+        (fetch as jest.Mock).mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+                productos: [
+                    {
+                        id_producto: 5,
+                        id_proveedor: 7,
+                        nombre: "Champu",
+                        referencia: "CH-001",
+                        categoria: "Cosmetica",
+                        precio_venta: 10,
+                        stock: 8,
+                        stock_minimo: 1,
+                        precio_compra: 5,
+                        proveedor_nombre: "Proveedor Norte",
+                    },
+                ],
+            }),
+        });
+
+        const { getByTestId, getByText } = render(
+            <Productos navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("producto-delete-button-5")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("producto-delete-button-5"));
+
+        await waitFor(() => {
+            expect(getByText("Eliminar producto")).toBeTruthy();
+            expect(getByTestId("producto-delete-confirm-button-5")).toBeTruthy();
+        });
+    });
+
+    it("elimina producto tras confirmar y muestra feedback", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    productos: [
+                        {
+                            id_producto: 5,
+                            id_proveedor: 7,
+                            nombre: "Champu",
+                            referencia: "CH-001",
+                            categoria: "Cosmetica",
+                            precio_venta: 10,
+                            stock: 8,
+                            stock_minimo: 1,
+                            precio_compra: 5,
+                            proveedor_nombre: "Proveedor Norte",
+                        },
+                    ],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ message: "Producto eliminado correctamente" }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ productos: [] }),
+            });
+
+        const { getByTestId, getByText } = render(
+            <Productos navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("producto-delete-button-5")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("producto-delete-button-5"));
+
+        await waitFor(() => {
+            expect(getByTestId("producto-delete-confirm-button-5")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("producto-delete-confirm-button-5"));
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.deleteProductoById(5),
+                expect.objectContaining({
+                    method: "DELETE",
+                    headers: expect.objectContaining({
+                        Authorization: "Bearer mock-token",
+                    }),
+                })
+            );
+        });
+
+        await waitFor(() => {
+            expect(getByText("Producto eliminado correctamente")).toBeTruthy();
+        });
+    });
+
     it("bloquea la gestion si el rol no es jefe ni admin", async () => {
         const { getByTestId, queryByTestId } = render(
             <Productos navigation={mockNavigation} route={mockRouteTrabajador} />

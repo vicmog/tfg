@@ -1,6 +1,8 @@
 export const PRODUCTO_ERRORS = {
     USER_NOT_AUTHENTICATED: "Usuario no autenticado",
     NEGOCIO_ID_REQUIRED: "El negocio es obligatorio",
+    PRODUCTO_ID_REQUIRED: "El producto es obligatorio",
+    PRODUCTO_NOT_FOUND: "Producto no encontrado",
     NOMBRE_REQUIRED: "El nombre del producto es obligatorio",
     REFERENCIA_REQUIRED: "La referencia del producto es obligatoria",
     PROVEEDOR_ID_REQUIRED: "El proveedor es obligatorio",
@@ -23,6 +25,7 @@ export const PRODUCTO_ERRORS = {
 export const PRODUCTO_MESSAGES = {
     PRODUCTO_CREATED: "Producto creado correctamente",
     PRODUCTOS_FETCHED: "Productos obtenidos correctamente",
+    PRODUCTO_DELETED: "Producto eliminado correctamente",
 };
 
 export const PRODUCTO_ROLES = {
