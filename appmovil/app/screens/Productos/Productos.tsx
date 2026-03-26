@@ -16,12 +16,19 @@ import {
     ADD_PRODUCT_BUTTON,
     ADMIN_ROLE,
     CONNECTION_ERROR,
+    DEFAULT_DELETE_ERROR,
     DEFAULT_PRODUCTS_ERROR,
+    DELETE_BUTTON_TEXT,
+    DELETE_CONFIRM_MESSAGE,
+    DELETE_CONFIRM_TITLE,
+    DELETE_SUCCESS_MESSAGE,
+    DELETING_BUTTON_TEXT,
     EMPTY_PRODUCTS_MESSAGE,
     JEFE_ROLE,
     NO_ACCESS_MESSAGE,
     SCREEN_TITLE,
     SEARCH_PRODUCT,
+    deleteProductoByIdRoute,
     productosByNegocioRoute,
 } from "./constants";
 import { ProductosProps } from "./types";
@@ -33,6 +40,9 @@ const Productos: React.FC<ProductosProps> = ({ route, navigation }) => {
     const [searchText, setSearchText] = useState("");
     const [loading, setLoading] = useState(false);
     const [listError, setListError] = useState("");
+    const [listSuccess, setListSuccess] = useState("");
+    const [deletingProductoId, setDeletingProductoId] = useState<number | null>(null);
+    const [confirmDeleteProductoId, setConfirmDeleteProductoId] = useState<number | null>(null);
 
     const normalizedRole = (negocio.rol || "").toLowerCase();
     const canManageProductos = normalizedRole === JEFE_ROLE || normalizedRole === ADMIN_ROLE;
@@ -93,6 +103,46 @@ const Productos: React.FC<ProductosProps> = ({ route, navigation }) => {
         }, [fetchProductos])
     );
 
+    const handleAskDeleteProducto = (idProducto: number) => {
+        setListError("");
+        setListSuccess("");
+        setConfirmDeleteProductoId(idProducto);
+    };
+
+    const handleCancelDeleteProducto = () => {
+        setConfirmDeleteProductoId(null);
+    };
+
+    const handleDeleteProducto = async (idProducto: number) => {
+        setListError("");
+        setListSuccess("");
+        setDeletingProductoId(idProducto);
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(deleteProductoByIdRoute(idProducto), {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setListError(data.message || DEFAULT_DELETE_ERROR);
+                return;
+            }
+
+            setListSuccess(DELETE_SUCCESS_MESSAGE);
+            setConfirmDeleteProductoId(null);
+            await fetchProductos();
+        } catch (error) {
+            setListError(CONNECTION_ERROR);
+        } finally {
+            setDeletingProductoId(null);
+        }
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -137,6 +187,12 @@ const Productos: React.FC<ProductosProps> = ({ route, navigation }) => {
                 </View>
             ) : null}
 
+            {listSuccess ? (
+                <View style={styles.feedbackSuccess} testID="productos-list-success-message">
+                    <Text style={styles.feedbackSuccessText}>{listSuccess}</Text>
+                </View>
+            ) : null}
+
             {loading ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color="#1976D2" />
@@ -147,18 +203,59 @@ const Productos: React.FC<ProductosProps> = ({ route, navigation }) => {
                         <Text style={styles.emptyText}>{EMPTY_PRODUCTS_MESSAGE}</Text>
                     ) : null}
 
-                    {filteredProductos.map((producto) => (
-                        <View key={producto.id_producto} style={styles.productCard} testID={`producto-card-${producto.id_producto}`}>
-                            <View style={styles.cardTopRow}>
-                                <Text style={styles.productName}>{producto.nombre}</Text>
-                                <Text style={styles.productPrice}>{Number(producto.precio_venta).toFixed(2)} EUR</Text>
+                    {filteredProductos.map((producto) => {
+                        const isDeleting = deletingProductoId === producto.id_producto;
+
+                        return (
+                            <View key={producto.id_producto} style={styles.productCard} testID={`producto-card-${producto.id_producto}`}>
+                                <View style={styles.cardTopRow}>
+                                    <Text style={styles.productName}>{producto.nombre}</Text>
+                                    <Text style={styles.productPrice}>{Number(producto.precio_venta).toFixed(2)} EUR</Text>
+                                </View>
+                                <Text style={styles.productMeta}>Ref: {producto.referencia}</Text>
+                                <Text style={styles.productMeta}>Categoria: {producto.categoria}</Text>
+                                <Text style={styles.productMeta}>Proveedor: {producto.proveedor_nombre || "-"}</Text>
+                                <Text style={styles.productMeta}>Stock: {producto.stock}</Text>
+
+                                <TouchableOpacity
+                                    style={[styles.actionButton, styles.deleteButton]}
+                                    onPress={() => handleAskDeleteProducto(producto.id_producto)}
+                                    disabled={isDeleting}
+                                    testID={`producto-delete-button-${producto.id_producto}`}
+                                >
+                                    {isDeleting ? (
+                                        <ActivityIndicator size="small" color="#fff" />
+                                    ) : (
+                                        <MaterialIcons name="delete" size={16} color="#fff" />
+                                    )}
+                                </TouchableOpacity>
+
+                                {confirmDeleteProductoId === producto.id_producto ? (
+                                    <View style={styles.confirmBox} testID={`producto-delete-confirm-${producto.id_producto}`}>
+                                        <Text style={styles.confirmTitle}>{DELETE_CONFIRM_TITLE}</Text>
+                                        <Text style={styles.confirmMessage}>{DELETE_CONFIRM_MESSAGE}</Text>
+                                        <View style={styles.confirmActions}>
+                                            <TouchableOpacity
+                                                style={styles.confirmCancelButton}
+                                                onPress={handleCancelDeleteProducto}
+                                                testID={`producto-delete-cancel-${producto.id_producto}`}
+                                            >
+                                                <Text style={styles.confirmCancelText}>Cancelar</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={styles.confirmDeleteButton}
+                                                onPress={() => handleDeleteProducto(producto.id_producto)}
+                                                disabled={isDeleting}
+                                                testID={`producto-delete-confirm-button-${producto.id_producto}`}
+                                            >
+                                                <Text style={styles.confirmDeleteText}>{DELETE_BUTTON_TEXT}</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                ) : null}
                             </View>
-                            <Text style={styles.productMeta}>Ref: {producto.referencia}</Text>
-                            <Text style={styles.productMeta}>Categoria: {producto.categoria}</Text>
-                            <Text style={styles.productMeta}>Proveedor: {producto.proveedor_nombre || "-"}</Text>
-                            <Text style={styles.productMeta}>Stock: {producto.stock}</Text>
-                        </View>
-                    ))}
+                        );
+                    })}
                 </ScrollView>
             )}
         </View>
@@ -240,6 +337,19 @@ const styles = StyleSheet.create({
         color: "#b91c1c",
         fontWeight: "600",
     },
+    feedbackSuccess: {
+        backgroundColor: "#dcfce7",
+        borderColor: "#86efac",
+        borderWidth: 1,
+        borderRadius: 8,
+        padding: 10,
+        marginHorizontal: 16,
+        marginBottom: 8,
+    },
+    feedbackSuccessText: {
+        color: "#166534",
+        fontWeight: "600",
+    },
     loadingContainer: {
         flex: 1,
         justifyContent: "center",
@@ -282,5 +392,59 @@ const styles = StyleSheet.create({
     productMeta: {
         color: "#4b5563",
         marginTop: 2,
+    },
+    actionButton: {
+        marginTop: 10,
+        height: 34,
+        width: 34,
+        borderRadius: 10,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    deleteButton: {
+        backgroundColor: "#dc2626",
+    },
+    deleteButtonDisabled: {
+        opacity: 0.7,
+    },
+    confirmBox: {
+        marginTop: 10,
+        borderWidth: 1,
+        borderColor: "#fecaca",
+        backgroundColor: "#fff1f2",
+        borderRadius: 8,
+        padding: 10,
+    },
+    confirmTitle: {
+        color: "#03045E",
+        fontWeight: "700",
+        marginBottom: 4,
+    },
+    confirmMessage: {
+        color: "#03045E",
+        marginBottom: 8,
+    },
+    confirmActions: {
+        flexDirection: "row",
+        justifyContent: "flex-end",
+    },
+    confirmCancelButton: {
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        marginRight: 8,
+    },
+    confirmCancelText: {
+        color: "#6b7280",
+        fontWeight: "600",
+    },
+    confirmDeleteButton: {
+        backgroundColor: "#dc2626",
+        borderRadius: 6,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+    },
+    confirmDeleteText: {
+        color: "#fff",
+        fontWeight: "700",
     },
 });

@@ -1,4 +1,4 @@
-import { createProducto, getProductosByNegocio } from "../productoController.js";
+import { createProducto, deleteProducto, getProductosByNegocio } from "../productoController.js";
 import { Producto } from "../../../models/Producto.js";
 import { Proveedor } from "../../../models/Proveedor.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
@@ -12,9 +12,14 @@ import {
     createProductoReqSinPermiso,
     createProductoReqSinReferencia,
     createProductoReqStockInvalido,
+    deleteProductoReq,
+    deleteProductoReqAdmin,
+    deleteProductoReqSinAuth,
+    deleteProductoReqSinPermiso,
     getProductosReq,
     getProductosReqSinPermiso,
     mockProductoData,
+    mockProductoEntity,
     mockProductos,
     mockProveedor,
     mockUsuarioAdmin,
@@ -207,6 +212,66 @@ describe("ProductoController Unit Tests", () => {
             await getProductosByNegocio(getProductosReqSinPermiso, res);
 
             expect(Producto.findAll).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "No tienes permisos para gestionar productos",
+            });
+        });
+    });
+
+    describe("deleteProducto", () => {
+        it("deberia eliminar producto correctamente para jefe", async () => {
+            (Producto.findByPk).mockResolvedValue(mockProductoEntity);
+            (Proveedor.findByPk).mockResolvedValue(mockProveedor);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+
+            const { res, jsonMock } = buildRes();
+
+            await deleteProducto(deleteProductoReq, res);
+
+            expect(mockProductoEntity.destroy).toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Producto eliminado correctamente",
+            });
+        });
+
+        it("deberia eliminar producto correctamente para admin", async () => {
+            const producto = { ...mockProductoEntity, destroy: jest.fn() };
+            (Producto.findByPk).mockResolvedValue(producto);
+            (Proveedor.findByPk).mockResolvedValue(mockProveedor);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioAdmin);
+
+            const { res } = buildRes();
+
+            await deleteProducto(deleteProductoReqAdmin, res);
+
+            expect(producto.destroy).toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(200);
+        });
+
+        it("deberia fallar si no esta autenticado", async () => {
+            const { res, jsonMock } = buildRes();
+
+            await deleteProducto(deleteProductoReqSinAuth, res);
+
+            expect(Producto.findByPk).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(401);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Usuario no autenticado",
+            });
+        });
+
+        it("deberia fallar si no tiene permisos", async () => {
+            (Producto.findByPk).mockResolvedValue(mockProductoEntity);
+            (Proveedor.findByPk).mockResolvedValue(mockProveedor);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioTrabajador);
+
+            const { res, jsonMock } = buildRes();
+
+            await deleteProducto(deleteProductoReqSinPermiso, res);
+
+            expect(mockProductoEntity.destroy).not.toHaveBeenCalled();
             expect(res.status).toHaveBeenCalledWith(403);
             expect(jsonMock).toHaveBeenCalledWith({
                 message: "No tienes permisos para gestionar productos",

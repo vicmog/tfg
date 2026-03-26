@@ -34,6 +34,26 @@ export const getProductosReqSinPermiso = {
     user: { id_usuario: 2 },
 };
 
+export const deleteProductoReq = {
+    params: { id_producto: "55" },
+    user: { id_usuario: 1 },
+};
+
+export const deleteProductoReqAdmin = {
+    params: { id_producto: "55" },
+    user: { id_usuario: 3 },
+};
+
+export const deleteProductoReqSinAuth = {
+    params: { id_producto: "55" },
+    user: null,
+};
+
+export const deleteProductoReqSinPermiso = {
+    params: { id_producto: "55" },
+    user: { id_usuario: 2 },
+};
+
 export const createProductoReqAdmin = {
     body: {
         id_negocio: 10,
@@ -123,6 +143,11 @@ export const mockProductos = [
         stock_minimo: 2,
     },
 ];
+
+export const mockProductoEntity = {
+    ...mockProductoData,
+    destroy: jest.fn(),
+};
 
 export const buildRes = () => {
     const jsonMock = jest.fn();
