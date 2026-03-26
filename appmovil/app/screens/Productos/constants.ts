@@ -1,10 +1,19 @@
 import { API_ROUTES } from "@/app/constants/apiRoutes";
 
 export const createProductoRoute = API_ROUTES.productos;
+export const productosByNegocioRoute = (idNegocio: number) => API_ROUTES.productosByNegocio(idNegocio);
 export const proveedoresByNegocioRoute = (idNegocio: number) => API_ROUTES.proveedoresByNegocio(idNegocio);
 
 export const SCREEN_TITLE = "Productos";
-export const FORM_TITLE = "Nuevo producto";
+export const CREATE_SCREEN_TITLE = "Nuevo producto";
+export const ADD_PRODUCT_BUTTON = "Añadir producto";
+export const SEARCH_PRODUCT = "Buscar por nombre, referencia o categoria";
+export const EMPTY_PRODUCTS_MESSAGE = "No hay productos registrados";
+export const DEFAULT_PRODUCTS_ERROR = "No se pudieron obtener los productos";
+
+export const FORM_TITLE = "Datos del producto";
+export const PROVIDER_SEARCH_PLACEHOLDER = "Buscar proveedor";
+export const EMPTY_PROVIDER_SEARCH_MESSAGE = "No hay proveedores que coincidan con la busqueda";
 
 export const SAVE_BUTTON_TEXT = "Guardar";
 export const SAVING_BUTTON_TEXT = "Guardando...";

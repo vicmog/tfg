@@ -77,4 +77,5 @@ export type Producto = {
     precio_venta: number;
     stock: number;
     stock_minimo: number;
+    proveedor_nombre?: string;
 };

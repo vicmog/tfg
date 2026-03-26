@@ -16,11 +16,13 @@ export const PRODUCTO_ERRORS = {
     NO_MANAGE_PERMISSION: "No tienes permisos para gestionar productos",
     PROVEEDOR_NOT_FOUND: "Proveedor no encontrado",
     PROVIDER_NOT_IN_BUSINESS: "El proveedor no pertenece al negocio seleccionado",
+    NO_PRODUCTS_IN_BUSINESS: "No hay productos registrados para este negocio",
     SERVER_ERROR: "Error en el servidor",
 };
 
 export const PRODUCTO_MESSAGES = {
     PRODUCTO_CREATED: "Producto creado correctamente",
+    PRODUCTOS_FETCHED: "Productos obtenidos correctamente",
 };
 
 export const PRODUCTO_ROLES = {

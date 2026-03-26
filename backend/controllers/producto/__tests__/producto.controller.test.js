@@ -1,4 +1,4 @@
-import { createProducto } from "../productoController.js";
+import { createProducto, getProductosByNegocio } from "../productoController.js";
 import { Producto } from "../../../models/Producto.js";
 import { Proveedor } from "../../../models/Proveedor.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
@@ -12,7 +12,10 @@ import {
     createProductoReqSinPermiso,
     createProductoReqSinReferencia,
     createProductoReqStockInvalido,
+    getProductosReq,
+    getProductosReqSinPermiso,
     mockProductoData,
+    mockProductos,
     mockProveedor,
     mockUsuarioAdmin,
     mockUsuarioJefe,
@@ -168,6 +171,45 @@ describe("ProductoController Unit Tests", () => {
             expect(res.status).toHaveBeenCalledWith(400);
             expect(jsonMock).toHaveBeenCalledWith({
                 message: "El proveedor no pertenece al negocio seleccionado",
+            });
+        });
+    });
+
+    describe("getProductosByNegocio", () => {
+        it("deberia devolver productos con proveedor", async () => {
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+            (Proveedor.findAll).mockResolvedValue([mockProveedor]);
+            (Producto.findAll).mockResolvedValue(mockProductos);
+
+            const { res, jsonMock } = buildRes();
+
+            await getProductosByNegocio(getProductosReq, res);
+
+            expect(Producto.findAll).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    order: [["createdAt", "DESC"]],
+                })
+            );
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    message: "Productos obtenidos correctamente",
+                    productos: expect.any(Array),
+                })
+            );
+        });
+
+        it("deberia fallar si no tiene permisos", async () => {
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioTrabajador);
+
+            const { res, jsonMock } = buildRes();
+
+            await getProductosByNegocio(getProductosReqSinPermiso, res);
+
+            expect(Producto.findAll).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "No tienes permisos para gestionar productos",
             });
         });
     });

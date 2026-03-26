@@ -24,6 +24,16 @@ export const createProductoReq = {
     user: { id_usuario: 1 },
 };
 
+export const getProductosReq = {
+    params: { id_negocio: "10" },
+    user: { id_usuario: 1 },
+};
+
+export const getProductosReqSinPermiso = {
+    params: { id_negocio: "10" },
+    user: { id_usuario: 2 },
+};
+
 export const createProductoReqAdmin = {
     body: {
         id_negocio: 10,
@@ -97,6 +107,22 @@ export const mockProductoData = {
     stock: 50,
     stock_minimo: 5,
 };
+
+export const mockProductos = [
+    mockProductoData,
+    {
+        id_producto: 56,
+        id_proveedor: 7,
+        nombre: "Acondicionador",
+        referencia: "AC-002",
+        descripcion: null,
+        categoria: "Cosmetica",
+        precio_compra: 4.25,
+        precio_venta: 9.99,
+        stock: 20,
+        stock_minimo: 2,
+    },
+];
 
 export const buildRes = () => {
     const jsonMock = jest.fn();

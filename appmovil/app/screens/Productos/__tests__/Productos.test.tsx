@@ -26,19 +26,30 @@ jest.mock("@react-navigation/native", () => ({
 
 global.fetch = jest.fn();
 
-describe("Productos", () => {
+describe("Productos listado", () => {
     beforeEach(() => {
         jest.clearAllMocks();
         (fetch as jest.Mock).mockReset();
         (AsyncStorage.getItem as jest.Mock).mockResolvedValue("mock-token");
     });
 
-    it("renderiza y obtiene proveedores", async () => {
+    it("renderiza y obtiene productos", async () => {
         (fetch as jest.Mock).mockResolvedValueOnce({
             ok: true,
             json: async () => ({
-                proveedores: [
-                    { id_proveedor: 7, id_negocio: 1, nombre: "Proveedor Norte", cif_nif: "B123", contacto: "Ana", tipo_proveedor: "General" },
+                productos: [
+                    {
+                        id_producto: 3,
+                        id_proveedor: 7,
+                        nombre: "Champu",
+                        referencia: "CH-001",
+                        categoria: "Cosmetica",
+                        precio_venta: 10,
+                        stock: 8,
+                        stock_minimo: 1,
+                        precio_compra: 5,
+                        proveedor_nombre: "Proveedor Norte",
+                    },
                 ],
             }),
         });
@@ -49,101 +60,60 @@ describe("Productos", () => {
 
         await waitFor(() => {
             expect(fetch).toHaveBeenCalledWith(
-                API_ROUTES.proveedoresByNegocio(1),
+                API_ROUTES.productosByNegocio(1),
                 expect.objectContaining({
                     headers: { Authorization: "Bearer mock-token" },
                 })
             );
         });
 
-        expect(getByText("Proveedor Norte")).toBeTruthy();
+        expect(getByText("Champu")).toBeTruthy();
+        expect(getByText("Ref: CH-001")).toBeTruthy();
     });
 
-    it("muestra validacion si falta referencia", async () => {
+    it("filtra por texto de busqueda", async () => {
         (fetch as jest.Mock).mockResolvedValueOnce({
             ok: true,
             json: async () => ({
-                proveedores: [
-                    { id_proveedor: 7, id_negocio: 1, nombre: "Proveedor Norte", cif_nif: "B123", contacto: "Ana", tipo_proveedor: "General" },
+                productos: [
+                    { id_producto: 1, id_proveedor: 7, nombre: "Champu", referencia: "CH-001", categoria: "Cosmetica", precio_venta: 10, stock: 8, stock_minimo: 1, precio_compra: 5, proveedor_nombre: "Proveedor Norte" },
+                    { id_producto: 2, id_proveedor: 8, nombre: "Tijera", referencia: "TJ-100", categoria: "Herramienta", precio_venta: 25, stock: 3, stock_minimo: 1, precio_compra: 10, proveedor_nombre: "Proveedor Sur" },
                 ],
             }),
         });
 
-        const { getByTestId, getByText } = render(
+        const { getByTestId, queryByText } = render(
             <Productos navigation={mockNavigation} route={mockRoute} />
         );
 
         await waitFor(() => {
-            expect(getByTestId("producto-proveedor-option-7")).toBeTruthy();
+            expect(getByTestId("productos-search-input")).toBeTruthy();
         });
 
-        fireEvent.changeText(getByTestId("producto-nombre-input"), "Champu");
-        fireEvent.press(getByTestId("producto-proveedor-option-7"));
-        fireEvent.changeText(getByTestId("producto-categoria-input"), "Cosmetica");
-        fireEvent.changeText(getByTestId("producto-precio-compra-input"), "5.2");
-        fireEvent.changeText(getByTestId("producto-precio-venta-input"), "10");
-        fireEvent.changeText(getByTestId("producto-stock-input"), "8");
-        fireEvent.press(getByTestId("producto-save-button"));
+        fireEvent.changeText(getByTestId("productos-search-input"), "tijera");
 
-        await waitFor(() => {
-            expect(getByText("La referencia del producto es obligatoria")).toBeTruthy();
-        });
+        expect(queryByText("Champu")).toBeNull();
+        expect(queryByText("Tijera")).toBeTruthy();
     });
 
-    it("crea producto y muestra mensaje de exito", async () => {
-        (fetch as jest.Mock)
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({
-                    proveedores: [
-                        { id_proveedor: 7, id_negocio: 1, nombre: "Proveedor Norte", cif_nif: "B123", contacto: "Ana", tipo_proveedor: "General" },
-                    ],
-                }),
-            })
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({
-                    message: "Producto creado correctamente",
-                    producto: {
-                        id_producto: 5,
-                        id_proveedor: 7,
-                        nombre: "Champu",
-                    },
-                }),
-            });
+    it("navega a la pantalla de crear producto", async () => {
+        (fetch as jest.Mock).mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ productos: [] }),
+        });
 
-        const { getByTestId, getByText } = render(
+        const { getByTestId } = render(
             <Productos navigation={mockNavigation} route={mockRoute} />
         );
 
         await waitFor(() => {
-            expect(getByTestId("producto-proveedor-option-7")).toBeTruthy();
+            expect(getByTestId("productos-add-button")).toBeTruthy();
         });
 
-        fireEvent.changeText(getByTestId("producto-nombre-input"), "Champu");
-        fireEvent.changeText(getByTestId("producto-referencia-input"), "CH-001");
-        fireEvent.press(getByTestId("producto-proveedor-option-7"));
-        fireEvent.changeText(getByTestId("producto-categoria-input"), "Cosmetica");
-        fireEvent.changeText(getByTestId("producto-precio-compra-input"), "5.2");
-        fireEvent.changeText(getByTestId("producto-precio-venta-input"), "10");
-        fireEvent.changeText(getByTestId("producto-stock-input"), "8");
-        fireEvent.press(getByTestId("producto-save-button"));
+        fireEvent.press(getByTestId("productos-add-button"));
 
-        await waitFor(() => {
-            expect(fetch).toHaveBeenCalledWith(
-                API_ROUTES.productos,
-                expect.objectContaining({
-                    method: "POST",
-                    headers: expect.objectContaining({
-                        "Content-Type": "application/json",
-                        Authorization: "Bearer mock-token",
-                    }),
-                })
-            );
-        });
-
-        await waitFor(() => {
-            expect(getByText("Producto creado correctamente")).toBeTruthy();
+        expect(mockNavigation.navigate).toHaveBeenCalledWith("CrearProducto", {
+            negocio: mockRoute.params.negocio,
         });
     });
 
@@ -152,7 +122,7 @@ describe("Productos", () => {
             <Productos navigation={mockNavigation} route={mockRouteTrabajador} />
         );
 
-        expect(getByTestId("productos-no-access-message")).toBeTruthy();
-        expect(queryByTestId("producto-save-button")).toBeNull();
+        expect(getByTestId("productos-list-error-message")).toBeTruthy();
+        expect(queryByTestId("productos-add-button")).toBeNull();
     });
 });

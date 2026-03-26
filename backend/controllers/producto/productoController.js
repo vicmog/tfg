@@ -1,6 +1,7 @@
 import { Producto } from "../../models/Producto.js";
 import { Proveedor } from "../../models/Proveedor.js";
 import { UsuarioNegocio } from "../../models/UsuarioNegocio.js";
+import { Op } from "sequelize";
 import {
     PRODUCTO_ERRORS,
     PRODUCTO_MESSAGES,
@@ -202,6 +203,72 @@ export const createProducto = async (req, res) => {
         return res.status(201).json({
             message: PRODUCTO_MESSAGES.PRODUCTO_CREATED,
             producto: serializeProducto(producto),
+        });
+    } catch (error) {
+        return res.status(500).json({ message: PRODUCTO_ERRORS.SERVER_ERROR });
+    }
+};
+
+export const getProductosByNegocio = async (req, res) => {
+    const { id_negocio } = req.params;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: PRODUCTO_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (!id_negocio) {
+        return res.status(400).json({ message: PRODUCTO_ERRORS.NEGOCIO_ID_REQUIRED });
+    }
+
+    try {
+        const usuarioNegocio = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio },
+        });
+
+        if (!usuarioNegocio) {
+            return res.status(403).json({ message: PRODUCTO_ERRORS.NO_ACCESS_TO_NEGOCIO });
+        }
+
+        if (!canManageProductos(usuarioNegocio.rol)) {
+            return res.status(403).json({ message: PRODUCTO_ERRORS.NO_MANAGE_PERMISSION });
+        }
+
+        const proveedores = await Proveedor.findAll({
+            where: { id_negocio },
+            attributes: ["id_proveedor", "nombre"],
+        });
+
+        const proveedoresIds = proveedores.map((proveedor) => proveedor.id_proveedor);
+
+        if (!proveedoresIds.length) {
+            return res.status(200).json({
+                message: PRODUCTO_MESSAGES.PRODUCTOS_FETCHED,
+                productos: [],
+            });
+        }
+
+        const productos = await Producto.findAll({
+            where: {
+                id_proveedor: {
+                    [Op.in]: proveedoresIds,
+                },
+            },
+            order: [["createdAt", "DESC"]],
+        });
+
+        const proveedoresMap = new Map(
+            proveedores.map((proveedor) => [proveedor.id_proveedor, proveedor.nombre])
+        );
+
+        const productosSerialized = productos.map((producto) => ({
+            ...serializeProducto(producto),
+            proveedor_nombre: proveedoresMap.get(producto.id_proveedor) || "",
+        }));
+
+        return res.status(200).json({
+            message: PRODUCTO_MESSAGES.PRODUCTOS_FETCHED,
+            productos: productosSerialized,
         });
     } catch (error) {
         return res.status(500).json({ message: PRODUCTO_ERRORS.SERVER_ERROR });
