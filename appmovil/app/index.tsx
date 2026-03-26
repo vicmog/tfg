@@ -19,8 +19,6 @@ import Productos from "./screens/Productos/Productos";
 import CrearProducto from "./screens/Productos/CrearProducto";
 import { Negocio } from "./screens/types";
 
-
-
 export type NavigationScreenList = {
   Home: undefined;
   Login: { message?: string };
