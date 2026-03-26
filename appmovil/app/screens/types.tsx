@@ -65,3 +65,17 @@ export type Proveedor = {
     tipo_proveedor: string;
     direccion?: string | null;
 };
+
+export type Producto = {
+    id_producto: number;
+    id_proveedor: number;
+    nombre: string;
+    referencia: string;
+    categoria: string;
+    descripcion?: string | null;
+    precio_compra: number;
+    precio_venta: number;
+    stock: number;
+    stock_minimo: number;
+    proveedor_nombre?: string;
+};

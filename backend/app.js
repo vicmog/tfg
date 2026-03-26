@@ -8,6 +8,7 @@ import clienteRoutes from "./routes/cliente.js";
 import empleadoRoutes from "./routes/empleado.js";
 import servicioRoutes from "./routes/servicio.js";
 import proveedorRoutes from "./routes/proveedor.js";
+import productoRoutes from "./routes/producto.js";
 
 
 dotenv.config();
@@ -24,5 +25,6 @@ app.use("/v1/api/clientes", clienteRoutes);
 app.use("/v1/api/empleados", empleadoRoutes);
 app.use("/v1/api/servicios", servicioRoutes);
 app.use("/v1/api/proveedores", proveedorRoutes);
+app.use("/v1/api/productos", productoRoutes);
 
 export default app;
