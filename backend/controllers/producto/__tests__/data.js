@@ -34,6 +34,28 @@ export const getProductosReqSinPermiso = {
     user: { id_usuario: 2 },
 };
 
+export const searchProductosReq = {
+    params: { id_negocio: "10" },
+    query: { searchTerm: "ch" },
+    user: { id_usuario: 1 },
+};
+
+export const searchProductosReqSinPermiso = {
+    params: { id_negocio: "10" },
+    query: { searchTerm: "ch" },
+    user: { id_usuario: 2 },
+};
+
+export const getProductoByIdReq = {
+    params: { id_producto: "55" },
+    user: { id_usuario: 1 },
+};
+
+export const getProductoByIdReqSinPermiso = {
+    params: { id_producto: "55" },
+    user: { id_usuario: 2 },
+};
+
 export const deleteProductoReq = {
     params: { id_producto: "55" },
     user: { id_usuario: 1 },

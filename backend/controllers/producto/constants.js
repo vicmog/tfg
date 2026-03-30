@@ -19,6 +19,7 @@ export const PRODUCTO_ERRORS = {
     PROVEEDOR_NOT_FOUND: "Proveedor no encontrado",
     PROVIDER_NOT_IN_BUSINESS: "El proveedor no pertenece al negocio seleccionado",
     PRODUCT_PROVIDER_NOT_FOUND: "El proveedor asociado al producto no existe",
+    PRODUCTO_DETAIL_NOT_AVAILABLE: "No se pudieron cargar los datos del producto",
     NO_PRODUCTS_IN_BUSINESS: "No hay productos registrados para este negocio",
     SERVER_ERROR: "Error en el servidor",
 };
@@ -27,6 +28,8 @@ export const PRODUCTO_MESSAGES = {
     PRODUCTO_CREATED: "Producto creado correctamente",
     PRODUCTO_UPDATED: "Producto actualizado correctamente",
     PRODUCTOS_FETCHED: "Productos obtenidos correctamente",
+    PRODUCTOS_SEARCHED: "Productos filtrados correctamente",
+    PRODUCTO_FETCHED: "Producto obtenido correctamente",
     PRODUCTO_DELETED: "Producto eliminado correctamente",
 };
 

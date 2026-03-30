@@ -339,6 +339,139 @@ export const getProductosByNegocio = async (req, res) => {
     }
 };
 
+export const searchProductosByNegocio = async (req, res) => {
+    const { id_negocio } = req.params;
+    const searchTerm = `${req.query.searchTerm || ""}`.trim();
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: PRODUCTO_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (!id_negocio) {
+        return res.status(400).json({ message: PRODUCTO_ERRORS.NEGOCIO_ID_REQUIRED });
+    }
+
+    try {
+        const usuarioNegocio = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio },
+        });
+
+        if (!usuarioNegocio) {
+            return res.status(403).json({ message: PRODUCTO_ERRORS.NO_ACCESS_TO_NEGOCIO });
+        }
+
+        if (!canManageProductos(usuarioNegocio.rol)) {
+            return res.status(403).json({ message: PRODUCTO_ERRORS.NO_MANAGE_PERMISSION });
+        }
+
+        const proveedores = await Proveedor.findAll({
+            where: { id_negocio },
+            attributes: ["id_proveedor", "nombre"],
+        });
+
+        const proveedoresIds = proveedores.map((proveedor) => proveedor.id_proveedor);
+
+        if (!proveedoresIds.length) {
+            return res.status(200).json({
+                message: PRODUCTO_MESSAGES.PRODUCTOS_SEARCHED,
+                productos: [],
+            });
+        }
+
+        const providersMap = new Map(
+            proveedores.map((proveedor) => [proveedor.id_proveedor, proveedor.nombre])
+        );
+
+        const searchTermLower = searchTerm.toLowerCase();
+        const providerMatchedIds = proveedores
+            .filter((proveedor) => proveedor.nombre.toLowerCase().includes(searchTermLower))
+            .map((proveedor) => proveedor.id_proveedor);
+
+        const whereClause = {
+            id_proveedor: {
+                [Op.in]: proveedoresIds,
+            },
+        };
+
+        if (searchTerm) {
+            const searchLike = `%${searchTerm}%`;
+            whereClause[Op.or] = [
+                { nombre: { [Op.like]: searchLike } },
+                { referencia: { [Op.like]: searchLike } },
+                { categoria: { [Op.like]: searchLike } },
+                ...(providerMatchedIds.length
+                    ? [{ id_proveedor: { [Op.in]: providerMatchedIds } }]
+                    : []),
+            ];
+        }
+
+        const productos = await Producto.findAll({
+            where: whereClause,
+            order: [["createdAt", "DESC"]],
+        });
+
+        return res.status(200).json({
+            message: PRODUCTO_MESSAGES.PRODUCTOS_SEARCHED,
+            productos: productos.map((producto) => ({
+                ...serializeProducto(producto),
+                proveedor_nombre: providersMap.get(producto.id_proveedor) || "",
+            })),
+        });
+    } catch (error) {
+        return res.status(500).json({ message: PRODUCTO_ERRORS.SERVER_ERROR });
+    }
+};
+
+export const getProductoById = async (req, res) => {
+    const { id_producto } = req.params;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: PRODUCTO_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (!id_producto) {
+        return res.status(400).json({ message: PRODUCTO_ERRORS.PRODUCTO_ID_REQUIRED });
+    }
+
+    try {
+        const producto = await Producto.findByPk(id_producto);
+
+        if (!producto) {
+            return res.status(404).json({ message: PRODUCTO_ERRORS.PRODUCTO_NOT_FOUND });
+        }
+
+        const proveedor = await Proveedor.findByPk(producto.id_proveedor);
+
+        if (!proveedor) {
+            return res.status(404).json({ message: PRODUCTO_ERRORS.PRODUCT_PROVIDER_NOT_FOUND });
+        }
+
+        const usuarioNegocio = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio: proveedor.id_negocio },
+        });
+
+        if (!usuarioNegocio) {
+            return res.status(403).json({ message: PRODUCTO_ERRORS.NO_ACCESS_TO_NEGOCIO });
+        }
+
+        if (!canManageProductos(usuarioNegocio.rol)) {
+            return res.status(403).json({ message: PRODUCTO_ERRORS.NO_MANAGE_PERMISSION });
+        }
+
+        return res.status(200).json({
+            message: PRODUCTO_MESSAGES.PRODUCTO_FETCHED,
+            producto: {
+                ...serializeProducto(producto),
+                proveedor_nombre: proveedor.nombre,
+            },
+        });
+    } catch (error) {
+        return res.status(500).json({ message: PRODUCTO_ERRORS.SERVER_ERROR });
+    }
+};
+
 export const deleteProducto = async (req, res) => {
     const { id_producto } = req.params;
     const id_usuario = req.user?.id_usuario;

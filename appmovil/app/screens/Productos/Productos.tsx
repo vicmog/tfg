@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from "react";
 import {
     ActivityIndicator,
+    Modal,
     ScrollView,
     StyleSheet,
     Text,
@@ -17,7 +18,19 @@ import {
     ADMIN_ROLE,
     CONNECTION_ERROR,
     DEFAULT_DELETE_ERROR,
+    DEFAULT_DETAIL_ERROR,
     DEFAULT_PRODUCTS_ERROR,
+    DETAIL_BUY_PRICE_LABEL,
+    DETAIL_CATEGORY_LABEL,
+    DETAIL_DESCRIPTION_LABEL,
+    DETAIL_EMPTY_DESCRIPTION,
+    DETAIL_MIN_STOCK_LABEL,
+    DETAIL_NAME_LABEL,
+    DETAIL_PROVIDER_LABEL,
+    DETAIL_REFERENCE_LABEL,
+    DETAIL_SELL_PRICE_LABEL,
+    DETAIL_STOCK_LABEL,
+    DETAIL_TITLE,
     DELETE_BUTTON_TEXT,
     DELETE_CONFIRM_MESSAGE,
     DELETE_CONFIRM_TITLE,
@@ -28,6 +41,7 @@ import {
     SCREEN_TITLE,
     SEARCH_PRODUCT,
     deleteProductoByIdRoute,
+    productoByIdRoute,
     productosByNegocioRoute,
 } from "./constants";
 import { ProductosProps } from "./types";
@@ -42,6 +56,9 @@ const Productos: React.FC<ProductosProps> = ({ route, navigation }) => {
     const [listSuccess, setListSuccess] = useState("");
     const [deletingProductoId, setDeletingProductoId] = useState<number | null>(null);
     const [confirmDeleteProductoId, setConfirmDeleteProductoId] = useState<number | null>(null);
+    const [selectedProducto, setSelectedProducto] = useState<Producto | null>(null);
+    const [loadingDetail, setLoadingDetail] = useState(false);
+    const [detailError, setDetailError] = useState("");
 
     const normalizedRole = (negocio.rol || "").toLowerCase();
     const canManageProductos = normalizedRole === JEFE_ROLE || normalizedRole === ADMIN_ROLE;
@@ -142,6 +159,42 @@ const Productos: React.FC<ProductosProps> = ({ route, navigation }) => {
         }
     };
 
+    const handleCloseProductoDetail = () => {
+        setSelectedProducto(null);
+        setDetailError("");
+        setLoadingDetail(false);
+    };
+
+    const handleOpenProductoDetail = async (producto: Producto) => {
+        setSelectedProducto(producto);
+        setDetailError("");
+        setLoadingDetail(true);
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(productoByIdRoute(producto.id_producto), {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setDetailError(data.message || DEFAULT_DETAIL_ERROR);
+                return;
+            }
+
+            const data = await response.json();
+            if (data.producto) {
+                setSelectedProducto(data.producto);
+            }
+        } catch (error) {
+            setDetailError(CONNECTION_ERROR);
+        } finally {
+            setLoadingDetail(false);
+        }
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -192,6 +245,78 @@ const Productos: React.FC<ProductosProps> = ({ route, navigation }) => {
                 </View>
             ) : null}
 
+            <Modal
+                visible={!!selectedProducto}
+                transparent
+                animationType="none"
+                onRequestClose={handleCloseProductoDetail}
+                testID="producto-detail-modal"
+            >
+                <View style={styles.modalBackdrop}>
+                    <View style={styles.formContainer}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>{DETAIL_TITLE}</Text>
+                            <TouchableOpacity onPress={handleCloseProductoDetail} testID="producto-detail-close-button">
+                                <MaterialIcons name="close" size={22} color="#6b7280" />
+                            </TouchableOpacity>
+                        </View>
+
+                        {loadingDetail ? (
+                            <View style={styles.loadingContainer} testID="producto-detail-loading">
+                                <ActivityIndicator size="small" color="#1976D2" />
+                            </View>
+                        ) : null}
+
+                        {detailError ? (
+                            <View style={styles.feedbackError} testID="producto-detail-error-message">
+                                <Text style={styles.feedbackErrorText}>{detailError}</Text>
+                            </View>
+                        ) : null}
+
+                        {selectedProducto ? (
+                            <>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.detailLabel}>{DETAIL_NAME_LABEL}</Text>
+                                    <Text style={styles.detailValue}>{selectedProducto.nombre}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.detailLabel}>{DETAIL_REFERENCE_LABEL}</Text>
+                                    <Text style={styles.detailValue}>{selectedProducto.referencia}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.detailLabel}>{DETAIL_CATEGORY_LABEL}</Text>
+                                    <Text style={styles.detailValue}>{selectedProducto.categoria}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.detailLabel}>{DETAIL_PROVIDER_LABEL}</Text>
+                                    <Text style={styles.detailValue}>{selectedProducto.proveedor_nombre || "-"}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.detailLabel}>{DETAIL_BUY_PRICE_LABEL}</Text>
+                                    <Text style={styles.detailValue}>{Number(selectedProducto.precio_compra).toFixed(2)} EUR</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.detailLabel}>{DETAIL_SELL_PRICE_LABEL}</Text>
+                                    <Text style={styles.detailValue}>{Number(selectedProducto.precio_venta).toFixed(2)} EUR</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.detailLabel}>{DETAIL_STOCK_LABEL}</Text>
+                                    <Text style={styles.detailValue}>{selectedProducto.stock}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.detailLabel}>{DETAIL_MIN_STOCK_LABEL}</Text>
+                                    <Text style={styles.detailValue}>{selectedProducto.stock_minimo}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.detailLabel}>{DETAIL_DESCRIPTION_LABEL}</Text>
+                                    <Text style={styles.detailValue}>{selectedProducto.descripcion || DETAIL_EMPTY_DESCRIPTION}</Text>
+                                </View>
+                            </>
+                        ) : null}
+                    </View>
+                </View>
+            </Modal>
+
             {loading ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color="#1976D2" />
@@ -207,14 +332,19 @@ const Productos: React.FC<ProductosProps> = ({ route, navigation }) => {
 
                         return (
                             <View key={producto.id_producto} style={styles.productCard} testID={`producto-card-${producto.id_producto}`}>
-                                <View style={styles.cardTopRow}>
-                                    <Text style={styles.productName}>{producto.nombre}</Text>
-                                    <Text style={styles.productPrice}>{Number(producto.precio_venta).toFixed(2)} EUR</Text>
-                                </View>
-                                <Text style={styles.productMeta}>Ref: {producto.referencia}</Text>
-                                <Text style={styles.productMeta}>Categoria: {producto.categoria}</Text>
-                                <Text style={styles.productMeta}>Proveedor: {producto.proveedor_nombre || "-"}</Text>
-                                <Text style={styles.productMeta}>Stock: {producto.stock}</Text>
+                                <TouchableOpacity
+                                    onPress={() => handleOpenProductoDetail(producto)}
+                                    testID={`producto-open-detail-${producto.id_producto}`}
+                                >
+                                    <View style={styles.cardTopRow}>
+                                        <Text style={styles.productName}>{producto.nombre}</Text>
+                                        <Text style={styles.productPrice}>{Number(producto.precio_venta).toFixed(2)} EUR</Text>
+                                    </View>
+                                    <Text style={styles.productMeta}>Ref: {producto.referencia}</Text>
+                                    <Text style={styles.productMeta}>Categoria: {producto.categoria}</Text>
+                                    <Text style={styles.productMeta}>Proveedor: {producto.proveedor_nombre || "-"}</Text>
+                                    <Text style={styles.productMeta}>Stock: {producto.stock}</Text>
+                                </TouchableOpacity>
 
                                 <View style={styles.actionsRow}>
                                     <TouchableOpacity
@@ -359,10 +489,41 @@ const styles = StyleSheet.create({
         color: "#166534",
         fontWeight: "600",
     },
-    loadingContainer: {
+    formContainer: {
+        backgroundColor: "#fff",
+        borderRadius: 12,
+        marginHorizontal: 12,
+        padding: 12,
+        width: "90%",
+        maxWidth: 420,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    modalBackdrop: {
         flex: 1,
+        backgroundColor: "rgba(0,0,0,0.35)",
         justifyContent: "center",
         alignItems: "center",
+        paddingHorizontal: 12,
+    },
+    modalHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 8,
+    },
+    modalTitle: {
+        color: "#0D47A1",
+        fontSize: 18,
+        fontWeight: "700",
+    },
+    loadingContainer: {
+        justifyContent: "center",
+        alignItems: "center",
+        paddingVertical: 10,
     },
     listContainer: {
         padding: 16,
@@ -460,5 +621,19 @@ const styles = StyleSheet.create({
     confirmDeleteText: {
         color: "#fff",
         fontWeight: "700",
+    },
+    detailRow: {
+        marginBottom: 10,
+    },
+    detailLabel: {
+        fontSize: 12,
+        fontWeight: "700",
+        color: "#6b7280",
+        marginBottom: 4,
+        textTransform: "uppercase",
+    },
+    detailValue: {
+        fontSize: 15,
+        color: "#111827",
     },
 });
