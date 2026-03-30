@@ -33,7 +33,7 @@ describe("Descuentos", () => {
         (AsyncStorage.getItem as jest.Mock).mockResolvedValue("mock-token");
     });
 
-    it("carga productos y aplica descuento", async () => {
+    it("abre modal y carga productos y aplica descuento", async () => {
         (fetch as jest.Mock)
             .mockResolvedValueOnce({
                 ok: true,
@@ -62,6 +62,9 @@ describe("Descuentos", () => {
         const { getByTestId, getByText } = render(
             <Descuentos navigation={mockNavigation} route={mockRoute} />
         );
+
+        // Abre modal
+        fireEvent.press(getByTestId("toggle-descuento-form-button"));
 
         await waitFor(() => {
             expect(getByTestId("descuento-producto-option-5")).toBeTruthy();
@@ -118,6 +121,9 @@ describe("Descuentos", () => {
             <Descuentos navigation={mockNavigation} route={mockRoute} />
         );
 
+        // Abre modal
+        fireEvent.press(getByTestId("toggle-descuento-form-button"));
+
         await waitFor(() => {
             expect(getByTestId("descuento-producto-option-5")).toBeTruthy();
         });
@@ -129,12 +135,13 @@ describe("Descuentos", () => {
         expect(getByText("El porcentaje debe ser mayor que 0 y menor o igual a 100")).toBeTruthy();
     });
 
-    it("bloquea acceso para rol sin permisos", async () => {
+    it("bloquea acceso para rol sin permisos", () => {
         const { getByTestId, queryByTestId } = render(
             <Descuentos navigation={mockNavigation} route={mockRouteTrabajador} />
         );
 
         expect(getByTestId("descuentos-no-access-message")).toBeTruthy();
+        expect(queryByTestId("toggle-descuento-form-button")).toBeNull();
         expect(queryByTestId("descuento-save-button")).toBeNull();
     });
 });

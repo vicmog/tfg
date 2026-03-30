@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from "react";
 import {
     ActivityIndicator,
+    Modal,
     ScrollView,
     StyleSheet,
     Text,
@@ -48,9 +49,31 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [modalVisible, setModalVisible] = useState(false);
 
     const normalizedRole = (negocio.rol || "").toLowerCase();
     const canManageDescuentos = normalizedRole === JEFE_ROLE || normalizedRole === ADMIN_ROLE;
+
+    const handleOpenModal = useCallback(() => {
+        setModalVisible(true);
+    }, []);
+
+    const handleCloseModal = useCallback(() => {
+        setModalVisible(false);
+        setSearchText("");
+        setSelectedProductoId(null);
+        setPorcentaje("");
+        setError("");
+        setSuccess("");
+    }, []);
+
+    const handleToggleModal = useCallback(() => {
+        if (modalVisible) {
+            handleCloseModal();
+        } else {
+            handleOpenModal();
+        }
+    }, [modalVisible, handleCloseModal, handleOpenModal]);
 
     const filteredProductos = useMemo(() => {
         const query = searchText.trim().toLowerCase();
@@ -174,6 +197,10 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
             setSuccess(SUCCESS_MESSAGE);
             setPorcentaje("");
             setSelectedProductoId(null);
+            setSearchText("");
+            setTimeout(() => {
+                handleCloseModal();
+            }, 1500);
         } catch (saveError) {
             setError(CONNECTION_ERROR);
         } finally {
@@ -192,6 +219,16 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
                     <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
                 </TouchableOpacity>
                 <Text style={styles.title}>{SCREEN_TITLE}</Text>
+                {canManageDescuentos ? (
+                    <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={handleOpenModal}
+                        testID="toggle-descuento-form-button"
+                    >
+                        <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 6 }} />
+                        <Text style={styles.addButtonText}>Añadir</Text>
+                    </TouchableOpacity>
+                ) : null}
             </View>
 
             <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -200,8 +237,25 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
                         {NO_ACCESS_MESSAGE}
                     </Text>
                 ) : (
-                    <>
-                        <Text style={styles.formTitle}>{FORM_TITLE}</Text>
+                    <Text style={styles.emptyStateText}>Pulsa "Añadir" para crear un descuento</Text>
+                )}
+            </ScrollView>
+
+            <Modal
+                visible={modalVisible}
+                transparent
+                animationType="none"
+                onRequestClose={handleToggleModal}
+                testID="descuento-form-modal"
+            >
+                <View style={styles.modalBackdrop}>
+                    <View style={styles.formContainer}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>{FORM_TITLE}</Text>
+                            <TouchableOpacity onPress={handleToggleModal} testID="close-descuento-form-button">
+                                <MaterialIcons name="close" size={22} color="#6b7280" />
+                            </TouchableOpacity>
+                        </View>
 
                         {loading ? (
                             <View style={styles.loadingRow}>
@@ -281,9 +335,9 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
                             {saving ? <ActivityIndicator size="small" color="#fff" /> : null}
                             <Text style={styles.saveButtonText}>{saving ? SAVING_BUTTON_TEXT : SAVE_BUTTON_TEXT}</Text>
                         </TouchableOpacity>
-                    </>
-                )}
-            </ScrollView>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -299,6 +353,7 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: "row",
         alignItems: "center",
+        justifyContent: "space-between",
         paddingHorizontal: 16,
         paddingVertical: 12,
         backgroundColor: "#fff",
@@ -311,20 +366,35 @@ const styles = StyleSheet.create({
         backgroundColor: "#f0f7ff",
         marginRight: 12,
     },
+    addButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#1976D2",
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 8,
+    },
+    addButtonText: {
+        color: "#fff",
+        fontWeight: "700",
+        fontSize: 14,
+    },
     title: {
         fontSize: 20,
         fontWeight: "700",
         color: "#0D47A1",
+        flex: 1,
     },
     content: {
         padding: 16,
         gap: 10,
+        justifyContent: "center",
+        alignItems: "center",
     },
-    formTitle: {
-        fontSize: 18,
-        fontWeight: "700",
-        color: "#1f2937",
-        marginBottom: 6,
+    emptyStateText: {
+        fontSize: 16,
+        color: "#6b7280",
+        fontWeight: "500",
     },
     input: {
         backgroundColor: "#fff",
@@ -344,13 +414,37 @@ const styles = StyleSheet.create({
         marginLeft: 8,
         color: "#4b5563",
     },
+    modalBackdrop: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        justifyContent: "flex-end",
+    },
+    formContainer: {
+        backgroundColor: "#fff",
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        padding: 20,
+        maxHeight: "90%",
+    },
+    modalHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 16,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: "700",
+        color: "#1f2937",
+    },
     productList: {
         maxHeight: 220,
-        backgroundColor: "#fff",
+        backgroundColor: "#f9fafb",
         borderWidth: 1,
         borderColor: "#d1d5db",
         borderRadius: 10,
         padding: 8,
+        marginVertical: 10,
     },
     productChip: {
         borderWidth: 1,
@@ -388,6 +482,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderRadius: 8,
         padding: 10,
+        marginVertical: 8,
     },
     feedbackErrorText: {
         color: "#b91c1c",
@@ -399,6 +494,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderRadius: 8,
         padding: 10,
+        marginVertical: 8,
     },
     feedbackSuccessText: {
         color: "#166534",
@@ -409,7 +505,7 @@ const styles = StyleSheet.create({
         fontWeight: "600",
     },
     saveButton: {
-        marginTop: 8,
+        marginTop: 12,
         backgroundColor: "#1976D2",
         borderRadius: 10,
         paddingVertical: 12,
