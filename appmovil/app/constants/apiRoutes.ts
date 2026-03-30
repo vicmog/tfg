@@ -40,6 +40,7 @@ export const API_ROUTES = {
   proveedoresByNegocio: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/proveedores/${idNegocio}`,
   updateProveedorById: (idProveedor: number) => `${API_BASE_URL}${API_PREFIX}/proveedores/${idProveedor}`,
   deleteProveedorById: (idProveedor: number) => `${API_BASE_URL}${API_PREFIX}/proveedores/${idProveedor}`,
+  descuentos: `${API_BASE_URL}${API_PREFIX}/descuentos`,
   productos: `${API_BASE_URL}${API_PREFIX}/productos`,
   productosByNegocio: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/productos/${idNegocio}`,
   searchProductosByNegocio: (idNegocio: number, search: string) =>
