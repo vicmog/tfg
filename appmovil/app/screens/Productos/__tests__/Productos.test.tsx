@@ -3,7 +3,7 @@ import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Productos from "../Productos";
 import { API_ROUTES } from "@/app/constants/apiRoutes";
-import { mockNavigation, mockRoute, mockRouteTrabajador } from "./data";
+import { mockNavigation, mockRoute, mockRouteTrabajador, mockProducto } from "./data";
 
 jest.mock("@expo/vector-icons", () => ({
     MaterialIcons: "MaterialIcons",
@@ -114,6 +114,28 @@ describe("Productos listado", () => {
 
         expect(mockNavigation.navigate).toHaveBeenCalledWith("CrearProducto", {
             negocio: mockRoute.params.negocio,
+        });
+    });
+
+    it("navega a la pantalla de editar producto", async () => {
+        (fetch as jest.Mock).mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ productos: [mockProducto] }),
+        });
+
+        const { getByTestId } = render(
+            <Productos navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("producto-edit-button-5")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("producto-edit-button-5"));
+
+        expect(mockNavigation.navigate).toHaveBeenCalledWith("EditarProducto", {
+            negocio: mockRoute.params.negocio,
+            producto: mockProducto,
         });
     });
 

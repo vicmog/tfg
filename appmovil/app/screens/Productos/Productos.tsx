@@ -22,7 +22,6 @@ import {
     DELETE_CONFIRM_MESSAGE,
     DELETE_CONFIRM_TITLE,
     DELETE_SUCCESS_MESSAGE,
-    DELETING_BUTTON_TEXT,
     EMPTY_PRODUCTS_MESSAGE,
     JEFE_ROLE,
     NO_ACCESS_MESSAGE,
@@ -217,18 +216,28 @@ const Productos: React.FC<ProductosProps> = ({ route, navigation }) => {
                                 <Text style={styles.productMeta}>Proveedor: {producto.proveedor_nombre || "-"}</Text>
                                 <Text style={styles.productMeta}>Stock: {producto.stock}</Text>
 
-                                <TouchableOpacity
-                                    style={[styles.actionButton, styles.deleteButton]}
-                                    onPress={() => handleAskDeleteProducto(producto.id_producto)}
-                                    disabled={isDeleting}
-                                    testID={`producto-delete-button-${producto.id_producto}`}
-                                >
-                                    {isDeleting ? (
-                                        <ActivityIndicator size="small" color="#fff" />
-                                    ) : (
-                                        <MaterialIcons name="delete" size={16} color="#fff" />
-                                    )}
-                                </TouchableOpacity>
+                                <View style={styles.actionsRow}>
+                                    <TouchableOpacity
+                                        style={[styles.actionButton, styles.editButton]}
+                                        onPress={() => navigation.navigate("EditarProducto", { negocio, producto })}
+                                        testID={`producto-edit-button-${producto.id_producto}`}
+                                    >
+                                        <MaterialIcons name="edit" size={16} color="#fff" />
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={[styles.actionButton, styles.deleteButton]}
+                                        onPress={() => handleAskDeleteProducto(producto.id_producto)}
+                                        disabled={isDeleting}
+                                        testID={`producto-delete-button-${producto.id_producto}`}
+                                    >
+                                        {isDeleting ? (
+                                            <ActivityIndicator size="small" color="#fff" />
+                                        ) : (
+                                            <MaterialIcons name="delete" size={16} color="#fff" />
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
 
                                 {confirmDeleteProductoId === producto.id_producto ? (
                                     <View style={styles.confirmBox} testID={`producto-delete-confirm-${producto.id_producto}`}>
@@ -393,19 +402,24 @@ const styles = StyleSheet.create({
         color: "#4b5563",
         marginTop: 2,
     },
-    actionButton: {
+    actionsRow: {
         marginTop: 10,
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    actionButton: {
         height: 34,
         width: 34,
         borderRadius: 10,
         alignItems: "center",
         justifyContent: "center",
     },
+    editButton: {
+        backgroundColor: "#2563eb",
+        marginRight: 8,
+    },
     deleteButton: {
         backgroundColor: "#dc2626",
-    },
-    deleteButtonDisabled: {
-        opacity: 0.7,
     },
     confirmBox: {
         marginTop: 10,

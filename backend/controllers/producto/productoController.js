@@ -209,6 +209,70 @@ export const createProducto = async (req, res) => {
     }
 };
 
+export const updateProducto = async (req, res) => {
+    const { id_producto } = req.params;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: PRODUCTO_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (!id_producto) {
+        return res.status(400).json({ message: PRODUCTO_ERRORS.PRODUCTO_ID_REQUIRED });
+    }
+
+    const productoFieldsResult = validateProductoFields(req.body);
+
+    if (productoFieldsResult.error) {
+        return res.status(400).json({ message: productoFieldsResult.error });
+    }
+
+    try {
+        const producto = await Producto.findByPk(id_producto);
+
+        if (!producto) {
+            return res.status(404).json({ message: PRODUCTO_ERRORS.PRODUCTO_NOT_FOUND });
+        }
+
+        const proveedorActual = await Proveedor.findByPk(producto.id_proveedor);
+
+        if (!proveedorActual) {
+            return res.status(404).json({ message: PRODUCTO_ERRORS.PRODUCT_PROVIDER_NOT_FOUND });
+        }
+
+        const usuarioNegocio = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio: proveedorActual.id_negocio },
+        });
+
+        if (!usuarioNegocio) {
+            return res.status(403).json({ message: PRODUCTO_ERRORS.NO_ACCESS_TO_NEGOCIO });
+        }
+
+        if (!canManageProductos(usuarioNegocio.rol)) {
+            return res.status(403).json({ message: PRODUCTO_ERRORS.NO_MANAGE_PERMISSION });
+        }
+
+        const proveedorNuevo = await Proveedor.findByPk(productoFieldsResult.value.id_proveedor);
+
+        if (!proveedorNuevo) {
+            return res.status(404).json({ message: PRODUCTO_ERRORS.PROVEEDOR_NOT_FOUND });
+        }
+
+        if (proveedorNuevo.id_negocio !== proveedorActual.id_negocio) {
+            return res.status(400).json({ message: PRODUCTO_ERRORS.PROVIDER_NOT_IN_BUSINESS });
+        }
+
+        await producto.update(productoFieldsResult.value);
+
+        return res.status(200).json({
+            message: PRODUCTO_MESSAGES.PRODUCTO_UPDATED,
+            producto: serializeProducto(producto),
+        });
+    } catch (error) {
+        return res.status(500).json({ message: PRODUCTO_ERRORS.SERVER_ERROR });
+    }
+};
+
 export const getProductosByNegocio = async (req, res) => {
     const { id_negocio } = req.params;
     const id_usuario = req.user?.id_usuario;

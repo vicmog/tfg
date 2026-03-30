@@ -3,3 +3,4 @@ import { NavigationScreenList } from "@/app/index";
 
 export type ProductosProps = NativeStackScreenProps<NavigationScreenList, "Productos">;
 export type CrearProductoProps = NativeStackScreenProps<NavigationScreenList, "CrearProducto">;
+export type EditarProductoProps = NativeStackScreenProps<NavigationScreenList, "EditarProducto">;

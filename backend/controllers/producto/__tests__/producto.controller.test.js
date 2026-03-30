@@ -1,4 +1,4 @@
-import { createProducto, deleteProducto, getProductosByNegocio } from "../productoController.js";
+import { createProducto, deleteProducto, getProductosByNegocio, updateProducto } from "../productoController.js";
 import { Producto } from "../../../models/Producto.js";
 import { Proveedor } from "../../../models/Proveedor.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
@@ -20,11 +20,16 @@ import {
     getProductosReqSinPermiso,
     mockProductoData,
     mockProductoEntity,
+    mockProductoEntityWithUpdate,
     mockProductos,
     mockProveedor,
     mockUsuarioAdmin,
     mockUsuarioJefe,
     mockUsuarioTrabajador,
+    updateProductoReq,
+    updateProductoReqProveedorOtroNegocio,
+    updateProductoReqSinNombre,
+    updateProductoReqSinPermiso,
 } from "./data.js";
 
 jest.mock("../../../models/Producto.js");
@@ -275,6 +280,98 @@ describe("ProductoController Unit Tests", () => {
             expect(res.status).toHaveBeenCalledWith(403);
             expect(jsonMock).toHaveBeenCalledWith({
                 message: "No tienes permisos para gestionar productos",
+            });
+        });
+    });
+
+    describe("updateProducto", () => {
+        it("deberia actualizar producto correctamente para jefe", async () => {
+            const producto = {
+                ...mockProductoEntityWithUpdate,
+                update: jest.fn(async function updateProductoMock(fields) {
+                    Object.assign(this, fields);
+                    return this;
+                }),
+            };
+
+            (Producto.findByPk).mockResolvedValue(producto);
+            (Proveedor.findByPk)
+                .mockResolvedValueOnce(mockProveedor)
+                .mockResolvedValueOnce(mockProveedor);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+
+            const { res, jsonMock } = buildRes();
+
+            await updateProducto(updateProductoReq, res);
+
+            expect(producto.update).toHaveBeenCalledWith({
+                id_proveedor: 7,
+                nombre: "Champu premium",
+                referencia: "CH-001-NEW",
+                categoria: "Cosmetica",
+                precio_compra: 6.5,
+                precio_venta: 13.99,
+                stock: 45,
+                stock_minimo: 4,
+                descripcion: "Nueva formula",
+            });
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    message: "Producto actualizado correctamente",
+                    producto: expect.objectContaining({
+                        id_producto: 55,
+                        nombre: "Champu premium",
+                    }),
+                })
+            );
+        });
+
+        it("deberia fallar si no tiene permisos", async () => {
+            const producto = { ...mockProductoEntityWithUpdate, update: jest.fn() };
+            (Producto.findByPk).mockResolvedValue(producto);
+            (Proveedor.findByPk).mockResolvedValue(mockProveedor);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioTrabajador);
+
+            const { res, jsonMock } = buildRes();
+
+            await updateProducto(updateProductoReqSinPermiso, res);
+
+            expect(producto.update).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "No tienes permisos para gestionar productos",
+            });
+        });
+
+        it("deberia fallar si falta nombre", async () => {
+            const { res, jsonMock } = buildRes();
+
+            await updateProducto(updateProductoReqSinNombre, res);
+
+            expect(Producto.findByPk).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "El nombre del producto es obligatorio",
+            });
+        });
+
+        it("deberia fallar si el proveedor no pertenece al negocio", async () => {
+            const producto = { ...mockProductoEntityWithUpdate, update: jest.fn() };
+            (Producto.findByPk).mockResolvedValue(producto);
+            (Proveedor.findByPk)
+                .mockResolvedValueOnce(mockProveedor)
+                .mockResolvedValueOnce({ ...mockProveedor, id_proveedor: 999, id_negocio: 12 });
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+
+            const { res, jsonMock } = buildRes();
+
+            await updateProducto(updateProductoReqProveedorOtroNegocio, res);
+
+            expect(producto.update).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "El proveedor no pertenece al negocio seleccionado",
             });
         });
     });
