@@ -139,6 +139,51 @@ describe("Productos listado", () => {
         });
     });
 
+    it("abre popup y muestra detalle completo de producto", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ productos: [mockProducto] }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    producto: {
+                        ...mockProducto,
+                        descripcion: "Descripcion completa",
+                        precio_compra: 4.5,
+                    },
+                }),
+            });
+
+        const { getByTestId, getByText } = render(
+            <Productos navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("producto-open-detail-5")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("producto-open-detail-5"));
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.productoById(5),
+                expect.objectContaining({
+                    headers: expect.objectContaining({
+                        Authorization: "Bearer mock-token",
+                    }),
+                })
+            );
+        });
+
+        await waitFor(() => {
+            expect(getByTestId("producto-detail-modal")).toBeTruthy();
+            expect(getByText("Detalle del producto")).toBeTruthy();
+            expect(getByText("Descripcion completa")).toBeTruthy();
+        });
+    });
+
     it("muestra confirmacion antes de eliminar", async () => {
         (fetch as jest.Mock).mockResolvedValueOnce({
             ok: true,

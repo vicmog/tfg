@@ -1,4 +1,11 @@
-import { createProducto, deleteProducto, getProductosByNegocio, updateProducto } from "../productoController.js";
+import {
+    createProducto,
+    deleteProducto,
+    getProductoById,
+    getProductosByNegocio,
+    searchProductosByNegocio,
+    updateProducto,
+} from "../productoController.js";
 import { Producto } from "../../../models/Producto.js";
 import { Proveedor } from "../../../models/Proveedor.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
@@ -26,6 +33,10 @@ import {
     mockUsuarioAdmin,
     mockUsuarioJefe,
     mockUsuarioTrabajador,
+    searchProductosReq,
+    searchProductosReqSinPermiso,
+    getProductoByIdReq,
+    getProductoByIdReqSinPermiso,
     updateProductoReq,
     updateProductoReqProveedorOtroNegocio,
     updateProductoReqSinNombre,
@@ -217,6 +228,83 @@ describe("ProductoController Unit Tests", () => {
             await getProductosByNegocio(getProductosReqSinPermiso, res);
 
             expect(Producto.findAll).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "No tienes permisos para gestionar productos",
+            });
+        });
+    });
+
+    describe("searchProductosByNegocio", () => {
+        it("deberia buscar productos por termino", async () => {
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+            (Proveedor.findAll).mockResolvedValue([mockProveedor]);
+            (Producto.findAll).mockResolvedValue([mockProductoData]);
+
+            const { res, jsonMock } = buildRes();
+
+            await searchProductosByNegocio(searchProductosReq, res);
+
+            expect(Producto.findAll).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    order: [["createdAt", "DESC"]],
+                })
+            );
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    message: "Productos filtrados correctamente",
+                    productos: expect.any(Array),
+                })
+            );
+        });
+
+        it("deberia fallar si no tiene permisos", async () => {
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioTrabajador);
+
+            const { res, jsonMock } = buildRes();
+
+            await searchProductosByNegocio(searchProductosReqSinPermiso, res);
+
+            expect(Producto.findAll).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "No tienes permisos para gestionar productos",
+            });
+        });
+    });
+
+    describe("getProductoById", () => {
+        it("deberia devolver detalle de producto", async () => {
+            (Producto.findByPk).mockResolvedValue(mockProductoData);
+            (Proveedor.findByPk).mockResolvedValue(mockProveedor);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+
+            const { res, jsonMock } = buildRes();
+
+            await getProductoById(getProductoByIdReq, res);
+
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    message: "Producto obtenido correctamente",
+                    producto: expect.objectContaining({
+                        id_producto: 55,
+                        proveedor_nombre: "Proveedor Norte",
+                    }),
+                })
+            );
+        });
+
+        it("deberia fallar si no tiene permisos", async () => {
+            (Producto.findByPk).mockResolvedValue(mockProductoData);
+            (Proveedor.findByPk).mockResolvedValue(mockProveedor);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioTrabajador);
+
+            const { res, jsonMock } = buildRes();
+
+            await getProductoById(getProductoByIdReqSinPermiso, res);
+
             expect(res.status).toHaveBeenCalledWith(403);
             expect(jsonMock).toHaveBeenCalledWith({
                 message: "No tienes permisos para gestionar productos",

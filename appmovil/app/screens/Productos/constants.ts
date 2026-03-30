@@ -2,6 +2,8 @@ import { API_ROUTES } from "@/app/constants/apiRoutes";
 
 export const createProductoRoute = API_ROUTES.productos;
 export const productosByNegocioRoute = (idNegocio: number) => API_ROUTES.productosByNegocio(idNegocio);
+export const searchProductosByNegocioRoute = (idNegocio: number, search: string) => API_ROUTES.searchProductosByNegocio(idNegocio, search);
+export const productoByIdRoute = (idProducto: number) => API_ROUTES.productoById(idProducto);
 export const updateProductoByIdRoute = (idProducto: number) => API_ROUTES.updateProductoById(idProducto);
 export const deleteProductoByIdRoute = (idProducto: number) => API_ROUTES.deleteProductoById(idProducto);
 export const proveedoresByNegocioRoute = (idNegocio: number) => API_ROUTES.proveedoresByNegocio(idNegocio);
@@ -13,6 +15,18 @@ export const ADD_PRODUCT_BUTTON = "Añadir producto";
 export const SEARCH_PRODUCT = "Buscar por nombre, referencia o categoria";
 export const EMPTY_PRODUCTS_MESSAGE = "No hay productos registrados";
 export const DEFAULT_PRODUCTS_ERROR = "No se pudieron obtener los productos";
+export const DEFAULT_DETAIL_ERROR = "No se pudieron obtener los datos del producto";
+export const DETAIL_TITLE = "Detalle del producto";
+export const DETAIL_NAME_LABEL = "Nombre";
+export const DETAIL_REFERENCE_LABEL = "Referencia";
+export const DETAIL_CATEGORY_LABEL = "Categoría";
+export const DETAIL_PROVIDER_LABEL = "Proveedor";
+export const DETAIL_BUY_PRICE_LABEL = "Precio compra";
+export const DETAIL_SELL_PRICE_LABEL = "Precio venta";
+export const DETAIL_STOCK_LABEL = "Stock";
+export const DETAIL_MIN_STOCK_LABEL = "Stock mínimo";
+export const DETAIL_DESCRIPTION_LABEL = "Descripción";
+export const DETAIL_EMPTY_DESCRIPTION = "Sin descripción";
 
 export const FORM_TITLE = "Datos del producto";
 export const PROVIDER_SEARCH_PLACEHOLDER = "Buscar proveedor";
