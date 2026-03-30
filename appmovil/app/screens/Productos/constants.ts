@@ -2,11 +2,13 @@ import { API_ROUTES } from "@/app/constants/apiRoutes";
 
 export const createProductoRoute = API_ROUTES.productos;
 export const productosByNegocioRoute = (idNegocio: number) => API_ROUTES.productosByNegocio(idNegocio);
+export const updateProductoByIdRoute = (idProducto: number) => API_ROUTES.updateProductoById(idProducto);
 export const deleteProductoByIdRoute = (idProducto: number) => API_ROUTES.deleteProductoById(idProducto);
 export const proveedoresByNegocioRoute = (idNegocio: number) => API_ROUTES.proveedoresByNegocio(idNegocio);
 
 export const SCREEN_TITLE = "Productos";
 export const CREATE_SCREEN_TITLE = "Nuevo producto";
+export const EDIT_SCREEN_TITLE = "Editar producto";
 export const ADD_PRODUCT_BUTTON = "Añadir producto";
 export const SEARCH_PRODUCT = "Buscar por nombre, referencia o categoria";
 export const EMPTY_PRODUCTS_MESSAGE = "No hay productos registrados";
@@ -43,10 +45,12 @@ export const INVALID_STOCK_ERROR = "El stock debe ser un número entero mayor o 
 export const INVALID_STOCK_MINIMO_ERROR = "El stock mínimo debe ser un número entero mayor o igual a 0";
 
 export const DEFAULT_CREATE_ERROR = "No se pudo crear el producto";
+export const DEFAULT_UPDATE_ERROR = "No se pudo actualizar el producto";
 export const DEFAULT_PROVIDERS_ERROR = "No se pudieron obtener los proveedores";
 export const DEFAULT_DELETE_ERROR = "No se pudo eliminar el producto";
 export const CONNECTION_ERROR = "Error de conexión. Inténtalo de nuevo.";
 export const SUCCESS_MESSAGE = "Producto creado correctamente";
+export const UPDATE_SUCCESS_MESSAGE = "Producto actualizado correctamente";
 export const DELETE_SUCCESS_MESSAGE = "Producto eliminado correctamente";
 export const NO_ACCESS_MESSAGE = "Solo jefe y administrador pueden gestionar productos";
 
@@ -54,6 +58,8 @@ export const DELETE_CONFIRM_TITLE = "Eliminar producto";
 export const DELETE_CONFIRM_MESSAGE = "¿Seguro que quieres eliminar este producto?";
 export const DELETE_BUTTON_TEXT = "Eliminar";
 export const DELETING_BUTTON_TEXT = "Eliminando...";
+export const SAVE_CHANGES_BUTTON_TEXT = "Guardar cambios";
+export const SAVING_CHANGES_BUTTON_TEXT = "Guardando cambios...";
 
 export const JEFE_ROLE = "jefe";
 export const ADMIN_ROLE = "admin";

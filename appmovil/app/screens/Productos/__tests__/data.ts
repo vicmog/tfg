@@ -24,3 +24,31 @@ export const mockRoute = {
 export const mockRouteTrabajador = {
     params: { negocio: mockNegocioTrabajador },
 } as any;
+
+export const mockProducto = {
+    id_producto: 5,
+    id_proveedor: 7,
+    nombre: "Champu",
+    referencia: "CH-001",
+    categoria: "Cosmetica",
+    descripcion: "Uso diario",
+    precio_compra: 5,
+    precio_venta: 10,
+    stock: 8,
+    stock_minimo: 1,
+    proveedor_nombre: "Proveedor Norte",
+};
+
+export const mockEditarRoute = {
+    params: {
+        negocio: mockNegocioJefe,
+        producto: mockProducto,
+    },
+} as any;
+
+export const mockEditarRouteTrabajador = {
+    params: {
+        negocio: mockNegocioTrabajador,
+        producto: mockProducto,
+    },
+} as any;

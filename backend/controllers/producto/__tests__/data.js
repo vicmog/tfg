@@ -54,6 +54,43 @@ export const deleteProductoReqSinPermiso = {
     user: { id_usuario: 2 },
 };
 
+export const updateProductoReq = {
+    params: { id_producto: "55" },
+    body: {
+        id_proveedor: 7,
+        nombre: "Champu premium",
+        referencia: "CH-001-NEW",
+        categoria: "Cosmetica",
+        precio_compra: "6.5",
+        precio_venta: "13.99",
+        stock: "45",
+        stock_minimo: "4",
+        descripcion: "Nueva formula",
+    },
+    user: { id_usuario: 1 },
+};
+
+export const updateProductoReqSinPermiso = {
+    ...updateProductoReq,
+    user: { id_usuario: 2 },
+};
+
+export const updateProductoReqSinNombre = {
+    ...updateProductoReq,
+    body: {
+        ...updateProductoReq.body,
+        nombre: "",
+    },
+};
+
+export const updateProductoReqProveedorOtroNegocio = {
+    ...updateProductoReq,
+    body: {
+        ...updateProductoReq.body,
+        id_proveedor: 999,
+    },
+};
+
 export const createProductoReqAdmin = {
     body: {
         id_negocio: 10,
@@ -147,6 +184,14 @@ export const mockProductos = [
 export const mockProductoEntity = {
     ...mockProductoData,
     destroy: jest.fn(),
+};
+
+export const mockProductoEntityWithUpdate = {
+    ...mockProductoData,
+    update: jest.fn(async function updateProducto(fields) {
+        Object.assign(this, fields);
+        return this;
+    }),
 };
 
 export const buildRes = () => {
