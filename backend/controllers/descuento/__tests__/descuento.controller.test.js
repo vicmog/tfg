@@ -33,6 +33,7 @@ describe("DescuentoController Unit Tests", () => {
         (Producto.findByPk).mockResolvedValue(mockProducto);
         (Proveedor.findByPk).mockResolvedValue(mockProveedor);
         (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+        (Descuento.findOne).mockResolvedValue(null);
         (Descuento.create).mockResolvedValue(mockDescuento);
 
         const { res, jsonMock } = buildRes();
@@ -54,6 +55,7 @@ describe("DescuentoController Unit Tests", () => {
         (Producto.findByPk).mockResolvedValue(mockProducto);
         (Proveedor.findByPk).mockResolvedValue(mockProveedor);
         (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioAdmin);
+        (Descuento.findOne).mockResolvedValue(null);
         (Descuento.create).mockResolvedValue({ ...mockDescuento, porcentaje_descuento: 25 });
 
         const { res } = buildRes();
@@ -117,5 +119,62 @@ describe("DescuentoController Unit Tests", () => {
         expect(jsonMock).toHaveBeenCalledWith({
             message: "No tienes permisos para gestionar descuentos",
         });
+    });
+
+    it("deberia actualizar descuento existente para el producto", async () => {
+        const descuentoActualizado = {
+            id_descuento: 1,
+            id_producto: 55,
+            porcentaje_descuento: 30,
+            update: jest.fn().mockResolvedValue({
+                id_descuento: 1,
+                id_producto: 55,
+                porcentaje_descuento: 30,
+            }),
+        };
+
+        (Producto.findByPk).mockResolvedValue(mockProducto);
+        (Proveedor.findByPk).mockResolvedValue(mockProveedor);
+        (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+        (Descuento.findOne).mockResolvedValue(descuentoActualizado);
+
+        const { res, jsonMock } = buildRes();
+
+        await createDescuento(
+            {
+                body: {
+                    id_producto: 55,
+                    porcentaje_descuento: "30",
+                },
+                user: { id_usuario: 1 },
+            },
+            res
+        );
+
+        expect(Descuento.create).not.toHaveBeenCalled();
+        expect(descuentoActualizado.update).toHaveBeenCalledWith({ porcentaje_descuento: 30 });
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith({
+            message: "Descuento aplicado correctamente",
+            descuento: {
+                id_descuento: 1,
+                id_producto: 55,
+                porcentaje_descuento: 30,
+            },
+        });
+    });
+
+    it("deberia permitir rol en mayusculas", async () => {
+        (Producto.findByPk).mockResolvedValue(mockProducto);
+        (Proveedor.findByPk).mockResolvedValue(mockProveedor);
+        (UsuarioNegocio.findOne).mockResolvedValue({ ...mockUsuarioJefe, rol: "JEFE" });
+        (Descuento.findOne).mockResolvedValue(null);
+        (Descuento.create).mockResolvedValue(mockDescuento);
+
+        const { res } = buildRes();
+
+        await createDescuento(createDescuentoReq, res);
+
+        expect(res.status).toHaveBeenCalledWith(201);
     });
 });
