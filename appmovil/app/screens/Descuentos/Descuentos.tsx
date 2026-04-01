@@ -157,7 +157,7 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
 
     const fetchProductos = useCallback(async () => {
         if (!canManageDescuentos) {
-            setError(NO_ACCESS_MESSAGE);
+            setError("");
             setProductos([]);
             return;
         }

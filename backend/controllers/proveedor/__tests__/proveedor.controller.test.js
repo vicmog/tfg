@@ -209,17 +209,21 @@ describe("ProveedorController Unit Tests", () => {
             });
         });
 
-        it("debería fallar si el usuario no es jefe ni admin", async () => {
+        it("debería devolver proveedores para trabajador", async () => {
             (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioTrabajador);
+            (Proveedor.findAll).mockResolvedValue(mockProveedores);
 
             const { res, jsonMock } = buildRes();
 
             await getProveedoresByNegocio(getProveedoresReqSinPermiso, res);
 
-            expect(Proveedor.findAll).not.toHaveBeenCalled();
-            expect(res.status).toHaveBeenCalledWith(403);
+            expect(Proveedor.findAll).toHaveBeenCalledWith({
+                where: { id_negocio: "10" },
+                order: [["createdAt", "DESC"]],
+            });
+            expect(res.status).toHaveBeenCalledWith(200);
             expect(jsonMock).toHaveBeenCalledWith({
-                message: "No tienes permisos para gestionar proveedores",
+                proveedores: mockProveedores,
             });
         });
     });

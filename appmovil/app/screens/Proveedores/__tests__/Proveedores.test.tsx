@@ -191,17 +191,50 @@ describe("Proveedores", () => {
         });
     });
 
-    it("muestra mensaje de acceso para trabajador", async () => {
-        const { getByText, queryByTestId } = render(
+    it("permite ver y buscar para trabajador sin acciones de gestion", async () => {
+        (fetch as jest.Mock).mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+                proveedores: [
+                    {
+                        id_proveedor: 5,
+                        id_negocio: 1,
+                        nombre: "Distribuciones Norte",
+                        cif_nif: "B12345678",
+                        contacto: "Laura Pérez",
+                        telefono: "600123123",
+                        email: "proveedor@mail.com",
+                        tipo_proveedor: "Material de peluquería",
+                        direccion: "Calle Mayor 1",
+                    },
+                ],
+            }),
+        });
+
+        const { getByTestId, getByText, queryByTestId, queryByText } = render(
             <Proveedores navigation={mockNavigation} route={mockRouteTrabajador} />
         );
 
         await waitFor(() => {
-            expect(getByText("Solo jefe y administrador pueden gestionar proveedores")).toBeTruthy();
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.proveedoresByNegocio(1),
+                expect.objectContaining({
+                    headers: { Authorization: "Bearer mock-token" },
+                })
+            );
         });
 
         expect(queryByTestId("toggle-proveedor-form-button")).toBeNull();
-        expect(fetch).not.toHaveBeenCalled();
+        expect(queryByTestId("proveedor-edit-button-5")).toBeNull();
+        expect(queryByTestId("proveedor-delete-button-5")).toBeNull();
+        expect(getByText("Distribuciones Norte")).toBeTruthy();
+
+        fireEvent.changeText(getByTestId("proveedor-search-input"), "Norte");
+        expect(getByText("Distribuciones Norte")).toBeTruthy();
+
+        fireEvent.changeText(getByTestId("proveedor-search-input"), "NoCoincide");
+        expect(queryByText("Distribuciones Norte")).toBeNull();
+        expect(getByText("No hay proveedores registrados")).toBeTruthy();
     });
 
     it("edita proveedor y guarda cambios", async () => {

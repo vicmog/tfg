@@ -149,11 +149,12 @@ describe("Descuentos", () => {
     });
 
     it("bloquea acceso para rol sin permisos", () => {
-        const { getByTestId, queryByTestId } = render(
+        const { getByTestId, getAllByText, queryByTestId } = render(
             <Descuentos navigation={mockNavigation} route={mockRouteTrabajador} />
         );
 
         expect(getByTestId("descuentos-no-access-message")).toBeTruthy();
+        expect(getAllByText("Solo jefe y administrador pueden gestionar descuentos")).toHaveLength(1);
         expect(queryByTestId("toggle-descuento-form-button")).toBeNull();
         expect(queryByTestId("descuento-save-button")).toBeNull();
     });

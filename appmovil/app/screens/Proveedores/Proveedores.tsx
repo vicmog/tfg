@@ -46,7 +46,6 @@ import {
     FORM_TITLE,
     INVALID_EMAIL_ERROR,
     JEFE_ROLE,
-    NO_ACCESS_MESSAGE,
     NO_ADDRESS_MESSAGE,
     NO_EMAIL_MESSAGE,
     NO_PHONE_MESSAGE,
@@ -118,12 +117,6 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
     };
 
     const fetchProveedores = useCallback(async () => {
-        if (!canManageProveedores) {
-            setProveedores([]);
-            setListError(NO_ACCESS_MESSAGE);
-            return;
-        }
-
         setLoading(true);
         setListError("");
 
@@ -150,7 +143,7 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
         } finally {
             setLoading(false);
         }
-    }, [canManageProveedores, negocio.id_negocio]);
+    }, [negocio.id_negocio]);
 
     useFocusEffect(
         useCallback(() => {
