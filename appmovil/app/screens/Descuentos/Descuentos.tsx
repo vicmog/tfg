@@ -699,6 +699,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 10,
         color: "#111827",
+        marginBottom: 12,
     },
     loadingRow: {
         flexDirection: "row",
@@ -718,14 +719,14 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
-        padding: 20,
+        padding: 22,
         maxHeight: "90%",
     },
     modalHeader: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: 16,
+        marginBottom: 18,
     },
     modalTitle: {
         fontSize: 18,
@@ -739,7 +740,7 @@ const styles = StyleSheet.create({
         borderColor: "#d1d5db",
         borderRadius: 10,
         padding: 8,
-        marginVertical: 10,
+        marginVertical: 12,
     },
     productChip: {
         borderWidth: 1,
@@ -766,20 +767,20 @@ const styles = StyleSheet.create({
     helperText: {
         fontSize: 13,
         color: "#0f766e",
-        marginBottom: 8,
+        marginBottom: 12,
     },
     helperTextSmall: {
         fontSize: 12,
         color: "#6b7280",
-        marginTop: -6,
-        marginBottom: 8,
+        marginTop: -4,
+        marginBottom: 12,
     },
     sectionLabel: {
         fontSize: 14,
         fontWeight: "600",
         color: "#374151",
-        marginTop: 12,
-        marginBottom: 8,
+        marginTop: 16,
+        marginBottom: 10,
     },
     emptyText: {
         color: "#6b7280",
@@ -814,7 +815,7 @@ const styles = StyleSheet.create({
         fontWeight: "600",
     },
     saveButton: {
-        marginTop: 12,
+        marginTop: 16,
         backgroundColor: "#1976D2",
         borderRadius: 10,
         paddingVertical: 12,
