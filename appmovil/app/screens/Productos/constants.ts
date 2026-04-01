@@ -7,6 +7,7 @@ export const productoByIdRoute = (idProducto: number) => API_ROUTES.productoById
 export const updateProductoByIdRoute = (idProducto: number) => API_ROUTES.updateProductoById(idProducto);
 export const deleteProductoByIdRoute = (idProducto: number) => API_ROUTES.deleteProductoById(idProducto);
 export const proveedoresByNegocioRoute = (idNegocio: number) => API_ROUTES.proveedoresByNegocio(idNegocio);
+export const descuentosByProductoRoute = (idProducto: number) => API_ROUTES.descuentosByProducto(idProducto);
 
 export const SCREEN_TITLE = "Productos";
 export const CREATE_SCREEN_TITLE = "Nuevo producto";
@@ -27,6 +28,14 @@ export const DETAIL_STOCK_LABEL = "Stock";
 export const DETAIL_MIN_STOCK_LABEL = "Stock mínimo";
 export const DETAIL_DESCRIPTION_LABEL = "Descripción";
 export const DETAIL_EMPTY_DESCRIPTION = "Sin descripción";
+export const DETAIL_DISCOUNTS_SECTION_TITLE = "Descuentos activos";
+export const DETAIL_DISCOUNT_PERCENTAGE_LABEL = "Porcentaje";
+export const DETAIL_DISCOUNT_TYPE_LABEL = "Tipo";
+export const DETAIL_DISCOUNT_START_DATE_LABEL = "Fecha inicio";
+export const DETAIL_DISCOUNT_END_DATE_LABEL = "Fecha fin";
+export const DETAIL_NO_DISCOUNTS_MESSAGE = "No hay descuentos activos para este producto";
+export const DETAIL_DISCOUNTS_ERROR = "No se pudieron cargar los descuentos";
+export const DETAIL_DISCOUNTS_LOADING = "Cargando descuentos...";
 
 export const FORM_TITLE = "Datos del producto";
 export const PROVIDER_SEARCH_PLACEHOLDER = "Buscar proveedor";

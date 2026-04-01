@@ -1,4 +1,4 @@
-import { createDescuento } from "../descuentoController.js";
+import { createDescuento, getDescuentosByProducto } from "../descuentoController.js";
 import { Descuento } from "../../../models/Descuento.js";
 import { Producto } from "../../../models/Producto.js";
 import { Proveedor } from "../../../models/Proveedor.js";
@@ -11,7 +11,12 @@ import {
     createDescuentoReqSinAuth,
     createDescuentoReqSinPermiso,
     createDescuentoReqSinProducto,
+    getDescuentosReq,
+    getDescuentosReqProductoInvalido,
+    getDescuentosReqSinAuth,
+    getDescuentosReqSinPermiso,
     mockDescuento,
+    mockDescuentos,
     mockProducto,
     mockProveedor,
     mockUsuarioAdmin,
@@ -176,5 +181,117 @@ describe("DescuentoController Unit Tests", () => {
         await createDescuento(createDescuentoReq, res);
 
         expect(res.status).toHaveBeenCalledWith(201);
+    });
+
+    describe("GET descuentos by producto", () => {
+        it("deberia obtener descuentos correctamente para jefe", async () => {
+            (Producto.findByPk).mockResolvedValue(mockProducto);
+            (Proveedor.findByPk).mockResolvedValue(mockProveedor);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+            (Descuento.findAll).mockResolvedValue(mockDescuentos);
+
+            const { res, jsonMock } = buildRes();
+
+            await getDescuentosByProducto(getDescuentosReq, res);
+
+            expect(Descuento.findAll).toHaveBeenCalledWith({
+                where: { id_producto: 55 },
+                order: [['createdAt', 'DESC']],
+            });
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Descuentos obtenidos correctamente",
+                descuentos: expect.arrayContaining([
+                    expect.objectContaining({
+                        id_descuento: expect.any(Number),
+                        id_producto: 55,
+                        porcentaje_descuento: expect.any(Number),
+                    }),
+                ]),
+            });
+        });
+
+        it("deberia obtener descuentos correctamente para admin", async () => {
+            (Producto.findByPk).mockResolvedValue(mockProducto);
+            (Proveedor.findByPk).mockResolvedValue(mockProveedor);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioAdmin);
+            (Descuento.findAll).mockResolvedValue(mockDescuentos);
+
+            const { res } = buildRes();
+
+            await getDescuentosByProducto(getDescuentosReq, res);
+
+            expect(res.status).toHaveBeenCalledWith(200);
+        });
+
+        it("deberia devolver array vacio si no hay descuentos", async () => {
+            (Producto.findByPk).mockResolvedValue(mockProducto);
+            (Proveedor.findByPk).mockResolvedValue(mockProveedor);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+            (Descuento.findAll).mockResolvedValue([]);
+
+            const { res, jsonMock } = buildRes();
+
+            await getDescuentosByProducto(getDescuentosReq, res);
+
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Descuentos obtenidos correctamente",
+                descuentos: [],
+            });
+        });
+
+        it("deberia fallar si no esta autenticado", async () => {
+            const { res, jsonMock } = buildRes();
+
+            await getDescuentosByProducto(getDescuentosReqSinAuth, res);
+
+            expect(Producto.findByPk).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(401);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Usuario no autenticado",
+            });
+        });
+
+        it("deberia fallar si id_producto es invalido", async () => {
+            const { res, jsonMock } = buildRes();
+
+            await getDescuentosByProducto(getDescuentosReqProductoInvalido, res);
+
+            expect(Producto.findByPk).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "El producto es obligatorio",
+            });
+        });
+
+        it("deberia fallar si no tiene permisos", async () => {
+            (Producto.findByPk).mockResolvedValue(mockProducto);
+            (Proveedor.findByPk).mockResolvedValue(mockProveedor);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioTrabajador);
+
+            const { res, jsonMock } = buildRes();
+
+            await getDescuentosByProducto(getDescuentosReqSinPermiso, res);
+
+            expect(Descuento.findAll).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "No tienes permisos para ver descuentos",
+            });
+        });
+
+        it("deberia fallar si el producto no existe", async () => {
+            (Producto.findByPk).mockResolvedValue(null);
+
+            const { res, jsonMock } = buildRes();
+
+            await getDescuentosByProducto(getDescuentosReq, res);
+
+            expect(res.status).toHaveBeenCalledWith(404);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Producto no encontrado",
+            });
+        });
     });
 });

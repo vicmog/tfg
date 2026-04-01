@@ -12,7 +12,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
-import { Producto } from "../types";
+import { Producto, Descuento } from "../types";
 import {
     ADD_PRODUCT_BUTTON,
     ADMIN_ROLE,
@@ -23,9 +23,17 @@ import {
     DETAIL_BUY_PRICE_LABEL,
     DETAIL_CATEGORY_LABEL,
     DETAIL_DESCRIPTION_LABEL,
+    DETAIL_DISCOUNT_END_DATE_LABEL,
+    DETAIL_DISCOUNT_PERCENTAGE_LABEL,
+    DETAIL_DISCOUNT_START_DATE_LABEL,
+    DETAIL_DISCOUNT_TYPE_LABEL,
+    DETAIL_DISCOUNTS_ERROR,
+    DETAIL_DISCOUNTS_LOADING,
+    DETAIL_DISCOUNTS_SECTION_TITLE,
     DETAIL_EMPTY_DESCRIPTION,
     DETAIL_MIN_STOCK_LABEL,
     DETAIL_NAME_LABEL,
+    DETAIL_NO_DISCOUNTS_MESSAGE,
     DETAIL_PROVIDER_LABEL,
     DETAIL_REFERENCE_LABEL,
     DETAIL_SELL_PRICE_LABEL,
@@ -41,6 +49,7 @@ import {
     SCREEN_TITLE,
     SEARCH_PRODUCT,
     deleteProductoByIdRoute,
+    descuentosByProductoRoute,
     productoByIdRoute,
     productosByNegocioRoute,
 } from "./constants";
@@ -59,6 +68,9 @@ const Productos: React.FC<ProductosProps> = ({ route, navigation }) => {
     const [selectedProducto, setSelectedProducto] = useState<Producto | null>(null);
     const [loadingDetail, setLoadingDetail] = useState(false);
     const [detailError, setDetailError] = useState("");
+    const [descuentos, setDescuentos] = useState<Descuento[]>([]);
+    const [loadingDescuentos, setLoadingDescuentos] = useState(false);
+    const [descuentosError, setDescuentosError] = useState("");
 
     const normalizedRole = (negocio.rol || "").toLowerCase();
     const canManageProductos = normalizedRole === JEFE_ROLE || normalizedRole === ADMIN_ROLE;
@@ -163,12 +175,47 @@ const Productos: React.FC<ProductosProps> = ({ route, navigation }) => {
         setSelectedProducto(null);
         setDetailError("");
         setLoadingDetail(false);
+        setDescuentos([]);
+        setDescuentosError("");
+        setLoadingDescuentos(false);
+    };
+
+    const fetchDescuentos = async (idProducto: number) => {
+        setLoadingDescuentos(true);
+        setDescuentosError("");
+        setDescuentos([]);
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(descuentosByProductoRoute(idProducto), {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setDescuentosError(data.message || DETAIL_DISCOUNTS_ERROR);
+                return;
+            }
+
+            const data = await response.json();
+            if (data.descuentos) {
+                setDescuentos(data.descuentos);
+            }
+        } catch (error) {
+            setDescuentosError(CONNECTION_ERROR);
+        } finally {
+            setLoadingDescuentos(false);
+        }
     };
 
     const handleOpenProductoDetail = async (producto: Producto) => {
         setSelectedProducto(producto);
         setDetailError("");
         setLoadingDetail(true);
+        setDescuentos([]);
+        setDescuentosError("");
 
         try {
             const token = await AsyncStorage.getItem("token");
@@ -187,6 +234,7 @@ const Productos: React.FC<ProductosProps> = ({ route, navigation }) => {
             const data = await response.json();
             if (data.producto) {
                 setSelectedProducto(data.producto);
+                await fetchDescuentos(data.producto.id_producto);
             }
         } catch (error) {
             setDetailError(CONNECTION_ERROR);
@@ -311,6 +359,61 @@ const Productos: React.FC<ProductosProps> = ({ route, navigation }) => {
                                     <Text style={styles.detailLabel}>{DETAIL_DESCRIPTION_LABEL}</Text>
                                     <Text style={styles.detailValue}>{selectedProducto.descripcion || DETAIL_EMPTY_DESCRIPTION}</Text>
                                 </View>
+
+                                <View style={styles.discountsSectionDivider} />
+                                <Text style={styles.discountsSectionTitle}>{DETAIL_DISCOUNTS_SECTION_TITLE}</Text>
+
+                                {loadingDescuentos ? (
+                                    <View style={styles.discountsLoadingContainer} testID="descuentos-loading">
+                                        <ActivityIndicator size="small" color="#1976D2" />
+                                        <Text style={styles.discountsLoadingText}>{DETAIL_DISCOUNTS_LOADING}</Text>
+                                    </View>
+                                ) : null}
+
+                                {descuentosError ? (
+                                    <View style={styles.feedbackError} testID="descuentos-error-message">
+                                        <Text style={styles.feedbackErrorText}>{descuentosError}</Text>
+                                    </View>
+                                ) : null}
+
+                                {!loadingDescuentos && !descuentosError && descuentos.length === 0 ? (
+                                    <Text style={styles.noDiscountsText} testID="no-descuentos-message">{DETAIL_NO_DISCOUNTS_MESSAGE}</Text>
+                                ) : null}
+
+                                {!loadingDescuentos && !descuentosError && descuentos.length > 0 ? (
+                                    descuentos.map((descuento) => {
+                                        const formatDate = (dateStr: string | null | undefined) => {
+                                            if (!dateStr) return "-";
+                                            try {
+                                                const date = new Date(dateStr);
+                                                return date.toLocaleDateString("es-ES");
+                                            } catch {
+                                                return "-";
+                                            }
+                                        };
+
+                                        return (
+                                            <View key={descuento.id_descuento} style={styles.discountCard} testID={`descuento-card-${descuento.id_descuento}`}>
+                                                <View style={styles.discountRow}>
+                                                    <Text style={styles.discountLabel}>{DETAIL_DISCOUNT_PERCENTAGE_LABEL}:</Text>
+                                                    <Text style={styles.discountValue}>{descuento.porcentaje_descuento}%</Text>
+                                                </View>
+                                                <View style={styles.discountRow}>
+                                                    <Text style={styles.discountLabel}>{DETAIL_DISCOUNT_TYPE_LABEL}:</Text>
+                                                    <Text style={styles.discountValue}>{descuento.tipo_descuento || "porcentaje"}</Text>
+                                                </View>
+                                                <View style={styles.discountRow}>
+                                                    <Text style={styles.discountLabel}>{DETAIL_DISCOUNT_START_DATE_LABEL}:</Text>
+                                                    <Text style={styles.discountValue}>{formatDate(descuento.fecha_inicio)}</Text>
+                                                </View>
+                                                <View style={styles.discountRow}>
+                                                    <Text style={styles.discountLabel}>{DETAIL_DISCOUNT_END_DATE_LABEL}:</Text>
+                                                    <Text style={styles.discountValue}>{formatDate(descuento.fecha_fin)}</Text>
+                                                </View>
+                                            </View>
+                                        );
+                                    })
+                                ) : null}
                             </>
                         ) : null}
                     </View>
@@ -635,5 +738,56 @@ const styles = StyleSheet.create({
     detailValue: {
         fontSize: 15,
         color: "#111827",
+    },
+    discountsSectionDivider: {
+        height: 1,
+        backgroundColor: "#e5e7eb",
+        marginVertical: 12,
+    },
+    discountsSectionTitle: {
+        fontSize: 14,
+        fontWeight: "700",
+        color: "#0D47A1",
+        marginBottom: 10,
+        textTransform: "uppercase",
+    },
+    discountsLoadingContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 10,
+    },
+    discountsLoadingText: {
+        marginLeft: 8,
+        color: "#6b7280",
+        fontSize: 13,
+    },
+    noDiscountsText: {
+        color: "#6b7280",
+        fontStyle: "italic",
+        fontSize: 13,
+        marginBottom: 8,
+    },
+    discountCard: {
+        backgroundColor: "#f0f7ff",
+        borderRadius: 8,
+        padding: 10,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: "#bfdbfe",
+    },
+    discountRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginBottom: 4,
+    },
+    discountLabel: {
+        fontSize: 12,
+        fontWeight: "600",
+        color: "#475569",
+    },
+    discountValue: {
+        fontSize: 12,
+        color: "#111827",
+        fontWeight: "600",
     },
 });

@@ -7,11 +7,14 @@ export const DESCUENTO_ERRORS = {
     PROVEEDOR_NOT_FOUND: "Proveedor no encontrado",
     NO_ACCESS_TO_NEGOCIO: "No tienes acceso a este negocio",
     NO_MANAGE_PERMISSION: "No tienes permisos para gestionar descuentos",
+    NO_VIEW_PERMISSION: "No tienes permisos para ver descuentos",
+    DESCUENTOS_NOT_FOUND: "No se encontraron descuentos para este producto",
     SERVER_ERROR: "Error en el servidor",
 };
 
 export const DESCUENTO_MESSAGES = {
     DESCUENTO_CREATED: "Descuento aplicado correctamente",
+    DESCUENTOS_RETRIEVED: "Descuentos obtenidos correctamente",
 };
 
 export const DESCUENTO_ROLES = {

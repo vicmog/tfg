@@ -12,6 +12,20 @@ export const Descuento = sequelize.define(
             allowNull: false,
         },
         porcentaje_descuento: { type: DataTypes.FLOAT, allowNull: false },
+        tipo_descuento: { 
+            type: DataTypes.STRING(50), 
+            allowNull: true,
+            defaultValue: "porcentaje"
+        },
+        fecha_inicio: { 
+            type: DataTypes.DATE, 
+            allowNull: true,
+            defaultValue: sequelize.fn('NOW')
+        },
+        fecha_fin: { 
+            type: DataTypes.DATE, 
+            allowNull: true
+        },
     },
     {
         tableName: "Descuento",
