@@ -535,6 +535,7 @@ describe("Empleados", () => {
         );
 
         expect(queryByTestId("toggle-empleado-form-button")).toBeNull();
+        expect(queryByTestId("empleado-search-input")).toBeNull();
         expect(getByText("Solo jefe y administrador pueden gestionar empleados")).toBeTruthy();
     });
 });

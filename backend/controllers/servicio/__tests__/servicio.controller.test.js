@@ -177,17 +177,21 @@ describe("ServicioController Unit Tests", () => {
             });
         });
 
-        it("debería fallar si no tiene permisos", async () => {
+        it("debería devolver servicios para trabajador", async () => {
             (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioTrabajador);
+            (Servicio.findAll).mockResolvedValue(mockServicios);
 
             const { res, jsonMock } = buildRes();
 
             await getServiciosByNegocio(getServiciosReqSinPermiso, res);
 
-            expect(Servicio.findAll).not.toHaveBeenCalled();
-            expect(res.status).toHaveBeenCalledWith(403);
+            expect(Servicio.findAll).toHaveBeenCalledWith({
+                where: { id_negocio: "10" },
+                order: [["createdAt", "DESC"]],
+            });
+            expect(res.status).toHaveBeenCalledWith(200);
             expect(jsonMock).toHaveBeenCalledWith({
-                message: "No tienes permisos para gestionar servicios",
+                servicios: mockServicios,
             });
         });
     });

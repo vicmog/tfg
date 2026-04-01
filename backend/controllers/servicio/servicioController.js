@@ -167,10 +167,6 @@ export const getServiciosByNegocio = async (req, res) => {
             return res.status(403).json({ message: SERVICIO_ERRORS.NO_ACCESS_TO_NEGOCIO });
         }
 
-        if (!canManageServicios(usuarioNegocio.rol)) {
-            return res.status(403).json({ message: SERVICIO_ERRORS.NO_MANAGE_PERMISSION });
-        }
-
         const servicios = await Servicio.findAll({
             where: { id_negocio },
             order: [["createdAt", "DESC"]],
