@@ -48,7 +48,6 @@ import {
     INVALID_DURACION_ERROR,
     INVALID_PRECIO_ERROR,
     JEFE_ROLE,
-    NO_ACCESS_MESSAGE,
     PRECIO_LABEL,
     SAVE_BUTTON_TEXT,
     SAVE_CHANGES_BUTTON_TEXT,
@@ -122,13 +121,6 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
     };
 
     const fetchServicios = useCallback(async () => {
-        if (!canManageServicios) {
-            setServicios([]);
-            setFilteredServicios([]);
-            setListError(NO_ACCESS_MESSAGE);
-            return;
-        }
-
         setLoading(true);
         setListError("");
 
@@ -159,7 +151,7 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
         } finally {
             setLoading(false);
         }
-    }, [canManageServicios, negocio.id_negocio]);
+    }, [negocio.id_negocio]);
 
     useFocusEffect(
         useCallback(() => {
@@ -397,27 +389,25 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
                 ) : null}
             </View>
 
-            {canManageServicios ? (
-                <View style={styles.searchContainer}>
-                    <MaterialIcons name="search" size={20} color="#6b7280" style={styles.searchIcon} />
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Buscar por nombre o descripción..."
-                        value={searchQuery}
-                        onChangeText={handleSearchChange}
-                        testID="servicio-search-input"
-                        placeholderTextColor="#9ca3af"
-                    />
-                    {searchQuery ? (
-                        <TouchableOpacity
-                            onPress={() => handleSearchChange("")}
-                            testID="servicio-clear-search-button"
-                        >
-                            <MaterialIcons name="close" size={20} color="#6b7280" />
-                        </TouchableOpacity>
-                    ) : null}
-                </View>
-            ) : null}
+            <View style={styles.searchContainer}>
+                <MaterialIcons name="search" size={20} color="#6b7280" style={styles.searchIcon} />
+                <TextInput
+                    style={styles.searchInput}
+                    placeholder="Buscar por nombre o descripción..."
+                    value={searchQuery}
+                    onChangeText={handleSearchChange}
+                    testID="servicio-search-input"
+                    placeholderTextColor="#9ca3af"
+                />
+                {searchQuery ? (
+                    <TouchableOpacity
+                        onPress={() => handleSearchChange("")}
+                        testID="servicio-clear-search-button"
+                    >
+                        <MaterialIcons name="close" size={20} color="#6b7280" />
+                    </TouchableOpacity>
+                ) : null}
+            </View>
 
             <Modal
                 visible={detailVisible}
@@ -586,31 +576,33 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
                                         </View>
                                         <Text style={styles.serviceDescription}>{servicio.descripcion}</Text>
                                     </TouchableOpacity>
-                                    <View style={styles.actionsRow}>
-                                        <TouchableOpacity
-                                            style={[styles.actionButton, styles.editButton]}
-                                            onPress={() => handleOpenEditModal(servicio)}
-                                            testID={`servicio-edit-button-${servicio.id_servicio}`}
-                                            accessibilityLabel={`${EDIT_BUTTON_TEXT} ${servicio.nombre}`}
-                                        >
-                                            <MaterialIcons name="edit" size={16} color="#fff" />
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            style={[styles.actionButton, styles.deleteButton]}
-                                            onPress={() => handleAskDeleteServicio(servicio.id_servicio)}
-                                            disabled={deletingServicioId === servicio.id_servicio}
-                                            testID={`servicio-delete-button-${servicio.id_servicio}`}
-                                        >
-                                            {deletingServicioId === servicio.id_servicio ? (
-                                                <ActivityIndicator size="small" color="#fff" />
-                                            ) : (
-                                                <MaterialIcons name="delete" size={16} color="#fff" />
-                                            )}
-                                        </TouchableOpacity>
-                                    </View>
+                                    {canManageServicios ? (
+                                        <View style={styles.actionsRow}>
+                                            <TouchableOpacity
+                                                style={[styles.actionButton, styles.editButton]}
+                                                onPress={() => handleOpenEditModal(servicio)}
+                                                testID={`servicio-edit-button-${servicio.id_servicio}`}
+                                                accessibilityLabel={`${EDIT_BUTTON_TEXT} ${servicio.nombre}`}
+                                            >
+                                                <MaterialIcons name="edit" size={16} color="#fff" />
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={[styles.actionButton, styles.deleteButton]}
+                                                onPress={() => handleAskDeleteServicio(servicio.id_servicio)}
+                                                disabled={deletingServicioId === servicio.id_servicio}
+                                                testID={`servicio-delete-button-${servicio.id_servicio}`}
+                                            >
+                                                {deletingServicioId === servicio.id_servicio ? (
+                                                    <ActivityIndicator size="small" color="#fff" />
+                                                ) : (
+                                                    <MaterialIcons name="delete" size={16} color="#fff" />
+                                                )}
+                                            </TouchableOpacity>
+                                        </View>
+                                    ) : null}
                                 </View>
 
-                                {confirmDeleteServicioId === servicio.id_servicio ? (
+                                {canManageServicios && confirmDeleteServicioId === servicio.id_servicio ? (
                                     <View style={styles.confirmBox} testID={`servicio-delete-confirm-${servicio.id_servicio}`}>
                                         <Text style={styles.confirmTitle}>{CONFIRM_DELETE_TITLE}</Text>
                                         <Text style={styles.confirmMessage}>{CONFIRM_DELETE_MESSAGE}</Text>

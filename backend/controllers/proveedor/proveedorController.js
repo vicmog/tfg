@@ -158,10 +158,6 @@ export const getProveedoresByNegocio = async (req, res) => {
             return res.status(403).json({ message: PROVEEDOR_ERRORS.NO_ACCESS_TO_NEGOCIO });
         }
 
-        if (!canManageProveedores(usuarioNegocio.rol)) {
-            return res.status(403).json({ message: PROVEEDOR_ERRORS.NO_MANAGE_PERMISSION });
-        }
-
         const proveedores = await Proveedor.findAll({
             where: { id_negocio },
             order: [["createdAt", "DESC"]],

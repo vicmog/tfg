@@ -42,6 +42,16 @@ const normalizeProductoId = (value) => {
     return { value: Number.parseInt(productoIdValue, 10) };
 };
 
+const normalizeDescuentoId = (value) => {
+    const descuentoIdValue = `${value ?? ""}`.trim();
+
+    if (!descuentoIdValue || !INTEGER_REGEX.test(descuentoIdValue)) {
+        return { error: DESCUENTO_ERRORS.DESCUENTO_ID_REQUIRED };
+    }
+
+    return { value: Number.parseInt(descuentoIdValue, 10) };
+};
+
 const normalizeNegocioId = (value) => {
     const negocioIdValue = `${value ?? ""}`.trim();
 
@@ -281,6 +291,59 @@ export const createDescuento = async (req, res) => {
                 fecha_fin: descuento.fecha_fin,
             },
         });
+    } catch (error) {
+        return res.status(500).json({ message: DESCUENTO_ERRORS.SERVER_ERROR });
+    }
+};
+
+export const deleteDescuento = async (req, res) => {
+    const { id_descuento } = req.params;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: DESCUENTO_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    const descuentoIdResult = normalizeDescuentoId(id_descuento);
+
+    if (descuentoIdResult.error) {
+        return res.status(400).json({ message: descuentoIdResult.error });
+    }
+
+    try {
+        const descuento = await Descuento.findByPk(descuentoIdResult.value);
+
+        if (!descuento) {
+            return res.status(404).json({ message: DESCUENTO_ERRORS.DESCUENTO_NOT_FOUND });
+        }
+
+        const producto = await Producto.findByPk(descuento.id_producto);
+
+        if (!producto) {
+            return res.status(404).json({ message: DESCUENTO_ERRORS.PRODUCTO_NOT_FOUND });
+        }
+
+        const proveedor = await Proveedor.findByPk(producto.id_proveedor);
+
+        if (!proveedor) {
+            return res.status(404).json({ message: DESCUENTO_ERRORS.PROVEEDOR_NOT_FOUND });
+        }
+
+        const usuarioNegocio = await UsuarioNegocio.findOne({
+            where: { id_usuario, id_negocio: proveedor.id_negocio },
+        });
+
+        if (!usuarioNegocio) {
+            return res.status(403).json({ message: DESCUENTO_ERRORS.NO_ACCESS_TO_NEGOCIO });
+        }
+
+        if (!canManageDescuentos(`${usuarioNegocio.rol ?? ""}`.toLowerCase())) {
+            return res.status(403).json({ message: DESCUENTO_ERRORS.NO_MANAGE_PERMISSION });
+        }
+
+        await descuento.destroy();
+
+        return res.status(200).json({ message: DESCUENTO_MESSAGES.DESCUENTO_DELETED });
     } catch (error) {
         return res.status(500).json({ message: DESCUENTO_ERRORS.SERVER_ERROR });
     }

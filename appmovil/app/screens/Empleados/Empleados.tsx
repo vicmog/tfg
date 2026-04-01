@@ -372,18 +372,20 @@ const Empleados: React.FC<EmpleadosProps> = ({ route, navigation }) => {
                 ) : null}
             </View>
 
-            <View style={styles.searchContainer}>
-                <MaterialIcons name="search" size={20} color="#6b7280" style={styles.searchIcon} />
-                <TextInput
-                    placeholder={SEARCH_EMPLOYEE_NAME_OR_EMAIL}
-                    placeholderTextColor="#000000"
-                    value={searchText}
-                    onChangeText={setSearchText}
-                    style={styles.searchInput}
-                    autoCapitalize="none"
-                    testID="empleado-search-input"
-                />
-            </View>
+            {canManageEmpleados ? (
+                <View style={styles.searchContainer}>
+                    <MaterialIcons name="search" size={20} color="#6b7280" style={styles.searchIcon} />
+                    <TextInput
+                        placeholder={SEARCH_EMPLOYEE_NAME_OR_EMAIL}
+                        placeholderTextColor="#000000"
+                        value={searchText}
+                        onChangeText={setSearchText}
+                        style={styles.searchInput}
+                        autoCapitalize="none"
+                        testID="empleado-search-input"
+                    />
+                </View>
+            ) : null}
 
             <Modal
                 visible={modalVisible}

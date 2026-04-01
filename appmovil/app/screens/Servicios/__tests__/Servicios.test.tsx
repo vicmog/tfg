@@ -465,16 +465,47 @@ describe("Servicios", () => {
         });
     });
 
-    it("muestra mensaje de acceso para trabajador", async () => {
-        const { getByText, queryByTestId } = render(
+    it("permite ver y buscar para trabajador sin acciones de gestion", async () => {
+        (fetch as jest.Mock).mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+                servicios: [
+                    {
+                        id_servicio: 3,
+                        id_negocio: 1,
+                        nombre: "Corte premium",
+                        precio: 25.5,
+                        duracion: 45,
+                        descripcion: "Corte con lavado y peinado",
+                    },
+                ],
+            }),
+        });
+
+        const { getByTestId, getByText, queryByTestId, queryByText } = render(
             <Servicios navigation={mockNavigation} route={mockRouteTrabajador} />
         );
 
         await waitFor(() => {
-            expect(getByText("Solo jefe y administrador pueden gestionar servicios")).toBeTruthy();
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.serviciosByNegocio(1),
+                expect.objectContaining({
+                    headers: { Authorization: "Bearer mock-token" },
+                })
+            );
         });
 
         expect(queryByTestId("toggle-servicio-form-button")).toBeNull();
-        expect(fetch).not.toHaveBeenCalled();
+        expect(queryByTestId("servicio-edit-button-3")).toBeNull();
+        expect(queryByTestId("servicio-delete-button-3")).toBeNull();
+        expect(getByTestId("servicio-search-input")).toBeTruthy();
+        expect(getByText("Corte premium")).toBeTruthy();
+
+        fireEvent.changeText(getByTestId("servicio-search-input"), "premium");
+        expect(getByText("Corte premium")).toBeTruthy();
+
+        fireEvent.changeText(getByTestId("servicio-search-input"), "NoCoincide");
+        expect(queryByText("Corte premium")).toBeNull();
+        expect(getByText("No hay servicios registrados")).toBeTruthy();
     });
 });
