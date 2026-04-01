@@ -1,4 +1,4 @@
-import { createDescuento, getDescuentosByProducto } from "../descuentoController.js";
+import { createDescuento, deleteDescuento, getDescuentosByProducto } from "../descuentoController.js";
 import { Descuento } from "../../../models/Descuento.js";
 import { Producto } from "../../../models/Producto.js";
 import { Proveedor } from "../../../models/Proveedor.js";
@@ -11,6 +11,11 @@ import {
     createDescuentoReqSinAuth,
     createDescuentoReqSinPermiso,
     createDescuentoReqSinProducto,
+    deleteDescuentoReq,
+    deleteDescuentoReqAdmin,
+    deleteDescuentoReqIdInvalido,
+    deleteDescuentoReqSinAuth,
+    deleteDescuentoReqSinPermiso,
     getDescuentosReq,
     getDescuentosReqProductoInvalido,
     getDescuentosReqSinAuth,
@@ -52,7 +57,14 @@ describe("DescuentoController Unit Tests", () => {
         expect(res.status).toHaveBeenCalledWith(201);
         expect(jsonMock).toHaveBeenCalledWith({
             message: "Descuento aplicado correctamente",
-            descuento: mockDescuento,
+            descuento: {
+                id_descuento: 1,
+                id_producto: 55,
+                porcentaje_descuento: 15,
+                tipo_descuento: "porcentaje",
+                fecha_inicio: mockDescuento.fecha_inicio,
+                fecha_fin: mockDescuento.fecha_fin,
+            },
         });
     });
 
@@ -291,6 +303,95 @@ describe("DescuentoController Unit Tests", () => {
             expect(res.status).toHaveBeenCalledWith(404);
             expect(jsonMock).toHaveBeenCalledWith({
                 message: "Producto no encontrado",
+            });
+        });
+    });
+
+    describe("deleteDescuento", () => {
+        it("deberia eliminar descuento correctamente para jefe", async () => {
+            const descuento = {
+                ...mockDescuento,
+                destroy: jest.fn().mockResolvedValue(undefined),
+            };
+
+            (Descuento.findByPk).mockResolvedValue(descuento);
+            (Producto.findByPk).mockResolvedValue(mockProducto);
+            (Proveedor.findByPk).mockResolvedValue(mockProveedor);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+
+            const { res, jsonMock } = buildRes();
+
+            await deleteDescuento(deleteDescuentoReq, res);
+
+            expect(descuento.destroy).toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Descuento eliminado correctamente",
+            });
+        });
+
+        it("deberia eliminar descuento correctamente para admin", async () => {
+            const descuento = {
+                ...mockDescuento,
+                destroy: jest.fn().mockResolvedValue(undefined),
+            };
+
+            (Descuento.findByPk).mockResolvedValue(descuento);
+            (Producto.findByPk).mockResolvedValue(mockProducto);
+            (Proveedor.findByPk).mockResolvedValue(mockProveedor);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioAdmin);
+
+            const { res } = buildRes();
+
+            await deleteDescuento(deleteDescuentoReqAdmin, res);
+
+            expect(descuento.destroy).toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(200);
+        });
+
+        it("deberia fallar si no esta autenticado", async () => {
+            const { res, jsonMock } = buildRes();
+
+            await deleteDescuento(deleteDescuentoReqSinAuth, res);
+
+            expect(Descuento.findByPk).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(401);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Usuario no autenticado",
+            });
+        });
+
+        it("deberia fallar si id_descuento es invalido", async () => {
+            const { res, jsonMock } = buildRes();
+
+            await deleteDescuento(deleteDescuentoReqIdInvalido, res);
+
+            expect(Descuento.findByPk).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "El descuento es obligatorio",
+            });
+        });
+
+        it("deberia fallar si no tiene permisos", async () => {
+            const descuento = {
+                ...mockDescuento,
+                destroy: jest.fn().mockResolvedValue(undefined),
+            };
+
+            (Descuento.findByPk).mockResolvedValue(descuento);
+            (Producto.findByPk).mockResolvedValue(mockProducto);
+            (Proveedor.findByPk).mockResolvedValue(mockProveedor);
+            (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioTrabajador);
+
+            const { res, jsonMock } = buildRes();
+
+            await deleteDescuento(deleteDescuentoReqSinPermiso, res);
+
+            expect(descuento.destroy).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "No tienes permisos para gestionar descuentos",
             });
         });
     });

@@ -115,6 +115,31 @@ export const getDescuentosReqProductoInvalido = {
     user: { id_usuario: 1 },
 };
 
+export const deleteDescuentoReq = {
+    params: { id_descuento: "1" },
+    user: { id_usuario: 1 },
+};
+
+export const deleteDescuentoReqAdmin = {
+    params: { id_descuento: "1" },
+    user: { id_usuario: 3 },
+};
+
+export const deleteDescuentoReqSinAuth = {
+    params: { id_descuento: "1" },
+    user: null,
+};
+
+export const deleteDescuentoReqSinPermiso = {
+    params: { id_descuento: "1" },
+    user: { id_usuario: 2 },
+};
+
+export const deleteDescuentoReqIdInvalido = {
+    params: { id_descuento: "abc" },
+    user: { id_usuario: 1 },
+};
+
 export const buildRes = () => {
     const jsonMock = jest.fn();
     const res = {

@@ -56,10 +56,18 @@ describe("Descuentos", () => {
             })
             .mockResolvedValueOnce({
                 ok: true,
+                json: async () => ({ descuentos: [] }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
                 json: async () => ({ message: "Descuento aplicado correctamente" }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ descuentos: [] }),
             });
 
-        const { getByTestId, getByText } = render(
+        const { getByTestId } = render(
             <Descuentos navigation={mockNavigation} route={mockRoute} />
         );
 
@@ -92,32 +100,37 @@ describe("Descuentos", () => {
         });
 
         await waitFor(() => {
-            expect(getByText("Descuento aplicado correctamente")).toBeTruthy();
+            expect(getByTestId("descuento-success-message")).toBeTruthy();
         });
     });
 
     it("valida que el porcentaje no supere 100", async () => {
-        (fetch as jest.Mock).mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-                productos: [
-                    {
-                        id_producto: 5,
-                        id_proveedor: 7,
-                        nombre: "Champu",
-                        referencia: "CH-001",
-                        categoria: "Cosmetica",
-                        precio_compra: 5,
-                        precio_venta: 10,
-                        stock: 8,
-                        stock_minimo: 1,
-                        proveedor_nombre: "Proveedor Norte",
-                    },
-                ],
-            }),
-        });
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    productos: [
+                        {
+                            id_producto: 5,
+                            id_proveedor: 7,
+                            nombre: "Champu",
+                            referencia: "CH-001",
+                            categoria: "Cosmetica",
+                            precio_compra: 5,
+                            precio_venta: 10,
+                            stock: 8,
+                            stock_minimo: 1,
+                            proveedor_nombre: "Proveedor Norte",
+                        },
+                    ],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ descuentos: [] }),
+            });
 
-        const { getByTestId, getByText } = render(
+        const { getByTestId } = render(
             <Descuentos navigation={mockNavigation} route={mockRoute} />
         );
 
@@ -132,7 +145,7 @@ describe("Descuentos", () => {
         fireEvent.changeText(getByTestId("descuento-porcentaje-input"), "120");
         fireEvent.press(getByTestId("descuento-save-button"));
 
-        expect(getByText("El porcentaje debe ser mayor que 0 y menor o igual a 100")).toBeTruthy();
+        expect(getByTestId("descuento-error-message")).toBeTruthy();
     });
 
     it("bloquea acceso para rol sin permisos", () => {
@@ -143,5 +156,63 @@ describe("Descuentos", () => {
         expect(getByTestId("descuentos-no-access-message")).toBeTruthy();
         expect(queryByTestId("toggle-descuento-form-button")).toBeNull();
         expect(queryByTestId("descuento-save-button")).toBeNull();
+    });
+
+    it("permite eliminar un descuento con confirmacion", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ productos: [] }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    descuentos: [
+                        {
+                            id_descuento: 1,
+                            id_producto: 5,
+                            producto_nombre: "Champu",
+                            producto_referencia: "CH-001",
+                            porcentaje_descuento: 15,
+                            tipo_descuento: "porcentaje",
+                            fecha_inicio: "2026-01-01",
+                            fecha_fin: null,
+                            createdAt: "2026-01-01",
+                            updatedAt: "2026-01-01",
+                        },
+                    ],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ message: "Descuento eliminado correctamente" }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ descuentos: [] }),
+            });
+
+        const { getByTestId } = render(
+            <Descuentos navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("descuento-delete-button-1")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("descuento-delete-button-1"));
+        fireEvent.press(getByTestId("descuento-delete-confirm-button-1"));
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.deleteDescuentoById(1),
+                expect.objectContaining({
+                    method: "DELETE",
+                    headers: expect.objectContaining({
+                        Authorization: "Bearer mock-token",
+                    }),
+                })
+            );
+        });
     });
 });

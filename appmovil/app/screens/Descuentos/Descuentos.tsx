@@ -16,9 +16,17 @@ import { Descuento, Producto } from "../types";
 import {
     ADMIN_ROLE,
     CONNECTION_ERROR,
+    CONFIRM_DELETE_ACCEPT,
+    CONFIRM_DELETE_CANCEL,
+    CONFIRM_DELETE_MESSAGE,
+    CONFIRM_DELETE_TITLE,
     DATE_END_PLACEHOLDER,
     DATE_START_PLACEHOLDER,
+    DELETE_BUTTON_TEXT,
+    DELETE_SUCCESS_MESSAGE,
+    DELETING_BUTTON_TEXT,
     DEFAULT_CREATE_ERROR,
+    DEFAULT_DELETE_ERROR,
     DEFAULT_DESCUENTOS_ERROR,
     DEFAULT_PRODUCTS_ERROR,
     EMPTY_DESCUENTOS_MESSAGE,
@@ -36,6 +44,7 @@ import {
     SCREEN_TITLE,
     SEARCH_PRODUCT,
     SUCCESS_MESSAGE,
+    deleteDescuentoByIdRoute,
     descuentosByNegocioRoute,
     descuentosRoute,
     productosByNegocioRoute,
@@ -62,6 +71,8 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
     const [loading, setLoading] = useState(false);
     const [loadingDescuentos, setLoadingDescuentos] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [deletingDescuentoId, setDeletingDescuentoId] = useState<number | null>(null);
+    const [confirmDeleteDescuentoId, setConfirmDeleteDescuentoId] = useState<number | null>(null);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [modalVisible, setModalVisible] = useState(false);
@@ -271,6 +282,7 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
             setFechaFin("");
             setSelectedProductoId(null);
             setSearchText("");
+            setConfirmDeleteDescuentoId(null);
             fetchDescuentos();
             setTimeout(() => {
                 handleCloseModal();
@@ -280,6 +292,46 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleDeleteDescuento = async (idDescuento: number) => {
+        setError("");
+        setSuccess("");
+        setDeletingDescuentoId(idDescuento);
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(deleteDescuentoByIdRoute(idDescuento), {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setError(data.message || DEFAULT_DELETE_ERROR);
+                return;
+            }
+
+            setSuccess(DELETE_SUCCESS_MESSAGE);
+            setConfirmDeleteDescuentoId(null);
+            await fetchDescuentos();
+        } catch (deleteError) {
+            setError(CONNECTION_ERROR);
+        } finally {
+            setDeletingDescuentoId(null);
+        }
+    };
+
+    const handleAskDeleteDescuento = (idDescuento: number) => {
+        setError("");
+        setSuccess("");
+        setConfirmDeleteDescuentoId(idDescuento);
+    };
+
+    const handleCancelDeleteDescuento = () => {
+        setConfirmDeleteDescuentoId(null);
     };
 
     return (
@@ -306,6 +358,18 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
             </View>
 
             <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+                {error ? (
+                    <View style={styles.feedbackError}>
+                        <Text style={styles.feedbackErrorText}>{error}</Text>
+                    </View>
+                ) : null}
+
+                {success ? (
+                    <View style={styles.feedbackSuccess}>
+                        <Text style={styles.feedbackSuccessText}>{success}</Text>
+                    </View>
+                ) : null}
+
                 {!canManageDescuentos ? (
                     <Text style={styles.errorText} testID="descuentos-no-access-message">
                         {NO_ACCESS_MESSAGE}
@@ -350,6 +414,41 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
                                         </Text>
                                     )}
                                 </View>
+
+                                <TouchableOpacity
+                                    style={[styles.deleteButton, deletingDescuentoId === descuento.id_descuento && styles.deleteButtonDisabled]}
+                                    onPress={() => handleAskDeleteDescuento(descuento.id_descuento)}
+                                    disabled={deletingDescuentoId === descuento.id_descuento}
+                                    testID={`descuento-delete-button-${descuento.id_descuento}`}
+                                >
+                                    <Text style={styles.deleteButtonText}>
+                                        {deletingDescuentoId === descuento.id_descuento ? DELETING_BUTTON_TEXT : DELETE_BUTTON_TEXT}
+                                    </Text>
+                                </TouchableOpacity>
+
+                                {confirmDeleteDescuentoId === descuento.id_descuento ? (
+                                    <View style={styles.confirmBox} testID={`descuento-delete-confirm-${descuento.id_descuento}`}>
+                                        <Text style={styles.confirmTitle}>{CONFIRM_DELETE_TITLE}</Text>
+                                        <Text style={styles.confirmMessage}>{CONFIRM_DELETE_MESSAGE}</Text>
+                                        <View style={styles.confirmActions}>
+                                            <TouchableOpacity
+                                                style={styles.confirmCancelButton}
+                                                onPress={handleCancelDeleteDescuento}
+                                                testID={`descuento-delete-cancel-${descuento.id_descuento}`}
+                                            >
+                                                <Text style={styles.confirmCancelText}>{CONFIRM_DELETE_CANCEL}</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={styles.confirmDeleteButton}
+                                                onPress={() => handleDeleteDescuento(descuento.id_descuento)}
+                                                disabled={deletingDescuentoId === descuento.id_descuento}
+                                                testID={`descuento-delete-confirm-button-${descuento.id_descuento}`}
+                                            >
+                                                <Text style={styles.confirmDeleteText}>{CONFIRM_DELETE_ACCEPT}</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                ) : null}
                             </View>
                         ))}
                     </View>
@@ -731,5 +830,62 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontWeight: "700",
         fontSize: 15,
+    },
+    deleteButton: {
+        marginTop: 12,
+        alignSelf: "flex-end",
+        backgroundColor: "#dc2626",
+        borderRadius: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+    },
+    deleteButtonDisabled: {
+        opacity: 0.7,
+    },
+    deleteButtonText: {
+        color: "#fff",
+        fontWeight: "700",
+    },
+    confirmBox: {
+        marginTop: 10,
+        borderWidth: 1,
+        borderColor: "#fecaca",
+        backgroundColor: "#fef2f2",
+        borderRadius: 10,
+        padding: 10,
+    },
+    confirmTitle: {
+        fontWeight: "700",
+        color: "#991b1b",
+        marginBottom: 4,
+    },
+    confirmMessage: {
+        color: "#7f1d1d",
+        marginBottom: 8,
+    },
+    confirmActions: {
+        flexDirection: "row",
+        justifyContent: "flex-end",
+        gap: 8,
+    },
+    confirmCancelButton: {
+        backgroundColor: "#e5e7eb",
+        borderRadius: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+    },
+    confirmCancelText: {
+        color: "#374151",
+        fontWeight: "600",
+    },
+    confirmDeleteButton: {
+        backgroundColor: "#dc2626",
+        borderRadius: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+    },
+    confirmDeleteText: {
+        color: "#fff",
+        fontWeight: "700",
     },
 });
