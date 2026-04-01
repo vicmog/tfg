@@ -79,3 +79,14 @@ export type Producto = {
     stock_minimo: number;
     proveedor_nombre?: string;
 };
+
+export type Descuento = {
+    id_descuento: number;
+    id_producto: number;
+    porcentaje_descuento: number;
+    tipo_descuento?: string | null;
+    fecha_inicio?: string | null;
+    fecha_fin?: string | null;
+    createdAt: string;
+    updatedAt: string;
+};

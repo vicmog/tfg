@@ -12,16 +12,21 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
-import { Producto } from "../types";
+import { Descuento, Producto } from "../types";
 import {
     ADMIN_ROLE,
     CONNECTION_ERROR,
+    DATE_END_PLACEHOLDER,
+    DATE_START_PLACEHOLDER,
     DEFAULT_CREATE_ERROR,
+    DEFAULT_DESCUENTOS_ERROR,
     DEFAULT_PRODUCTS_ERROR,
+    EMPTY_DESCUENTOS_MESSAGE,
     EMPTY_PORCENTAJE_ERROR,
     EMPTY_PRODUCTO_ERROR,
     EMPTY_PRODUCTS_MESSAGE,
     FORM_TITLE,
+    INVALID_DATE_ERROR,
     INVALID_PORCENTAJE_ERROR,
     JEFE_ROLE,
     NO_ACCESS_MESSAGE,
@@ -31,6 +36,7 @@ import {
     SCREEN_TITLE,
     SEARCH_PRODUCT,
     SUCCESS_MESSAGE,
+    descuentosByNegocioRoute,
     descuentosRoute,
     productosByNegocioRoute,
 } from "./constants";
@@ -38,14 +44,23 @@ import { DescuentosProps } from "./types";
 
 const PERCENTAGE_REGEX = /^\d+(?:[.,]\d{1,2})?$/;
 
+type DescuentoWithProducto = Descuento & {
+    producto_nombre: string;
+    producto_referencia: string;
+};
+
 const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
     const { negocio } = route.params;
 
     const [productos, setProductos] = useState<Producto[]>([]);
+    const [descuentos, setDescuentos] = useState<DescuentoWithProducto[]>([]);
     const [searchText, setSearchText] = useState("");
     const [selectedProductoId, setSelectedProductoId] = useState<number | null>(null);
     const [porcentaje, setPorcentaje] = useState("");
+    const [fechaInicio, setFechaInicio] = useState("");
+    const [fechaFin, setFechaFin] = useState("");
     const [loading, setLoading] = useState(false);
+    const [loadingDescuentos, setLoadingDescuentos] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
@@ -63,6 +78,8 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
         setSearchText("");
         setSelectedProductoId(null);
         setPorcentaje("");
+        setFechaInicio("");
+        setFechaFin("");
         setError("");
         setSuccess("");
     }, []);
@@ -94,6 +111,38 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
         () => productos.find((producto) => producto.id_producto === selectedProductoId) || null,
         [productos, selectedProductoId]
     );
+
+    const fetchDescuentos = useCallback(async () => {
+        if (!canManageDescuentos) {
+            return;
+        }
+
+        setLoadingDescuentos(true);
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(descuentosByNegocioRoute(negocio.id_negocio), {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setError(data.message || DEFAULT_DESCUENTOS_ERROR);
+                setDescuentos([]);
+                return;
+            }
+
+            const data = await response.json();
+            setDescuentos(data.descuentos || []);
+        } catch (fetchError) {
+            setError(CONNECTION_ERROR);
+            setDescuentos([]);
+        } finally {
+            setLoadingDescuentos(false);
+        }
+    }, [canManageDescuentos, negocio.id_negocio]);
 
     const fetchProductos = useCallback(async () => {
         if (!canManageDescuentos) {
@@ -133,7 +182,8 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
     useFocusEffect(
         useCallback(() => {
             fetchProductos();
-        }, [fetchProductos])
+            fetchDescuentos();
+        }, [fetchProductos, fetchDescuentos])
     );
 
     const validateForm = () => {
@@ -161,6 +211,16 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
             return false;
         }
 
+        if (fechaInicio && fechaFin) {
+            const inicio = new Date(fechaInicio);
+            const fin = new Date(fechaFin);
+            
+            if (fin <= inicio) {
+                setError(INVALID_DATE_ERROR);
+                return false;
+            }
+        }
+
         return true;
     };
 
@@ -176,16 +236,27 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
 
         try {
             const token = await AsyncStorage.getItem("token");
+            
+            const body: any = {
+                id_producto: selectedProductoId,
+                porcentaje_descuento: porcentaje.trim(),
+            };
+
+            if (fechaInicio) {
+                body.fecha_inicio = fechaInicio;
+            }
+
+            if (fechaFin) {
+                body.fecha_fin = fechaFin;
+            }
+
             const response = await fetch(descuentosRoute, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({
-                    id_producto: selectedProductoId,
-                    porcentaje_descuento: porcentaje.trim(),
-                }),
+                body: JSON.stringify(body),
             });
 
             if (!response.ok) {
@@ -196,8 +267,11 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
 
             setSuccess(SUCCESS_MESSAGE);
             setPorcentaje("");
+            setFechaInicio("");
+            setFechaFin("");
             setSelectedProductoId(null);
             setSearchText("");
+            fetchDescuentos();
             setTimeout(() => {
                 handleCloseModal();
             }, 1500);
@@ -236,8 +310,49 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
                     <Text style={styles.errorText} testID="descuentos-no-access-message">
                         {NO_ACCESS_MESSAGE}
                     </Text>
+                ) : loadingDescuentos ? (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color="#1976D2" />
+                        <Text style={styles.loadingText}>Cargando descuentos...</Text>
+                    </View>
+                ) : descuentos.length === 0 ? (
+                    <Text style={styles.emptyStateText}>{EMPTY_DESCUENTOS_MESSAGE}</Text>
                 ) : (
-                    <Text style={styles.emptyStateText}>Pulsa "Añadir" para crear un descuento</Text>
+                    <View style={styles.descuentosList}>
+                        {descuentos.map((descuento) => (
+                            <View key={descuento.id_descuento} style={styles.descuentoCard}>
+                                <View style={styles.descuentoHeader}>
+                                    <MaterialIcons name="local-offer" size={24} color="#795548" />
+                                    <Text style={styles.descuentoPorcentaje}>
+                                        {descuento.porcentaje_descuento}% OFF
+                                    </Text>
+                                </View>
+                                <View style={styles.descuentoBody}>
+                                    <Text style={styles.descuentoProducto}>
+                                        {descuento.producto_nombre}
+                                    </Text>
+                                    <Text style={styles.descuentoReferencia}>
+                                        Ref: {descuento.producto_referencia}
+                                    </Text>
+                                    {descuento.fecha_inicio && (
+                                        <Text style={styles.descuentoFechaInicio}>
+                                            Desde: {new Date(descuento.fecha_inicio).toLocaleDateString()}
+                                        </Text>
+                                    )}
+                                    {descuento.fecha_fin && (
+                                        <Text style={styles.descuentoFecha}>
+                                            Hasta: {new Date(descuento.fecha_fin).toLocaleDateString()}
+                                        </Text>
+                                    )}
+                                    {!descuento.fecha_fin && (
+                                        <Text style={styles.descuentoSinFecha}>
+                                            Sin fecha de caducidad
+                                        </Text>
+                                    )}
+                                </View>
+                            </View>
+                        ))}
+                    </View>
                 )}
             </ScrollView>
 
@@ -314,6 +429,26 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
                             testID="descuento-porcentaje-input"
                         />
 
+                        <Text style={styles.sectionLabel}>Vigencia del descuento (opcional)</Text>
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder={DATE_START_PLACEHOLDER}
+                            value={fechaInicio}
+                            onChangeText={setFechaInicio}
+                            testID="descuento-fecha-inicio-input"
+                        />
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder={DATE_END_PLACEHOLDER}
+                            value={fechaFin}
+                            onChangeText={setFechaFin}
+                            testID="descuento-fecha-fin-input"
+                        />
+
+                        <Text style={styles.helperTextSmall}>Formato de fecha: YYYY-MM-DD (Ejemplo: 2026-12-31)</Text>
+
                         {error ? (
                             <View style={styles.feedbackError} testID="descuento-error-message">
                                 <Text style={styles.feedbackErrorText}>{error}</Text>
@@ -388,13 +523,74 @@ const styles = StyleSheet.create({
     content: {
         padding: 16,
         gap: 10,
+    },
+    loadingContainer: {
+        flex: 1,
         justifyContent: "center",
         alignItems: "center",
+        paddingVertical: 40,
+    },
+    descuentosList: {
+        width: "100%",
+        gap: 12,
+    },
+    descuentoCard: {
+        backgroundColor: "#fff",
+        borderRadius: 12,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    descuentoHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 12,
+        gap: 8,
+    },
+    descuentoPorcentaje: {
+        fontSize: 20,
+        fontWeight: "700",
+        color: "#795548",
+    },
+    descuentoBody: {
+        gap: 4,
+    },
+    descuentoProducto: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: "#1f2937",
+    },
+    descuentoReferencia: {
+        fontSize: 14,
+        color: "#6b7280",
+    },
+    descuentoFecha: {
+        fontSize: 13,
+        color: "#059669",
+        marginTop: 4,
+    },
+    descuentoFechaInicio: {
+        fontSize: 13,
+        color: "#0284c7",
+        marginTop: 4,
+    },
+    descuentoSinFecha: {
+        fontSize: 13,
+        color: "#9ca3af",
+        marginTop: 4,
+        fontStyle: "italic",
     },
     emptyStateText: {
         fontSize: 16,
         color: "#6b7280",
         fontWeight: "500",
+        textAlign: "center",
+        marginTop: 40,
     },
     input: {
         backgroundColor: "#fff",
@@ -471,6 +667,20 @@ const styles = StyleSheet.create({
     helperText: {
         fontSize: 13,
         color: "#0f766e",
+        marginBottom: 8,
+    },
+    helperTextSmall: {
+        fontSize: 12,
+        color: "#6b7280",
+        marginTop: -6,
+        marginBottom: 8,
+    },
+    sectionLabel: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: "#374151",
+        marginTop: 12,
+        marginBottom: 8,
     },
     emptyText: {
         color: "#6b7280",
