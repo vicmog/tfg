@@ -53,6 +53,14 @@ export const createCompraReqSinProductos = {
     },
 };
 
+export const createCompraReqSinFecha = {
+    ...createCompraReq,
+    body: {
+        ...createCompraReq.body,
+        fecha: "",
+    },
+};
+
 export const createCompraReqCantidadEsperadaInvalida = {
     ...createCompraReq,
     body: {

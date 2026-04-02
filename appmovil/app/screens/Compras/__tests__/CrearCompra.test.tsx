@@ -56,10 +56,15 @@ describe("CrearCompra", () => {
         );
 
         await waitFor(() => {
-            expect(getByTestId("compras-row-0-producto-7")).toBeTruthy();
+            expect(getByTestId("compras-row-0-open-product-picker")).toBeTruthy();
         });
 
-        fireEvent.press(getByTestId("compras-row-0-producto-7"));
+        fireEvent.press(getByTestId("compras-row-0-open-product-picker"));
+        await waitFor(() => {
+            expect(getByTestId("compras-picker-product-7")).toBeTruthy();
+        });
+        fireEvent.press(getByTestId("compras-picker-product-7"));
+        fireEvent.changeText(getByTestId("compras-fecha-input"), "2026-04-02T10:00:00.000Z");
         fireEvent.changeText(getByTestId("compras-row-0-cantidad-esperada-input"), "4");
         fireEvent.changeText(getByTestId("compras-row-0-cantidad-llegada-input"), "1");
         fireEvent.press(getByTestId("compras-save-button"));

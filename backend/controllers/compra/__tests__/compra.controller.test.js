@@ -13,6 +13,7 @@ import {
     createCompraReqCantidadLlegadaInvalida,
     createCompraReqProductoDuplicado,
     createCompraReqProductoFueraNegocio,
+    createCompraReqSinFecha,
     createCompraReqSinPermiso,
     createCompraReqSinProductos,
     mockProductos,
@@ -130,6 +131,18 @@ describe("CompraController Unit Tests", () => {
         expect(res.status).toHaveBeenCalledWith(400);
         expect(jsonMock).toHaveBeenCalledWith({
             message: "Debes indicar al menos un producto",
+        });
+    });
+
+    it("deberia fallar si la fecha no viene informada", async () => {
+        const { res, jsonMock } = buildRes();
+
+        await createCompra(createCompraReqSinFecha, res);
+
+        expect(UsuarioNegocio.findOne).not.toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+            message: "La fecha de compra es obligatoria",
         });
     });
 

@@ -34,10 +34,6 @@ const parseInteger = (value) => {
 };
 
 const normalizeFecha = (fecha) => {
-    if (!fecha) {
-        return new Date();
-    }
-
     const parsedDate = new Date(fecha);
 
     if (Number.isNaN(parsedDate.getTime())) {
@@ -97,6 +93,7 @@ const normalizeProductos = (productos) => {
 export const createCompra = async (req, res) => {
     const id_usuario = req.user?.id_usuario;
     const idNegocio = parseInteger(req.body?.id_negocio);
+    const fechaRaw = typeof req.body?.fecha === "string" ? req.body.fecha.trim() : "";
     const descripcion = typeof req.body?.descripcion === "string"
         ? req.body.descripcion.trim() || null
         : null;
@@ -109,7 +106,11 @@ export const createCompra = async (req, res) => {
         return res.status(400).json({ message: COMPRA_ERRORS.NEGOCIO_ID_REQUIRED });
     }
 
-    const fecha = normalizeFecha(req.body?.fecha);
+    if (!fechaRaw) {
+        return res.status(400).json({ message: COMPRA_ERRORS.FECHA_REQUIRED });
+    }
+
+    const fecha = normalizeFecha(fechaRaw);
 
     if (!fecha) {
         return res.status(400).json({ message: COMPRA_ERRORS.FECHA_INVALID });

@@ -1,6 +1,8 @@
 import React, { useCallback, useMemo, useState } from "react";
 import {
     ActivityIndicator,
+    FlatList,
+    Modal,
     ScrollView,
     StyleSheet,
     Text,
@@ -19,11 +21,13 @@ import {
     DEFAULT_CREATE_ERROR,
     DEFAULT_PRODUCTS_ERROR,
     DUPLICATED_PRODUCT_ERROR,
+    EMPTY_FECHA_ERROR,
     EMPTY_PRODUCT_ID_ERROR,
     EMPTY_PRODUCTS_MESSAGE,
     FORM_TITLE,
     INVALID_CANTIDAD_ESPERADA_ERROR,
     INVALID_CANTIDAD_LLEGADA_ERROR,
+    INVALID_FECHA_ERROR,
     NO_ACCESS_MESSAGE,
     PRODUCTS_SECTION_TITLE,
     SAVE_BUTTON_TEXT,
@@ -43,6 +47,7 @@ type CompraProductoRow = {
 };
 
 const INTEGER_REGEX = /^\d+$/;
+const getTodayDate = () => new Date().toISOString().slice(0, 10);
 
 const newProductRow = (id: number): CompraProductoRow => ({
     localId: `compra-row-${id}`,
@@ -57,8 +62,11 @@ const CrearCompra: React.FC<CrearCompraProps> = ({ route, navigation }) => {
     const [productos, setProductos] = useState<Producto[]>([]);
     const [rows, setRows] = useState<CompraProductoRow[]>([newProductRow(1)]);
     const [descripcion, setDescripcion] = useState("");
-    const [fecha, setFecha] = useState("");
+    const [fecha, setFecha] = useState(getTodayDate);
     const [loadingProductos, setLoadingProductos] = useState(false);
+    const [pickerVisible, setPickerVisible] = useState(false);
+    const [pickerSearch, setPickerSearch] = useState("");
+    const [pickerRowId, setPickerRowId] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
@@ -73,6 +81,38 @@ const CrearCompra: React.FC<CrearCompraProps> = ({ route, navigation }) => {
         })),
         [productos, rows]
     );
+
+    const selectedProductIds = useMemo(
+        () => rows
+            .map((row) => row.id_producto)
+            .filter((idProducto): idProducto is number => idProducto !== null),
+        [rows]
+    );
+
+    const pickerProducts = useMemo(() => {
+        const search = pickerSearch.trim().toLowerCase();
+        const activeRow = rows.find((row) => row.localId === pickerRowId);
+        const activeProductId = activeRow?.id_producto ?? null;
+
+        return productos.filter((producto) => {
+            const alreadySelected = selectedProductIds.includes(producto.id_producto)
+                && producto.id_producto !== activeProductId;
+
+            if (alreadySelected) {
+                return false;
+            }
+
+            if (!search) {
+                return true;
+            }
+
+            return (
+                producto.nombre.toLowerCase().includes(search)
+                || producto.referencia.toLowerCase().includes(search)
+                || producto.categoria.toLowerCase().includes(search)
+            );
+        });
+    }, [pickerSearch, pickerRowId, productos, rows, selectedProductIds]);
 
     const totalEstimado = useMemo(() => rowsWithProductData.reduce((acc, row) => {
         if (!row.producto || !INTEGER_REGEX.test(row.cantidad_esperada.trim())) {
@@ -139,6 +179,27 @@ const CrearCompra: React.FC<CrearCompraProps> = ({ route, navigation }) => {
         setRows((previousRows) => [...previousRows, newProductRow(previousRows.length + 1)]);
     };
 
+    const openProductPicker = (localId: string) => {
+        setPickerRowId(localId);
+        setPickerSearch("");
+        setPickerVisible(true);
+    };
+
+    const closeProductPicker = () => {
+        setPickerVisible(false);
+        setPickerRowId(null);
+        setPickerSearch("");
+    };
+
+    const selectProductFromPicker = (idProducto: number) => {
+        if (!pickerRowId) {
+            return;
+        }
+
+        updateRow(pickerRowId, { id_producto: idProducto });
+        closeProductPicker();
+    };
+
     const removeRow = (localId: string) => {
         setRows((previousRows) => {
             if (previousRows.length === 1) {
@@ -150,6 +211,20 @@ const CrearCompra: React.FC<CrearCompraProps> = ({ route, navigation }) => {
     };
 
     const validateForm = () => {
+        const fechaValue = fecha.trim();
+
+        if (!fechaValue) {
+            setError(EMPTY_FECHA_ERROR);
+            return false;
+        }
+
+        const parsedFecha = new Date(fechaValue);
+
+        if (Number.isNaN(parsedFecha.getTime())) {
+            setError(INVALID_FECHA_ERROR);
+            return false;
+        }
+
         if (!rows.length) {
             setError(EMPTY_PRODUCTS_MESSAGE);
             return false;
@@ -201,7 +276,7 @@ const CrearCompra: React.FC<CrearCompraProps> = ({ route, navigation }) => {
 
         try {
             const token = await AsyncStorage.getItem("token");
-            const fechaIso = fecha.trim() ? new Date(fecha.trim()).toISOString() : new Date().toISOString();
+            const fechaIso = new Date(fecha.trim()).toISOString();
             const response = await fetch(comprasRoute, {
                 method: "POST",
                 headers: {
@@ -229,7 +304,7 @@ const CrearCompra: React.FC<CrearCompraProps> = ({ route, navigation }) => {
             setSuccess(SUCCESS_MESSAGE);
             setRows([newProductRow(1)]);
             setDescripcion("");
-            setFecha("");
+            setFecha(getTodayDate());
             navigation.goBack();
         } catch (saveError) {
             setError(CONNECTION_ERROR);
@@ -277,7 +352,7 @@ const CrearCompra: React.FC<CrearCompraProps> = ({ route, navigation }) => {
 
                         <TextInput
                             style={styles.input}
-                            placeholder="Fecha ISO (opcional)"
+                            placeholder="Fecha (YYYY-MM-DD)"
                             value={fecha}
                             onChangeText={setFecha}
                             testID="compras-fecha-input"
@@ -288,28 +363,16 @@ const CrearCompra: React.FC<CrearCompraProps> = ({ route, navigation }) => {
                         {rowsWithProductData.map((row, index) => (
                             <View key={row.localId} style={styles.rowCard} testID={`compras-row-${index}`}>
                                 <Text style={styles.rowLabel}>Producto</Text>
-                                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productOptionsScroll}>
-                                    {productos.map((producto) => (
-                                        <TouchableOpacity
-                                            key={`${row.localId}-${producto.id_producto}`}
-                                            style={[
-                                                styles.productChip,
-                                                row.id_producto === producto.id_producto && styles.productChipSelected,
-                                            ]}
-                                            onPress={() => updateRow(row.localId, { id_producto: producto.id_producto })}
-                                            testID={`compras-row-${index}-producto-${producto.id_producto}`}
-                                        >
-                                            <Text
-                                                style={[
-                                                    styles.productChipText,
-                                                    row.id_producto === producto.id_producto && styles.productChipTextSelected,
-                                                ]}
-                                            >
-                                                {producto.nombre}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </ScrollView>
+                                <TouchableOpacity
+                                    style={styles.productSelectButton}
+                                    onPress={() => openProductPicker(row.localId)}
+                                    testID={`compras-row-${index}-open-product-picker`}
+                                >
+                                    <MaterialIcons name="search" size={18} color="#1d4ed8" />
+                                    <Text style={styles.productSelectButtonText}>
+                                        {row.producto ? `${row.producto.nombre} (${row.producto.referencia})` : "Seleccionar producto"}
+                                    </Text>
+                                </TouchableOpacity>
 
                                 <TextInput
                                     style={styles.input}
@@ -335,7 +398,7 @@ const CrearCompra: React.FC<CrearCompraProps> = ({ route, navigation }) => {
                                     testID={`compras-row-${index}-remove-button`}
                                 >
                                     <MaterialIcons name="delete" size={18} color="#b91c1c" />
-                                    <Text style={styles.removeButtonText}>Quitar linea</Text>
+                                    <Text style={styles.removeButtonText}>Quitar producto</Text>
                                 </TouchableOpacity>
                             </View>
                         ))}
@@ -377,6 +440,59 @@ const CrearCompra: React.FC<CrearCompraProps> = ({ route, navigation }) => {
                     </>
                 )}
             </ScrollView>
+
+            <Modal
+                visible={pickerVisible}
+                transparent
+                animationType="slide"
+                onRequestClose={closeProductPicker}
+            >
+                <View style={styles.modalBackdrop}>
+                    <View style={styles.modalCard}>
+                        <Text style={styles.modalTitle}>Selecciona un producto</Text>
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Buscar por nombre, referencia o categoria"
+                            value={pickerSearch}
+                            onChangeText={setPickerSearch}
+                            testID="compras-product-picker-search-input"
+                        />
+
+                        <FlatList
+                            data={pickerProducts}
+                            keyExtractor={(item) => `${item.id_producto}`}
+                            style={styles.modalList}
+                            keyboardShouldPersistTaps="handled"
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={styles.modalListItem}
+                                    onPress={() => selectProductFromPicker(item.id_producto)}
+                                    testID={`compras-picker-product-${item.id_producto}`}
+                                >
+                                    <Text style={styles.modalListItemTitle}>{item.nombre}</Text>
+                                    <Text style={styles.modalListItemSubtitle}>
+                                        Ref: {item.referencia} | Cat: {item.categoria}
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                            ListEmptyComponent={(
+                                <Text style={styles.modalEmptyText} testID="compras-picker-empty-message">
+                                    No hay productos para mostrar con ese filtro
+                                </Text>
+                            )}
+                        />
+
+                        <TouchableOpacity
+                            style={styles.modalCloseButton}
+                            onPress={closeProductPicker}
+                            testID="compras-close-product-picker"
+                        >
+                            <Text style={styles.modalCloseButtonText}>Cerrar</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -452,28 +568,21 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         color: "#374151",
     },
-    productOptionsScroll: {
-        marginBottom: 2,
-    },
-    productChip: {
+    productSelectButton: {
         borderWidth: 1,
         borderColor: "#93c5fd",
         backgroundColor: "#eff6ff",
         borderRadius: 14,
-        paddingHorizontal: 12,
+        paddingHorizontal: 10,
         paddingVertical: 8,
-        marginRight: 8,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
     },
-    productChipSelected: {
-        backgroundColor: "#1976D2",
-        borderColor: "#1976D2",
-    },
-    productChipText: {
+    productSelectButtonText: {
         color: "#1d4ed8",
         fontWeight: "600",
-    },
-    productChipTextSelected: {
-        color: "#fff",
+        flexShrink: 1,
     },
     addRowButton: {
         flexDirection: "row",
@@ -530,6 +639,58 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontSize: 16,
         fontWeight: "700",
+    },
+    modalBackdrop: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.35)",
+        justifyContent: "flex-end",
+    },
+    modalCard: {
+        backgroundColor: "#fff",
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+        padding: 16,
+        maxHeight: "72%",
+    },
+    modalTitle: {
+        fontSize: 17,
+        fontWeight: "700",
+        color: "#111827",
+        marginBottom: 10,
+    },
+    modalList: {
+        marginTop: 10,
+    },
+    modalListItem: {
+        borderBottomWidth: 1,
+        borderBottomColor: "#e5e7eb",
+        paddingVertical: 10,
+    },
+    modalListItemTitle: {
+        fontWeight: "700",
+        color: "#111827",
+    },
+    modalListItemSubtitle: {
+        color: "#4b5563",
+        fontSize: 12,
+        marginTop: 2,
+    },
+    modalEmptyText: {
+        textAlign: "center",
+        color: "#6b7280",
+        marginTop: 24,
+    },
+    modalCloseButton: {
+        marginTop: 14,
+        alignSelf: "flex-end",
+        backgroundColor: "#e5e7eb",
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: 8,
+    },
+    modalCloseButtonText: {
+        fontWeight: "700",
+        color: "#374151",
     },
 });
 

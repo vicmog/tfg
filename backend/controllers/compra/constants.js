@@ -1,6 +1,7 @@
 export const COMPRA_ERRORS = {
     USER_NOT_AUTHENTICATED: "Usuario no autenticado",
     NEGOCIO_ID_REQUIRED: "El negocio es obligatorio",
+    FECHA_REQUIRED: "La fecha de compra es obligatoria",
     PRODUCTOS_REQUIRED: "Debes indicar al menos un producto",
     PRODUCTO_ID_REQUIRED: "Cada producto debe tener id_producto válido",
     CANTIDAD_ESPERADA_REQUIRED: "La cantidad esperada debe ser un entero mayor que 0",
