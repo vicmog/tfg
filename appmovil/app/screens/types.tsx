@@ -90,3 +90,19 @@ export type Descuento = {
     createdAt: string;
     updatedAt: string;
 };
+
+export type CompraProductoInput = {
+    id_producto: number;
+    cantidad_esperada: number;
+    cantidad_llegada: number;
+};
+
+export type Compra = {
+    id_compra: number;
+    id_negocio: number;
+    descripcion?: string | null;
+    fecha: string;
+    importe_total: number;
+    estado: string;
+    productos: CompraProductoInput[];
+};
