@@ -565,3 +565,39 @@ export const getCompraById = async (req, res) => {
         return res.status(500).json({ message: COMPRA_ERRORS.SERVER_ERROR });
     }
 };
+
+export const deleteCompra = async (req, res) => {
+    const idUsuario = req.user?.id_usuario;
+    const idCompraResult = normalizePositiveInteger(req.params?.id_compra, COMPRA_ERRORS.COMPRA_ID_REQUIRED);
+
+    if (idCompraResult.error) {
+        return res.status(400).json({ message: idCompraResult.error });
+    }
+
+    try {
+        const compra = await Compra.findOne({
+            where: {
+                id_compra: idCompraResult.value,
+            },
+        });
+
+        if (!compra) {
+            return res.status(404).json({ message: COMPRA_ERRORS.COMPRA_NOT_FOUND });
+        }
+
+        const accessResult = await ensureNegocioAccess(idUsuario, compra.id_negocio);
+        if (accessResult.status) {
+            return res.status(accessResult.status).json({ message: accessResult.message });
+        }
+
+        if (!canManageCompras(accessResult.usuarioNegocio.rol)) {
+            return res.status(403).json({ message: COMPRA_ERRORS.NO_MANAGE_PERMISSION });
+        }
+
+        await compra.destroy();
+
+        return res.status(200).json({ message: COMPRA_MESSAGES.COMPRA_DELETED });
+    } catch (error) {
+        return res.status(500).json({ message: COMPRA_ERRORS.SERVER_ERROR });
+    }
+};

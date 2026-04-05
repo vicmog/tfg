@@ -4,7 +4,7 @@ import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Compras from "../Compras";
 import { API_ROUTES } from "@/app/constants/apiRoutes";
-import { mockNavigation, mockRoute } from "./data";
+import { mockNavigation, mockRoute, mockRouteTrabajador } from "./data";
 
 jest.mock("@expo/vector-icons", () => ({
     MaterialIcons: "MaterialIcons",
@@ -96,7 +96,7 @@ describe("Compras", () => {
             expect(getByTestId("compras-item-0")).toBeTruthy();
         });
 
-        fireEvent.press(getByTestId("compras-item-0"));
+        fireEvent.press(getByTestId("compras-open-detail-10"));
 
         await waitFor(() => {
             expect(getByTestId("compras-detail-close-button")).toBeTruthy();
@@ -162,5 +162,84 @@ describe("Compras", () => {
         fireEvent.press(getByTestId("compras-go-create-button"));
 
         expect(mockNavigation.navigate).toHaveBeenCalledWith("CrearCompra", { negocio: mockRoute.params.negocio });
+    });
+
+    it("elimina compra desde listado con confirmacion", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    compras: [
+                        {
+                            id_compra: 10,
+                            id_negocio: 1,
+                            fecha: "2026-04-02T10:00:00.000Z",
+                            importe_total: 20,
+                            estado: "pendiente",
+                            proveedor: "Proveedor Uno",
+                        },
+                    ],
+                    pagination: { page: 1, limit: 20, total: 1, has_more: false },
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ message: "Compra eliminada correctamente" }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ compras: [], pagination: { page: 1, limit: 20, total: 0, has_more: false } }),
+            });
+
+        const { getByTestId, queryByTestId } = render(
+            <Compras navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("compras-item-0")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("compras-delete-button-10"));
+        expect(getByTestId("compras-delete-confirm-10")).toBeTruthy();
+        fireEvent.press(getByTestId("compras-delete-confirm-button-10"));
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.deleteCompraById(10),
+                expect.objectContaining({ method: "DELETE" })
+            );
+        });
+
+        expect(queryByTestId("compras-delete-confirm-10")).toBeNull();
+    });
+
+    it("no muestra boton eliminar para trabajador", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    compras: [
+                        {
+                            id_compra: 11,
+                            id_negocio: 1,
+                            fecha: "2026-04-03T10:00:00.000Z",
+                            importe_total: 50,
+                            estado: "pendiente",
+                            proveedor: "Proveedor Dos",
+                        },
+                    ],
+                    pagination: { page: 1, limit: 20, total: 1, has_more: false },
+                }),
+            });
+
+        const { getByTestId, queryByTestId } = render(
+            <Compras navigation={mockNavigation} route={mockRouteTrabajador} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("compras-item-0")).toBeTruthy();
+        });
+
+        expect(queryByTestId("compras-delete-button-11")).toBeNull();
     });
 });

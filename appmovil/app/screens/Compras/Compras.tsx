@@ -19,9 +19,17 @@ import {
     compraByIdRoute,
     comprasListRoute,
     CONNECTION_ERROR,
+    CONFIRM_DELETE_ACCEPT,
+    CONFIRM_DELETE_CANCEL,
     DATE_FILTER_INVALID_ERROR,
+    DEFAULT_DELETE_ERROR,
     DEFAULT_FETCH_COMPRA_DETAIL_ERROR,
     DEFAULT_FETCH_COMPRAS_ERROR,
+    DELETE_BUTTON_TEXT,
+    DELETE_CONFIRM_MESSAGE,
+    DELETE_CONFIRM_TITLE,
+    DELETE_SUCCESS_MESSAGE,
+    deleteCompraByIdRoute,
     DETAIL_CLOSE_BUTTON,
     DETAIL_PRODUCTS_TITLE,
     DETAIL_TITLE,
@@ -114,6 +122,7 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
     const [loadingMore, setLoadingMore] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [listError, setListError] = useState("");
+    const [listSuccess, setListSuccess] = useState("");
 
     const [fechaFilterDraft, setFechaFilterDraft] = useState("");
     const [fechaFilterApplied, setFechaFilterApplied] = useState("");
@@ -124,7 +133,12 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
     const [detailVisible, setDetailVisible] = useState(false);
     const [detailLoading, setDetailLoading] = useState(false);
     const [detailError, setDetailError] = useState("");
+    const [deletingCompraId, setDeletingCompraId] = useState<number | null>(null);
+    const [confirmDeleteCompraId, setConfirmDeleteCompraId] = useState<number | null>(null);
     const [selectedCompra, setSelectedCompra] = useState<CompraDetailResponse | null>(null);
+
+    const normalizedRole = (negocio.rol || "").toLowerCase();
+    const canManageCompras = normalizedRole === "jefe" || normalizedRole === "admin";
 
     const appliedFilters = useMemo(() => ({
         fecha: fechaFilterApplied.trim(),
@@ -152,6 +166,7 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
         }
 
         setListError("");
+        setListSuccess("");
 
         try {
             const token = await AsyncStorage.getItem("token");
@@ -305,6 +320,47 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
         setSelectedCompra(null);
     };
 
+    const handleAskDeleteCompra = (idCompra: number) => {
+        setListError("");
+        setListSuccess("");
+        setConfirmDeleteCompraId(idCompra);
+    };
+
+    const handleCancelDeleteCompra = () => {
+        setConfirmDeleteCompraId(null);
+    };
+
+    const handleDeleteCompra = async (idCompra: number) => {
+        setDeletingCompraId(idCompra);
+        setListError("");
+        setListSuccess("");
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(deleteCompraByIdRoute(idCompra), {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setListError(data.message || DEFAULT_DELETE_ERROR);
+                return;
+            }
+
+            const data = await response.json();
+            setListSuccess(data.message || DELETE_SUCCESS_MESSAGE);
+            setConfirmDeleteCompraId(null);
+            await fetchCompras(undefined, appliedFilters.fecha);
+        } catch (error) {
+            setListError(CONNECTION_ERROR);
+        } finally {
+            setDeletingCompraId(null);
+        }
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -343,6 +399,10 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
                 <Text style={styles.errorText} testID="compras-list-error-message">{listError}</Text>
             ) : null}
 
+            {listSuccess ? (
+                <Text style={styles.successText} testID="compras-list-success-message">{listSuccess}</Text>
+            ) : null}
+
             {loading ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="small" color="#1976D2" testID="compras-list-loading" />
@@ -365,18 +425,67 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
                             <Text style={styles.footerLoadingText}>{LOADING_MORE_TEXT}</Text>
                         </View>
                     ) : null}
-                    renderItem={({ item, index }) => (
-                        <TouchableOpacity
-                            style={styles.compraCard}
-                            onPress={() => handleOpenDetail(item.id_compra)}
-                            testID={`compras-item-${index}`}
-                        >
-                            <Text style={styles.compraDate}>Fecha: {formatDate(item.fecha)}</Text>
-                            <Text style={styles.compraAmount}>Importe: {formatAmount(item.importe_total)}</Text>
-                            <Text style={styles.compraProvider}>Proveedor: {item.proveedor || NO_PROVIDER_MESSAGE}</Text>
-                            <Text style={styles.compraStatus}>Estado: {item.estado}</Text>
-                        </TouchableOpacity>
-                    )}
+                    renderItem={({ item, index }) => {
+                        const isDeleting = deletingCompraId === item.id_compra;
+
+                        return (
+                            <View style={styles.compraCard} testID={`compras-item-${index}`}>
+                                <View style={styles.compraCardContent}>
+                                    <TouchableOpacity
+                                        style={styles.compraInfoButton}
+                                        onPress={() => handleOpenDetail(item.id_compra)}
+                                        testID={`compras-open-detail-${item.id_compra}`}
+                                    >
+                                        <Text style={styles.compraDate}>Fecha: {formatDate(item.fecha)}</Text>
+                                        <Text style={styles.compraAmount}>Importe: {formatAmount(item.importe_total)}</Text>
+                                        <Text style={styles.compraProvider}>Proveedor: {item.proveedor || NO_PROVIDER_MESSAGE}</Text>
+                                        <Text style={styles.compraStatus}>Estado: {item.estado}</Text>
+                                    </TouchableOpacity>
+
+                                    {canManageCompras ? (
+                                        <View style={styles.cardActionsRow}>
+                                            <TouchableOpacity
+                                                style={[styles.actionIconButton, styles.deleteIconButton]}
+                                                onPress={() => handleAskDeleteCompra(item.id_compra)}
+                                                disabled={isDeleting}
+                                                testID={`compras-delete-button-${item.id_compra}`}
+                                            >
+                                                {isDeleting ? (
+                                                    <ActivityIndicator size="small" color="#fff" />
+                                                ) : (
+                                                    <MaterialIcons name="delete" size={16} color="#fff" />
+                                                )}
+                                            </TouchableOpacity>
+                                        </View>
+                                    ) : null}
+                                </View>
+
+                                {confirmDeleteCompraId === item.id_compra ? (
+                                    <View style={styles.confirmBox} testID={`compras-delete-confirm-${item.id_compra}`}>
+                                        <Text style={styles.confirmTitle}>{DELETE_CONFIRM_TITLE}</Text>
+                                        <Text style={styles.confirmMessage}>{DELETE_CONFIRM_MESSAGE}</Text>
+                                        <View style={styles.confirmActions}>
+                                            <TouchableOpacity
+                                                style={styles.confirmCancelButton}
+                                                onPress={handleCancelDeleteCompra}
+                                                testID={`compras-delete-cancel-${item.id_compra}`}
+                                            >
+                                                <Text style={styles.confirmCancelText}>{CONFIRM_DELETE_CANCEL}</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={styles.confirmDeleteButton}
+                                                onPress={() => handleDeleteCompra(item.id_compra)}
+                                                disabled={isDeleting}
+                                                testID={`compras-delete-confirm-button-${item.id_compra}`}
+                                            >
+                                                <Text style={styles.confirmDeleteText}>{CONFIRM_DELETE_ACCEPT}</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                ) : null}
+                            </View>
+                        );
+                    }}
                 />
             )}
 
@@ -534,6 +643,7 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
                                 )) : (
                                     <Text style={styles.emptyText}>No hay productos en la compra</Text>
                                 )}
+
                             </View>
                         ) : null}
 
@@ -724,6 +834,27 @@ const styles = StyleSheet.create({
         padding: 12,
         gap: 4,
     },
+    compraCardContent: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+    },
+    compraInfoButton: {
+        flex: 1,
+    },
+    cardActionsRow: {
+        marginLeft: 8,
+    },
+    actionIconButton: {
+        height: 34,
+        width: 34,
+        borderRadius: 10,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    deleteIconButton: {
+        backgroundColor: "#dc2626",
+    },
     compraDate: {
         color: "#111827",
         fontWeight: "700",
@@ -741,6 +872,12 @@ const styles = StyleSheet.create({
     },
     errorText: {
         color: "#b91c1c",
+        fontWeight: "600",
+        marginHorizontal: 16,
+        marginBottom: 8,
+    },
+    successText: {
+        color: "#166534",
         fontWeight: "600",
         marginHorizontal: 16,
         marginBottom: 8,
@@ -792,6 +929,46 @@ const styles = StyleSheet.create({
     productsTitle: {
         marginTop: 8,
         color: "#111827",
+        fontWeight: "700",
+    },
+    confirmBox: {
+        marginTop: 10,
+        borderWidth: 1,
+        borderColor: "#fecaca",
+        backgroundColor: "#fff1f2",
+        borderRadius: 8,
+        padding: 10,
+    },
+    confirmTitle: {
+        color: "#03045E",
+        fontWeight: "700",
+        marginBottom: 4,
+    },
+    confirmMessage: {
+        color: "#03045E",
+        marginBottom: 8,
+    },
+    confirmActions: {
+        flexDirection: "row",
+        justifyContent: "flex-end",
+    },
+    confirmCancelButton: {
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        marginRight: 8,
+    },
+    confirmCancelText: {
+        color: "#6b7280",
+        fontWeight: "600",
+    },
+    confirmDeleteButton: {
+        backgroundColor: "#dc2626",
+        borderRadius: 6,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+    },
+    confirmDeleteText: {
+        color: "#fff",
         fontWeight: "700",
     },
     productRow: {
