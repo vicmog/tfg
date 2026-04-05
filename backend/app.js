@@ -10,6 +10,7 @@ import servicioRoutes from "./routes/servicio.js";
 import proveedorRoutes from "./routes/proveedor.js";
 import productoRoutes from "./routes/producto.js";
 import descuentoRoutes from "./routes/descuento.js";
+import compraRoutes from "./routes/compra.js";
 
 
 dotenv.config();
@@ -28,5 +29,6 @@ app.use("/v1/api/servicios", servicioRoutes);
 app.use("/v1/api/proveedores", proveedorRoutes);
 app.use("/v1/api/productos", productoRoutes);
 app.use("/v1/api/descuentos", descuentoRoutes);
+app.use("/v1/api/compras", compraRoutes);
 
 export default app;
