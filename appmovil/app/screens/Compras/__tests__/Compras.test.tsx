@@ -25,6 +25,19 @@ jest.mock("@react-navigation/native", () => ({
     },
 }));
 
+jest.mock("@react-native-community/datetimepicker", () => {
+    const React = require("react");
+    const { TouchableOpacity, Text } = require("react-native");
+    return ({ onChange, testID }: { onChange: (event: { type: string }, date: Date) => void; testID?: string }) => (
+        <TouchableOpacity
+            testID={testID || "mock-datetimepicker"}
+            onPress={() => onChange({ type: "set" }, new Date(2026, 3, 2))}
+        >
+            <Text>Mock Date Picker</Text>
+        </TouchableOpacity>
+    );
+});
+
 global.fetch = jest.fn();
 
 describe("Compras", () => {
@@ -75,7 +88,7 @@ describe("Compras", () => {
                 }),
             });
 
-        const { getByTestId } = render(
+        const { getByTestId, queryByTestId } = render(
             <Compras navigation={mockNavigation} route={mockRoute} />
         );
 
@@ -106,7 +119,7 @@ describe("Compras", () => {
             }),
         });
 
-        const { getByTestId } = render(
+        const { getByTestId, queryByTestId } = render(
             <Compras navigation={mockNavigation} route={mockRoute} />
         );
 
@@ -115,7 +128,12 @@ describe("Compras", () => {
         });
 
         fireEvent.press(getByTestId("compras-open-filters-button"));
-        fireEvent.changeText(getByTestId("compras-filter-fecha-input"), "2026-04-02");
+        fireEvent.press(getByTestId("compras-filter-fecha-input"));
+        if (queryByTestId("compras-filter-date-picker")) {
+            fireEvent.press(getByTestId("compras-filter-date-picker"));
+        } else {
+            fireEvent.press(getByTestId("compras-calendar-day-2"));
+        }
         fireEvent.press(getByTestId("compras-apply-filters-button"));
 
         await waitFor(() => {

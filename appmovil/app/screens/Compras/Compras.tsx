@@ -3,12 +3,13 @@ import {
     ActivityIndicator,
     FlatList,
     Modal,
+    Platform,
     StyleSheet,
     Text,
-    TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
+import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -65,6 +66,45 @@ const formatDate = (value: string) => {
 
 const formatAmount = (value: number) => `${Number(value || 0).toFixed(2)} EUR`;
 
+const toApiDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, "0");
+    const day = `${date.getDate()}`.padStart(2, "0");
+    return `${year}-${month}-${day}`;
+};
+
+const parseApiDate = (dateString: string) => {
+    if (!DATE_FILTER_REGEX.test(dateString)) {
+        return null;
+    }
+
+    const [year, month, day] = dateString.split("-").map(Number);
+    return new Date(year, month - 1, day);
+};
+
+const buildCalendarMatrix = (cursor: Date) => {
+    const year = cursor.getFullYear();
+    const month = cursor.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const startWeekDay = (firstDay.getDay() + 6) % 7;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const cells: Array<number | null> = [];
+
+    for (let i = 0; i < startWeekDay; i += 1) {
+        cells.push(null);
+    }
+
+    for (let day = 1; day <= daysInMonth; day += 1) {
+        cells.push(day);
+    }
+
+    while (cells.length % 7 !== 0) {
+        cells.push(null);
+    }
+
+    return cells;
+};
+
 const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
     const { negocio } = route.params;
     const [compras, setCompras] = useState<CompraListItem[]>([]);
@@ -75,8 +115,11 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
     const [refreshing, setRefreshing] = useState(false);
     const [listError, setListError] = useState("");
 
-    const [fechaFilter, setFechaFilter] = useState("");
+    const [fechaFilterDraft, setFechaFilterDraft] = useState("");
+    const [fechaFilterApplied, setFechaFilterApplied] = useState("");
     const [filtersModalVisible, setFiltersModalVisible] = useState(false);
+    const [datePickerVisible, setDatePickerVisible] = useState(false);
+    const [calendarCursor, setCalendarCursor] = useState<Date>(new Date());
 
     const [detailVisible, setDetailVisible] = useState(false);
     const [detailLoading, setDetailLoading] = useState(false);
@@ -84,22 +127,18 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
     const [selectedCompra, setSelectedCompra] = useState<CompraDetailResponse | null>(null);
 
     const appliedFilters = useMemo(() => ({
-        fecha: fechaFilter.trim(),
-    }), [fechaFilter]);
+        fecha: fechaFilterApplied.trim(),
+    }), [fechaFilterApplied]);
 
-    const canFilterByDate = useMemo(() => {
-        if (!appliedFilters.fecha) {
-            return true;
-        }
-
-        return DATE_FILTER_REGEX.test(appliedFilters.fecha);
-    }, [appliedFilters.fecha]);
-
-    const fetchCompras = useCallback(async (options?: { nextPage?: number; append?: boolean; refresh?: boolean }) => {
+    const fetchCompras = useCallback(async (
+        options?: { nextPage?: number; append?: boolean; refresh?: boolean },
+        forcedFecha?: string
+    ) => {
         const nextPage = options?.nextPage ?? 1;
         const append = !!options?.append;
+        const targetFecha = (forcedFecha ?? appliedFilters.fecha).trim();
 
-        if (!canFilterByDate) {
+        if (targetFecha && !DATE_FILTER_REGEX.test(targetFecha)) {
             setListError(DATE_FILTER_INVALID_ERROR);
             return;
         }
@@ -120,7 +159,7 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
                 idNegocio: negocio.id_negocio,
                 page: nextPage,
                 limit: PAGE_SIZE,
-                fecha: appliedFilters.fecha,
+                fecha: targetFecha,
                 sortBy: "fecha",
                 sortOrder: "desc",
             }), {
@@ -155,7 +194,7 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
             setLoadingMore(false);
             setRefreshing(false);
         }
-    }, [appliedFilters, canFilterByDate, negocio.id_negocio]);
+    }, [appliedFilters.fecha, negocio.id_negocio]);
 
     useFocusEffect(
         useCallback(() => {
@@ -176,15 +215,59 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
     };
 
     const handleApplyFilters = () => {
+        const normalizedFecha = fechaFilterDraft.trim();
+
+        if (normalizedFecha && !DATE_FILTER_REGEX.test(normalizedFecha)) {
+            setListError(DATE_FILTER_INVALID_ERROR);
+            return;
+        }
+
+        setFechaFilterApplied(normalizedFecha);
         setFiltersModalVisible(false);
-        fetchCompras();
+        fetchCompras(undefined, normalizedFecha);
     };
 
     const handleClearFilters = () => {
-        setFechaFilter("");
+        setFechaFilterDraft("");
+        setFechaFilterApplied("");
         setListError("");
+        setDatePickerVisible(false);
         setFiltersModalVisible(false);
-        fetchCompras();
+        fetchCompras(undefined, "");
+    };
+
+    const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+        if (Platform.OS !== "ios") {
+            setDatePickerVisible(false);
+        }
+
+        if (event.type === "dismissed" || !selectedDate) {
+            return;
+        }
+
+        setFechaFilterDraft(toApiDate(selectedDate));
+        setListError("");
+    };
+
+    const handleOpenDatePicker = () => {
+        setDatePickerVisible(true);
+        setCalendarCursor(parseApiDate(fechaFilterDraft) || new Date());
+    };
+
+    const handleSelectWebDate = (day: number) => {
+        const selected = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth(), day);
+        setFechaFilterDraft(toApiDate(selected));
+        setListError("");
+        setDatePickerVisible(false);
+    };
+
+    const webCalendarCells = useMemo(() => buildCalendarMatrix(calendarCursor), [calendarCursor]);
+    const selectedDate = parseApiDate(fechaFilterDraft);
+
+    const handleOpenFiltersModal = () => {
+        setFechaFilterDraft(fechaFilterApplied);
+        setDatePickerVisible(false);
+        setFiltersModalVisible(true);
     };
 
     const handleOpenDetail = async (idCompra: number) => {
@@ -247,7 +330,7 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
                 <View style={styles.actionRow}>
                     <TouchableOpacity
                         style={styles.secondaryButton}
-                        onPress={() => setFiltersModalVisible(true)}
+                        onPress={handleOpenFiltersModal}
                         testID="compras-open-filters-button"
                     >
                         <MaterialIcons name="filter-list" size={18} color="#1f2937" />
@@ -307,13 +390,82 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
                     <View style={styles.modalCard}>
                         <Text style={styles.modalTitle}>Filtros de compras</Text>
 
-                        <TextInput
+                        <TouchableOpacity
                             style={styles.input}
-                            value={fechaFilter}
-                            onChangeText={setFechaFilter}
-                            placeholder={FILTER_DATE_PLACEHOLDER}
+                            onPress={handleOpenDatePicker}
                             testID="compras-filter-fecha-input"
-                        />
+                        >
+                            <View style={styles.datePickerRow}>
+                                <MaterialIcons name="calendar-month" size={18} color="#4b5563" />
+                                <Text style={fechaFilterDraft ? styles.datePickerText : styles.datePickerPlaceholder}>
+                                    {fechaFilterDraft || FILTER_DATE_PLACEHOLDER}
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+
+                        {datePickerVisible && Platform.OS !== "web" ? (
+                            <DateTimePicker
+                                testID="compras-filter-date-picker"
+                                value={parseApiDate(fechaFilterDraft) || new Date()}
+                                mode="date"
+                                display={Platform.OS === "ios" ? "spinner" : "default"}
+                                onChange={handleDateChange}
+                            />
+                        ) : null}
+
+                        {datePickerVisible && Platform.OS === "web" ? (
+                            <View style={styles.webCalendarCard} testID="compras-filter-date-picker-web">
+                                <View style={styles.webCalendarHeader}>
+                                    <TouchableOpacity
+                                        style={styles.webCalendarNavButton}
+                                        onPress={() => setCalendarCursor(new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() - 1, 1))}
+                                        testID="compras-calendar-prev-month"
+                                    >
+                                        <MaterialIcons name="chevron-left" size={18} color="#374151" />
+                                    </TouchableOpacity>
+                                    <Text style={styles.webCalendarTitle}>
+                                        {calendarCursor.toLocaleDateString("es-ES", { month: "long", year: "numeric" })}
+                                    </Text>
+                                    <TouchableOpacity
+                                        style={styles.webCalendarNavButton}
+                                        onPress={() => setCalendarCursor(new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() + 1, 1))}
+                                        testID="compras-calendar-next-month"
+                                    >
+                                        <MaterialIcons name="chevron-right" size={18} color="#374151" />
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View style={styles.webWeekdaysRow}>
+                                    {["L", "M", "X", "J", "V", "S", "D"].map((label) => (
+                                        <Text key={label} style={styles.webWeekdayLabel}>{label}</Text>
+                                    ))}
+                                </View>
+
+                                <View style={styles.webCalendarGrid}>
+                                    {webCalendarCells.map((day, index) => {
+                                        if (!day) {
+                                            return <View key={`empty-${index}`} style={styles.webCalendarDayEmpty} />;
+                                        }
+
+                                        const isSelected = !!selectedDate
+                                            && selectedDate.getFullYear() === calendarCursor.getFullYear()
+                                            && selectedDate.getMonth() === calendarCursor.getMonth()
+                                            && selectedDate.getDate() === day;
+
+                                        return (
+                                            <TouchableOpacity
+                                                key={`day-${day}`}
+                                                style={[styles.webCalendarDayButton, isSelected && styles.webCalendarDayButtonSelected]}
+                                                onPress={() => handleSelectWebDate(day)}
+                                                testID={`compras-calendar-day-${day}`}
+                                            >
+                                                <Text style={[styles.webCalendarDayText, isSelected && styles.webCalendarDayTextSelected]}>{day}</Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </View>
+                            </View>
+                        ) : null}
 
                         <View style={styles.modalActionRow}>
                             <TouchableOpacity
@@ -453,6 +605,79 @@ const styles = StyleSheet.create({
         borderColor: "#d1d5db",
         paddingHorizontal: 12,
         paddingVertical: 10,
+    },
+    datePickerRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+    },
+    datePickerText: {
+        color: "#111827",
+        fontWeight: "600",
+    },
+    datePickerPlaceholder: {
+        color: "#9ca3af",
+        fontWeight: "500",
+    },
+    webCalendarCard: {
+        marginTop: 10,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        borderRadius: 10,
+        backgroundColor: "#fff",
+        padding: 10,
+    },
+    webCalendarHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 8,
+    },
+    webCalendarNavButton: {
+        padding: 6,
+        borderRadius: 8,
+        backgroundColor: "#f3f4f6",
+    },
+    webCalendarTitle: {
+        color: "#111827",
+        fontWeight: "700",
+        textTransform: "capitalize",
+    },
+    webWeekdaysRow: {
+        flexDirection: "row",
+        marginBottom: 6,
+    },
+    webWeekdayLabel: {
+        flex: 1,
+        textAlign: "center",
+        color: "#6b7280",
+        fontSize: 12,
+        fontWeight: "700",
+    },
+    webCalendarGrid: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+    },
+    webCalendarDayEmpty: {
+        width: "14.2857%",
+        height: 34,
+    },
+    webCalendarDayButton: {
+        width: "14.2857%",
+        height: 34,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 8,
+    },
+    webCalendarDayButtonSelected: {
+        backgroundColor: "#1976D2",
+    },
+    webCalendarDayText: {
+        color: "#1f2937",
+    },
+    webCalendarDayTextSelected: {
+        color: "#fff",
+        fontWeight: "700",
     },
     actionRow: {
         flexDirection: "row",
