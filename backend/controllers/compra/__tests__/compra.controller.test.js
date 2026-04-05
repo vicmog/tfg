@@ -1,4 +1,4 @@
-import { createCompra } from "../compraController.js";
+import { createCompra, getCompraById, getCompras } from "../compraController.js";
 import { Compra } from "../../../models/Compra.js";
 import { CompraProducto } from "../../../models/CompraProducto.js";
 import { Producto } from "../../../models/Producto.js";
@@ -193,6 +193,113 @@ describe("CompraController Unit Tests", () => {
         expect(res.status).toHaveBeenCalledWith(400);
         expect(jsonMock).toHaveBeenCalledWith({
             message: "Hay productos que no pertenecen al negocio seleccionado",
+        });
+    });
+
+    it("deberia listar compras por negocio ordenadas por fecha", async () => {
+        UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioJefe);
+        Compra.findAndCountAll.mockResolvedValue({
+            rows: [
+                {
+                    id_compra: 100,
+                    id_negocio: 10,
+                    descripcion: "Reposicion 1",
+                    fecha: new Date("2026-04-03T10:00:00.000Z"),
+                    importe_total: 32,
+                    estado: "pendiente",
+                },
+            ],
+            count: 1,
+        });
+        CompraProducto.findAll.mockResolvedValue([
+            { id_compra: 100, id_producto: 7, cantidad_esperada: 2, cantidad_llegada: 1 },
+        ]);
+        Producto.findAll.mockResolvedValue([
+            { id_producto: 7, id_proveedor: 20, nombre: "Champu" },
+        ]);
+        Proveedor.findAll.mockResolvedValue([
+            { id_proveedor: 20, nombre: "Proveedor Norte" },
+        ]);
+
+        const { res, jsonMock } = buildRes();
+        const req = {
+            user: { id_usuario: 1 },
+            query: { id_negocio: "10", page: "1", limit: "20", sort_by: "fecha", sort_order: "desc" },
+        };
+
+        await getCompras(req, res);
+
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                message: "Compras obtenidas correctamente",
+                compras: [
+                    expect.objectContaining({
+                        id_compra: 100,
+                        proveedor: "Proveedor Norte",
+                    }),
+                ],
+                pagination: expect.objectContaining({ total: 1, has_more: false }),
+            })
+        );
+    });
+
+    it("deberia obtener el detalle de una compra por id", async () => {
+        Compra.findOne.mockResolvedValue({
+            id_compra: 100,
+            id_negocio: 10,
+            descripcion: "Detalle compra",
+            fecha: new Date("2026-04-03T10:00:00.000Z"),
+            importe_total: 32,
+            estado: "pendiente",
+        });
+        UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioJefe);
+        CompraProducto.findAll.mockResolvedValue([
+            { id_compra: 100, id_producto: 7, cantidad_esperada: 2, cantidad_llegada: 1 },
+        ]);
+        Producto.findAll.mockResolvedValue([
+            { id_producto: 7, id_proveedor: 20, nombre: "Champu" },
+        ]);
+        Proveedor.findAll.mockResolvedValue([
+            { id_proveedor: 20, nombre: "Proveedor Norte" },
+        ]);
+
+        const { res, jsonMock } = buildRes();
+        const req = {
+            user: { id_usuario: 1 },
+            params: { id_compra: "100" },
+        };
+
+        await getCompraById(req, res);
+
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                message: "Compra obtenida correctamente",
+                compra: expect.objectContaining({
+                    id_compra: 100,
+                    proveedor: "Proveedor Norte",
+                    productos: [expect.objectContaining({ id_producto: 7 })],
+                }),
+            })
+        );
+    });
+
+    it("deberia devolver 404 cuando la compra no existe", async () => {
+        Compra.findOne.mockResolvedValue(null);
+        const { res, jsonMock } = buildRes();
+
+        await getCompraById(
+            {
+                user: { id_usuario: 1 },
+                params: { id_compra: "999" },
+            },
+            res
+        );
+
+        expect(res.status).toHaveBeenCalledWith(404);
+        expect(jsonMock).toHaveBeenCalledWith({
+            message: "Compra no encontrada",
         });
     });
 });

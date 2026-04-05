@@ -62,7 +62,21 @@ describe("NegocioDetail", () => {
             expect(getByTestId("modulo-ventas")).toBeTruthy();
             expect(getByTestId("modulo-gastos")).toBeTruthy();
             expect(getByTestId("modulo-empleados")).toBeTruthy();
+            expect(getByTestId("modulo-compras")).toBeTruthy();
         });
+    });
+
+    it("navega a Compras al pulsar modulo compras", async () => {
+        const { getByTestId } = render(
+            <NegocioDetail navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("modulo-compras")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("modulo-compras"));
+        expect(mockNavigation.navigate).toHaveBeenCalledWith("Compras", { negocio: mockNegocio });
     });
 
     it("muestra botones de ajustes para jefe", async () => {

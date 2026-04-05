@@ -45,6 +45,7 @@ export const API_ROUTES = {
   descuentosByProducto: (idProducto: number) => `${API_BASE_URL}${API_PREFIX}/descuentos/${idProducto}`,
   deleteDescuentoById: (idDescuento: number) => `${API_BASE_URL}${API_PREFIX}/descuentos/${idDescuento}`,
   compras: `${API_BASE_URL}${API_PREFIX}/compras`,
+  compraById: (idCompra: number) => `${API_BASE_URL}${API_PREFIX}/compras/${idCompra}`,
   productos: `${API_BASE_URL}${API_PREFIX}/productos`,
   productosByNegocio: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/productos/${idNegocio}`,
   searchProductosByNegocio: (idNegocio: number, search: string) =>

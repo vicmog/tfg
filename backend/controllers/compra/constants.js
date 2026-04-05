@@ -1,6 +1,8 @@
 export const COMPRA_ERRORS = {
     USER_NOT_AUTHENTICATED: "Usuario no autenticado",
     NEGOCIO_ID_REQUIRED: "El negocio es obligatorio",
+    COMPRA_ID_REQUIRED: "El id de compra es obligatorio",
+    COMPRA_NOT_FOUND: "Compra no encontrada",
     FECHA_REQUIRED: "La fecha de compra es obligatoria",
     PRODUCTOS_REQUIRED: "Debes indicar al menos un producto",
     PRODUCTO_ID_REQUIRED: "Cada producto debe tener id_producto válido",
@@ -14,11 +16,18 @@ export const COMPRA_ERRORS = {
     PRODUCTOS_NOT_FOUND: "Hay productos que no existen",
     PRODUCTOS_NOT_IN_NEGOCIO: "Hay productos que no pertenecen al negocio seleccionado",
     PRODUCTOS_WITHOUT_PROVIDER: "Hay productos sin proveedor asociado",
+    PAGE_INVALID: "La pagina debe ser un entero mayor que 0",
+    LIMIT_INVALID: "El limite debe ser un entero entre 1 y 100",
+    SORT_BY_INVALID: "El campo de orden no es valido",
+    SORT_ORDER_INVALID: "El orden debe ser asc o desc",
+    FECHA_FILTER_INVALID: "La fecha del filtro no es valida",
     SERVER_ERROR: "Error en el servidor",
 };
 
 export const COMPRA_MESSAGES = {
     COMPRA_CREATED: "Compra registrada correctamente",
+    COMPRAS_LISTED: "Compras obtenidas correctamente",
+    COMPRA_FOUND: "Compra obtenida correctamente",
 };
 
 export const COMPRA_ROLES = {
