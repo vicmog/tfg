@@ -28,6 +28,7 @@ export const COMPRA_MESSAGES = {
     COMPRA_CREATED: "Compra registrada correctamente",
     COMPRAS_LISTED: "Compras obtenidas correctamente",
     COMPRA_FOUND: "Compra obtenida correctamente",
+    COMPRA_DELETED: "Compra eliminada correctamente",
 };
 
 export const COMPRA_ROLES = {

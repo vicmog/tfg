@@ -1,4 +1,4 @@
-import { createCompra, getCompraById, getCompras } from "../compraController.js";
+import { createCompra, deleteCompra, getCompraById, getCompras } from "../compraController.js";
 import { Compra } from "../../../models/Compra.js";
 import { CompraProducto } from "../../../models/CompraProducto.js";
 import { Producto } from "../../../models/Producto.js";
@@ -290,6 +290,76 @@ describe("CompraController Unit Tests", () => {
         const { res, jsonMock } = buildRes();
 
         await getCompraById(
+            {
+                user: { id_usuario: 1 },
+                params: { id_compra: "999" },
+            },
+            res
+        );
+
+        expect(res.status).toHaveBeenCalledWith(404);
+        expect(jsonMock).toHaveBeenCalledWith({
+            message: "Compra no encontrada",
+        });
+    });
+
+    it("deberia eliminar compra correctamente para jefe", async () => {
+        const destroyMock = jest.fn().mockResolvedValue(undefined);
+        Compra.findOne.mockResolvedValue({
+            id_compra: 100,
+            id_negocio: 10,
+            destroy: destroyMock,
+        });
+        UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioJefe);
+
+        const { res, jsonMock } = buildRes();
+
+        await deleteCompra(
+            {
+                user: { id_usuario: 1 },
+                params: { id_compra: "100" },
+            },
+            res
+        );
+
+        expect(destroyMock).toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith({
+            message: "Compra eliminada correctamente",
+        });
+    });
+
+    it("deberia fallar al eliminar compra sin permisos", async () => {
+        const destroyMock = jest.fn().mockResolvedValue(undefined);
+        Compra.findOne.mockResolvedValue({
+            id_compra: 101,
+            id_negocio: 10,
+            destroy: destroyMock,
+        });
+        UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioTrabajador);
+
+        const { res, jsonMock } = buildRes();
+
+        await deleteCompra(
+            {
+                user: { id_usuario: 3 },
+                params: { id_compra: "101" },
+            },
+            res
+        );
+
+        expect(destroyMock).not.toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(403);
+        expect(jsonMock).toHaveBeenCalledWith({
+            message: "No tienes permisos para gestionar compras",
+        });
+    });
+
+    it("deberia fallar al eliminar compra inexistente", async () => {
+        Compra.findOne.mockResolvedValue(null);
+        const { res, jsonMock } = buildRes();
+
+        await deleteCompra(
             {
                 user: { id_usuario: 1 },
                 params: { id_compra: "999" },
