@@ -19,6 +19,7 @@ import Productos from "./screens/Productos/Productos";
 import CrearProducto from "./screens/Productos/CrearProducto";
 import EditarProducto from "./screens/Productos/EditarProducto";
 import Descuentos from "./screens/Descuentos/Descuentos";
+import Compras from "./screens/Compras/Compras";
 import CrearCompra from "./screens/Compras/CrearCompra";
 import { Negocio, Producto } from "./screens/types";
 
@@ -42,6 +43,7 @@ export type NavigationScreenList = {
   CrearProducto: { negocio: Negocio };
   EditarProducto: { negocio: Negocio; producto: Producto };
   Descuentos: { negocio: Negocio };
+  Compras: { negocio: Negocio };
   CrearCompra: { negocio: Negocio };
 };
 
@@ -81,6 +83,7 @@ const App: React.FC = () => {
           <Stack.Screen name="CrearProducto" component={CrearProducto} />
           <Stack.Screen name="EditarProducto" component={EditarProducto} />
           <Stack.Screen name="Descuentos" component={Descuentos} />
+          <Stack.Screen name="Compras" component={Compras} />
           <Stack.Screen name="CrearCompra" component={CrearCompra} />
         </>
       ) : (

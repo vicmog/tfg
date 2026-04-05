@@ -106,3 +106,14 @@ export type Compra = {
     estado: string;
     productos: CompraProductoInput[];
 };
+
+export type CompraListItem = {
+    id_compra: number;
+    id_negocio: number;
+    descripcion?: string | null;
+    fecha: string;
+    importe_total: number;
+    estado: string;
+    proveedor?: string | null;
+    proveedores?: string[];
+};
