@@ -490,6 +490,12 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
         setConfirmBanClienteId(null);
     };
 
+    const isEditing = !!editingClienteId;
+    const modalTitle = isEditing ? EDIT_CLIENT_PLACEHOLDER : NEW_CLIENT_PLACEHOLDER;
+    const saveButtonLabel = saving
+        ? (isEditing ? SAVING_CHANGES_BUTTON_TEXT : SAVING_BUTTON_TEXT)
+        : (isEditing ? SAVE_CHANGES_BUTTON_TEXT : SAVE_BUTTON_TEXT);
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -526,62 +532,64 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
             <Modal
                 visible={modalVisible}
                 transparent
-                animationType="none"
+                animationType={isEditing ? "slide" : "none"}
                 onRequestClose={handleToggleModal}
                 testID="cliente-form-modal"
             >
-                <View style={styles.modalBackdrop}>
-                    <View style={styles.formContainer}>
+                <View style={[styles.modalBackdrop, isEditing && styles.modalBackdropBottom]}>
+                    <View style={[styles.formContainer, isEditing && styles.modalCard]}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>{editingClienteId ? EDIT_CLIENT_PLACEHOLDER : NEW_CLIENT_PLACEHOLDER}</Text>
-                            <TouchableOpacity onPress={handleToggleModal} testID="close-client-form-button">
-                                <MaterialIcons name="close" size={22} color="#6b7280" />
-                            </TouchableOpacity>
+                            <Text style={[styles.modalTitle, isEditing && styles.modalTitleEdit]}>{modalTitle}</Text>
+                            {!isEditing ? (
+                                <TouchableOpacity onPress={handleToggleModal} testID="close-client-form-button">
+                                    <MaterialIcons name="close" size={22} color="#6b7280" />
+                                </TouchableOpacity>
+                            ) : null}
                         </View>
 
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Nombre"
-                            value={nombre}
-                            onChangeText={setNombre}
-                            testID="cliente-nombre-input"
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Primer apellido"
-                            value={apellido1}
-                            onChangeText={setApellido1}
-                            testID="cliente-apellido1-input"
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Segundo apellido (opcional)"
-                            value={apellido2}
-                            onChangeText={setApellido2}
-                            testID="cliente-apellido2-input"
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Email"
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            testID="cliente-email-input"
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Teléfono"
-                            value={telefono}
-                            onChangeText={setTelefono}
-                            keyboardType="phone-pad"
-                            testID="cliente-telefono-input"
-                        />
+                        <ScrollView style={isEditing ? styles.editScroll : undefined} contentContainerStyle={isEditing ? styles.editContent : undefined}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Nombre"
+                                value={nombre}
+                                onChangeText={setNombre}
+                                testID="cliente-nombre-input"
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Primer apellido"
+                                value={apellido1}
+                                onChangeText={setApellido1}
+                                testID="cliente-apellido1-input"
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Segundo apellido (opcional)"
+                                value={apellido2}
+                                onChangeText={setApellido2}
+                                testID="cliente-apellido2-input"
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Email"
+                                value={email}
+                                onChangeText={setEmail}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                                testID="cliente-email-input"
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Teléfono"
+                                value={telefono}
+                                onChangeText={setTelefono}
+                                keyboardType="phone-pad"
+                                testID="cliente-telefono-input"
+                            />
+                        </ScrollView>
 
                         {modalError ? (
-                            <View style={styles.feedbackError} testID="cliente-error-message">
-                                <Text style={styles.feedbackErrorText}>{modalError}</Text>
-                            </View>
+                            <Text style={styles.modalErrorText} testID="cliente-error-message">{modalError}</Text>
                         ) : null}
 
                         {modalSuccess ? (
@@ -590,19 +598,36 @@ const Clientes: React.FC<ClientesProps> = ({ route, navigation }) => {
                             </View>
                         ) : null}
 
-                        <TouchableOpacity
-                            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-                            onPress={handleSave}
-                            disabled={saving}
-                            testID="cliente-save-button"
-                        >
-                            {saving ? <ActivityIndicator size="small" color="#fff" /> : null}
-                            <Text style={styles.saveButtonText}>
-                                {saving
-                                    ? (editingClienteId ? SAVING_CHANGES_BUTTON_TEXT : SAVING_BUTTON_TEXT)
-                                    : (editingClienteId ? SAVE_CHANGES_BUTTON_TEXT : SAVE_BUTTON_TEXT)}
-                            </Text>
-                        </TouchableOpacity>
+                        {isEditing ? (
+                            <View style={styles.modalActionRow}>
+                                <TouchableOpacity
+                                    style={styles.primaryButton}
+                                    onPress={handleSave}
+                                    disabled={saving}
+                                    testID="cliente-save-button"
+                                >
+                                    <Text style={styles.primaryButtonText}>{saveButtonLabel}</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.secondaryButton}
+                                    onPress={handleToggleModal}
+                                    disabled={saving}
+                                    testID="close-client-form-button"
+                                >
+                                    <Text style={styles.secondaryButtonText}>Cerrar</Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : (
+                            <TouchableOpacity
+                                style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                                onPress={handleSave}
+                                disabled={saving}
+                                testID="cliente-save-button"
+                            >
+                                {saving ? <ActivityIndicator size="small" color="#fff" /> : null}
+                                <Text style={styles.saveButtonText}>{saveButtonLabel}</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </View>
             </Modal>
@@ -957,6 +982,25 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingHorizontal: 12,
     },
+    modalBackdropBottom: {
+        justifyContent: "flex-end",
+        alignItems: "stretch",
+        paddingHorizontal: 0,
+    },
+    modalCard: {
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
+        width: "100%",
+        maxWidth: undefined,
+        marginHorizontal: 0,
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        elevation: 0,
+        padding: 16,
+        maxHeight: "78%",
+    },
     modalHeader: {
         flexDirection: "row",
         alignItems: "center",
@@ -968,6 +1012,9 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: "700",
     },
+    modalTitleEdit: {
+        color: "#111827",
+    },
     input: {
         borderWidth: 1,
         borderColor: "#d1d5db",
@@ -976,6 +1023,46 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         marginBottom: 10,
         backgroundColor: "#f9fafb",
+    },
+    editScroll: {
+        maxHeight: 420,
+    },
+    editContent: {
+        gap: 10,
+    },
+    modalErrorText: {
+        color: "#b91c1c",
+        fontWeight: "600",
+        marginBottom: 8,
+    },
+    modalActionRow: {
+        marginTop: 10,
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 8,
+    },
+    primaryButton: {
+        backgroundColor: "#1976D2",
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+    },
+    primaryButtonText: {
+        color: "#fff",
+        fontWeight: "700",
+    },
+    secondaryButton: {
+        backgroundColor: "#e5e7eb",
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+    },
+    secondaryButtonText: {
+        color: "#1f2937",
+        fontWeight: "700",
     },
     saveButton: {
         backgroundColor: "#1976D2",
