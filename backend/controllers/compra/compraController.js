@@ -13,6 +13,14 @@ const VALID_SORT_ORDER = ["asc", "desc"];
 
 const canManageCompras = (rol) => [COMPRA_ROLES.ADMIN, COMPRA_ROLES.JEFE].includes(rol);
 
+const resolveCompraEstado = (productos) => {
+    const isCompleted = productos.every(
+        (producto) => producto.cantidad_esperada === producto.cantidad_llegada
+    );
+
+    return isCompleted ? "completada" : "pendiente";
+};
+
 const serializeCompra = (compra, productos) => ({
     id_compra: compra.id_compra,
     id_negocio: compra.id_negocio,
@@ -322,6 +330,7 @@ export const createCompra = async (req, res) => {
         const cantidadMap = new Map(
             productosResult.value.map((producto) => [producto.id_producto, producto])
         );
+        const estado = resolveCompraEstado(productosResult.value);
 
         const importeTotal = productos.reduce((acc, producto) => {
             const productoCompra = cantidadMap.get(producto.id_producto);
@@ -335,7 +344,7 @@ export const createCompra = async (req, res) => {
                     descripcion,
                     fecha,
                     importe_total: Number(importeTotal.toFixed(2)),
-                    estado: "pendiente",
+                    estado,
                 },
                 { transaction }
             );
@@ -654,6 +663,7 @@ export const updateCompra = async (req, res) => {
         const cantidadMap = new Map(
             productosResult.value.map((producto) => [producto.id_producto, producto])
         );
+        const estado = resolveCompraEstado(productosResult.value);
 
         const importeTotal = productos.reduce((acc, producto) => {
             const productoCompra = cantidadMap.get(producto.id_producto);
@@ -666,6 +676,7 @@ export const updateCompra = async (req, res) => {
                     descripcion,
                     fecha,
                     importe_total: Number(importeTotal.toFixed(2)),
+                    estado,
                 },
                 { transaction }
             );

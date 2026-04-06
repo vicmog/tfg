@@ -22,6 +22,7 @@ import {
     mockUsuarioJefe,
     mockUsuarioTrabajador,
     updateCompraReq,
+    updateCompraReqCompletada,
     updateCompraReqSinFecha,
     updateCompraReqSinPermiso,
 } from "./data.js";
@@ -109,6 +110,37 @@ describe("CompraController Unit Tests", () => {
 
         await createCompra(req, res);
 
+        expect(res.status).toHaveBeenCalledWith(201);
+    });
+
+    it("deberia crear compra como completada cuando todo llega", async () => {
+        UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioJefe);
+        Producto.findAll.mockResolvedValue([mockProductos[0]]);
+        Proveedor.findAll.mockResolvedValue([mockProveedores[0]]);
+        Compra.create.mockResolvedValue({
+            id_compra: 60,
+            id_negocio: 10,
+            descripcion: "Compra completa",
+            fecha: new Date("2026-04-02T10:00:00.000Z"),
+            importe_total: 50,
+            estado: "completada",
+        });
+
+        const req = {
+            ...createCompraReq,
+            body: {
+                ...createCompraReq.body,
+                productos: [{ id_producto: 7, cantidad_esperada: 10, cantidad_llegada: 10 }],
+            },
+        };
+        const { res } = buildRes();
+
+        await createCompra(req, res);
+
+        expect(Compra.create).toHaveBeenCalledWith(
+            expect.objectContaining({ estado: "completada" }),
+            expect.any(Object)
+        );
         expect(res.status).toHaveBeenCalledWith(201);
     });
 
@@ -395,6 +427,30 @@ describe("CompraController Unit Tests", () => {
         expect(jsonMock).toHaveBeenCalledWith({
             message: "No tienes permisos para gestionar compras",
         });
+    });
+
+    it("deberia marcar compra como completada al actualizar cantidades", async () => {
+        const updateMock = jest.fn().mockImplementation(async (payload) => ({ ...payload }));
+
+        Compra.findOne.mockResolvedValue({
+            id_compra: 50,
+            id_negocio: 10,
+            estado: "pendiente",
+            update: updateMock,
+        });
+        UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioJefe);
+        Producto.findAll.mockResolvedValue(mockProductos);
+        Proveedor.findAll.mockResolvedValue(mockProveedores);
+
+        const { res } = buildRes();
+
+        await updateCompra(updateCompraReqCompletada, res);
+
+        expect(updateMock).toHaveBeenCalledWith(
+            expect.objectContaining({ estado: "completada" }),
+            expect.any(Object)
+        );
+        expect(res.status).toHaveBeenCalledWith(200);
     });
 
     it("deberia fallar al actualizar compra sin fecha", async () => {
