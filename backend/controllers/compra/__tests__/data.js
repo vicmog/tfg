@@ -122,6 +122,17 @@ export const updateCompraReqSinFecha = {
     },
 };
 
+export const updateCompraReqCompletada = {
+    ...updateCompraReq,
+    body: {
+        ...updateCompraReq.body,
+        productos: [
+            { id_producto: 7, cantidad_esperada: 6, cantidad_llegada: 6 },
+            { id_producto: 9, cantidad_esperada: 2, cantidad_llegada: 2 },
+        ],
+    },
+};
+
 export const buildRes = () => {
     const jsonMock = jest.fn();
     const res = {

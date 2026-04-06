@@ -383,6 +383,111 @@ describe("Compras", () => {
         });
     });
 
+    it("completa compra desde listado", async () => {
+        let comprasListCalls = 0;
+        (fetch as jest.Mock).mockImplementation(async (url: string, options?: { method?: string }) => {
+            if (url.includes("/compras?") && !options?.method) {
+                comprasListCalls += 1;
+
+                if (comprasListCalls === 1) {
+                    return {
+                        ok: true,
+                        json: async () => ({
+                            compras: [
+                                {
+                                    id_compra: 12,
+                                    id_negocio: 1,
+                                    fecha: "2026-04-03T10:00:00.000Z",
+                                    importe_total: 30,
+                                    estado: "pendiente",
+                                    proveedor: "Proveedor Tres",
+                                },
+                            ],
+                            pagination: { page: 1, limit: 20, total: 1, has_more: false },
+                        }),
+                    };
+                }
+
+                return {
+                    ok: true,
+                    json: async () => ({
+                        compras: [
+                            {
+                                id_compra: 12,
+                                id_negocio: 1,
+                                fecha: "2026-04-03T10:00:00.000Z",
+                                importe_total: 30,
+                                estado: "completada",
+                                proveedor: "Proveedor Tres",
+                            },
+                        ],
+                        pagination: { page: 1, limit: 20, total: 1, has_more: false },
+                    }),
+                };
+            }
+
+            if (url === API_ROUTES.compraById(12) && !options?.method) {
+                return {
+                    ok: true,
+                    json: async () => ({
+                        compra: {
+                            id_compra: 12,
+                            id_negocio: 1,
+                            descripcion: "Compra para completar",
+                            fecha: "2026-04-03T10:00:00.000Z",
+                            importe_total: 30,
+                            estado: "pendiente",
+                            proveedor: "Proveedor Tres",
+                            productos: [
+                                { id_producto: 7, nombre: "Champu", cantidad_esperada: 3, cantidad_llegada: 1 },
+                            ],
+                        },
+                    }),
+                };
+            }
+
+            if (url === API_ROUTES.updateCompraById(12) && options?.method === "PUT") {
+                return {
+                    ok: true,
+                    json: async () => ({ message: "Compra completada correctamente" }),
+                };
+            }
+
+            return {
+                ok: false,
+                json: async () => ({ message: "Unexpected mock call" }),
+            };
+        });
+
+        const { getByTestId } = render(
+            <Compras navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("compras-item-0")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("compras-complete-button-12"));
+
+        await waitFor(() => {
+            const updateCall = (fetch as jest.Mock).mock.calls.find(
+                (call) => call[0] === API_ROUTES.updateCompraById(12) && call[1]?.method === "PUT"
+            );
+            expect(updateCall).toBeTruthy();
+            const requestConfig = updateCall?.[1] as { body?: string };
+            const body = JSON.parse(requestConfig.body || "{}");
+            expect(body.productos).toEqual(
+                expect.arrayContaining([
+                    expect.objectContaining({ id_producto: 7, cantidad_esperada: "3", cantidad_llegada: "3" }),
+                ])
+            );
+        });
+
+        await waitFor(() => {
+            expect(getByTestId("compras-completed-badge-12")).toBeTruthy();
+        });
+    });
+
     it("no muestra boton eliminar para trabajador", async () => {
         (fetch as jest.Mock)
             .mockResolvedValueOnce({
@@ -412,5 +517,6 @@ describe("Compras", () => {
 
         expect(queryByTestId("compras-delete-button-11")).toBeNull();
         expect(queryByTestId("compras-edit-button-11")).toBeNull();
+        expect(queryByTestId("compras-complete-button-11")).toBeNull();
     });
 });

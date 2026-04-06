@@ -22,6 +22,9 @@ import {
     compraByIdRoute,
     comprasListRoute,
     CONNECTION_ERROR,
+    COMPLETED_STATUS_TEXT,
+    COMPLETE_BUTTON_TEXT,
+    COMPLETE_SUCCESS_MESSAGE,
     CONFIRM_DELETE_ACCEPT,
     CONFIRM_DELETE_CANCEL,
     DATE_FILTER_INVALID_ERROR,
@@ -29,6 +32,7 @@ import {
     DEFAULT_DELETE_ERROR,
     DEFAULT_FETCH_COMPRA_DETAIL_ERROR,
     DEFAULT_FETCH_COMPRAS_ERROR,
+    DEFAULT_COMPLETE_ERROR,
     DEFAULT_UPDATE_ERROR,
     DELETE_BUTTON_TEXT,
     DELETE_CONFIRM_MESSAGE,
@@ -181,6 +185,7 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
     const [editPickerRowId, setEditPickerRowId] = useState<string | null>(null);
     const [editCatalog, setEditCatalog] = useState<Producto[]>([]);
     const [editCatalogLoading, setEditCatalogLoading] = useState(false);
+    const [completingCompraId, setCompletingCompraId] = useState<number | null>(null);
     const [deletingCompraId, setDeletingCompraId] = useState<number | null>(null);
     const [confirmDeleteCompraId, setConfirmDeleteCompraId] = useState<number | null>(null);
     const [selectedCompra, setSelectedCompra] = useState<CompraDetailResponse | null>(null);
@@ -724,6 +729,52 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
         }
     };
 
+    const handleCompleteCompra = async (idCompra: number) => {
+        setListError("");
+        setListSuccess("");
+        setCompletingCompraId(idCompra);
+
+        try {
+            const detail = await fetchCompraDetail(idCompra);
+            if (detail.error || !detail.compra) {
+                setListError(detail.error || DEFAULT_COMPLETE_ERROR);
+                return;
+            }
+
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(updateCompraByIdRoute(idCompra), {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    descripcion: detail.compra.descripcion || "",
+                    fecha: detail.compra.fecha,
+                    productos: (detail.compra.productos || []).map((producto) => ({
+                        id_producto: producto.id_producto,
+                        cantidad_esperada: `${producto.cantidad_esperada}`,
+                        cantidad_llegada: `${producto.cantidad_esperada}`,
+                    })),
+                }),
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setListError(data.message || DEFAULT_COMPLETE_ERROR);
+                return;
+            }
+
+            const data = await response.json();
+            setListSuccess(data.message || COMPLETE_SUCCESS_MESSAGE);
+            await fetchCompras(undefined, appliedFilters.fecha);
+        } catch (error) {
+            setListError(CONNECTION_ERROR);
+        } finally {
+            setCompletingCompraId(null);
+        }
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -790,6 +841,8 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
                     ) : null}
                     renderItem={({ item, index }) => {
                         const isDeleting = deletingCompraId === item.id_compra;
+                        const isCompleting = completingCompraId === item.id_compra;
+                        const isCompleted = `${item.estado || ""}`.toLowerCase() === "completada";
 
                         return (
                             <View style={styles.compraCard} testID={`compras-item-${index}`}>
@@ -802,7 +855,14 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
                                         <Text style={styles.compraDate}>Fecha: {formatDate(item.fecha)}</Text>
                                         <Text style={styles.compraAmount}>Importe: {formatAmount(item.importe_total)}</Text>
                                         <Text style={styles.compraProvider}>Proveedor: {item.proveedor || NO_PROVIDER_MESSAGE}</Text>
-                                        <Text style={styles.compraStatus}>Estado: {item.estado}</Text>
+                                        <View style={styles.statusRow}>
+                                            <Text style={styles.compraStatus}>Estado: {item.estado}</Text>
+                                            {isCompleted ? (
+                                                <View style={styles.completedBadge} testID={`compras-completed-badge-${item.id_compra}`}>
+                                                    <Text style={styles.completedBadgeText}>{COMPLETED_STATUS_TEXT}</Text>
+                                                </View>
+                                            ) : null}
+                                        </View>
                                     </TouchableOpacity>
 
                                     {canManageCompras ? (
@@ -827,6 +887,22 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
                                                     <ActivityIndicator size="small" color="#fff" />
                                                 ) : (
                                                     <MaterialIcons name="delete" size={16} color="#fff" />
+                                                )}
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={[
+                                                    styles.completeTextButton,
+                                                    (isDeleting || isCompleting || isCompleted) && styles.disabledButton,
+                                                ]}
+                                                onPress={() => handleCompleteCompra(item.id_compra)}
+                                                disabled={isDeleting || isCompleting || isCompleted}
+                                                accessibilityLabel={COMPLETE_BUTTON_TEXT}
+                                                testID={`compras-complete-button-${item.id_compra}`}
+                                            >
+                                                {isCompleting ? (
+                                                    <ActivityIndicator size="small" color="#fff" />
+                                                ) : (
+                                                    <MaterialIcons name="check" size={18} color="#fff" />
                                                 )}
                                             </TouchableOpacity>
                                         </View>
@@ -1465,6 +1541,17 @@ const styles = StyleSheet.create({
     editIconButton: {
         backgroundColor: "#2563eb",
     },
+    completeIconButton: {
+        backgroundColor: "#16a34a",
+    },
+    completeTextButton: {
+        backgroundColor: "#16a34a",
+        borderRadius: 8,
+        width: 34,
+        height: 34,
+        alignItems: "center",
+        justifyContent: "center",
+    },
     compraDate: {
         color: "#111827",
         fontWeight: "700",
@@ -1479,6 +1566,22 @@ const styles = StyleSheet.create({
     compraStatus: {
         color: "#374151",
         textTransform: "capitalize",
+    },
+    statusRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+    },
+    completedBadge: {
+        backgroundColor: "#dcfce7",
+        borderRadius: 999,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+    },
+    completedBadgeText: {
+        color: "#166534",
+        fontSize: 11,
+        fontWeight: "700",
     },
     errorText: {
         color: "#b91c1c",
