@@ -2,6 +2,7 @@ import { API_ROUTES } from "@/app/constants/apiRoutes";
 
 export const comprasRoute = API_ROUTES.compras;
 export const compraByIdRoute = (idCompra: number) => API_ROUTES.compraById(idCompra);
+export const updateCompraByIdRoute = (idCompra: number) => API_ROUTES.updateCompraById(idCompra);
 export const deleteCompraByIdRoute = (idCompra: number) => API_ROUTES.deleteCompraById(idCompra);
 export const productosByNegocioRoute = (idNegocio: number) => API_ROUTES.productosByNegocio(idNegocio);
 
@@ -49,6 +50,14 @@ export const DELETE_CONFIRM_TITLE = "Eliminar compra";
 export const DELETE_CONFIRM_MESSAGE = "Esta accion no se puede deshacer. ¿Quieres continuar?";
 export const CONFIRM_DELETE_CANCEL = "Cancelar";
 export const CONFIRM_DELETE_ACCEPT = "Eliminar";
+export const EDIT_BUTTON_TEXT = "Editar";
+export const EDIT_TITLE = "Editar compra";
+export const EDIT_DATE_PLACEHOLDER = "Fecha (YYYY-MM-DD)";
+export const EDIT_DESCRIPTION_PLACEHOLDER = "Descripcion (opcional)";
+export const SAVE_CHANGES_BUTTON_TEXT = "Guardar cambios";
+export const SAVING_CHANGES_BUTTON_TEXT = "Guardando cambios...";
+export const UPDATE_SUCCESS_MESSAGE = "Compra actualizada correctamente";
+export const DEFAULT_UPDATE_ERROR = "No se pudo actualizar la compra";
 export const DEFAULT_FETCH_COMPRAS_ERROR = "No se pudieron obtener las compras";
 export const DEFAULT_FETCH_COMPRA_DETAIL_ERROR = "No se pudo obtener el detalle de la compra";
 export const NO_PROVIDER_MESSAGE = "Sin proveedor";

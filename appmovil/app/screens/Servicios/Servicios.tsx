@@ -473,68 +473,91 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
             <Modal
                 visible={modalVisible}
                 transparent
-                animationType="none"
+                animationType={isEditing ? "slide" : "none"}
                 onRequestClose={handleToggleModal}
                 testID="servicio-form-modal"
             >
-                <View style={styles.modalBackdrop}>
-                    <View style={styles.formContainer}>
+                <View style={[styles.modalBackdrop, isEditing && styles.modalBackdropBottom]}>
+                    <View style={[styles.formContainer, isEditing && styles.modalCard]}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>{modalTitle}</Text>
-                            <TouchableOpacity onPress={handleToggleModal} testID="close-servicio-form-button">
-                                <MaterialIcons name="close" size={22} color="#6b7280" />
-                            </TouchableOpacity>
+                            <Text style={[styles.modalTitle, isEditing && styles.modalTitleEdit]}>{modalTitle}</Text>
+                            {!isEditing ? (
+                                <TouchableOpacity onPress={handleToggleModal} testID="close-servicio-form-button">
+                                    <MaterialIcons name="close" size={22} color="#6b7280" />
+                                </TouchableOpacity>
+                            ) : null}
                         </View>
 
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Nombre"
-                            value={nombre}
-                            onChangeText={setNombre}
-                            testID="servicio-nombre-input"
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder={PRECIO_LABEL}
-                            value={precio}
-                            onChangeText={setPrecio}
-                            keyboardType="decimal-pad"
-                            testID="servicio-precio-input"
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder={DURACION_LABEL}
-                            value={duracion}
-                            onChangeText={setDuracion}
-                            keyboardType="number-pad"
-                            testID="servicio-duracion-input"
-                        />
-                        <TextInput
-                            style={[styles.input, styles.textArea]}
-                            placeholder={DESCRIPCION_PLACEHOLDER}
-                            value={descripcion}
-                            onChangeText={setDescripcion}
-                            multiline
-                            numberOfLines={4}
-                            textAlignVertical="top"
-                            testID="servicio-descripcion-input"
-                        />
+                        <ScrollView style={isEditing ? styles.editScroll : undefined} contentContainerStyle={isEditing ? styles.editContent : undefined}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Nombre"
+                                value={nombre}
+                                onChangeText={setNombre}
+                                testID="servicio-nombre-input"
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder={PRECIO_LABEL}
+                                value={precio}
+                                onChangeText={setPrecio}
+                                keyboardType="decimal-pad"
+                                testID="servicio-precio-input"
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder={DURACION_LABEL}
+                                value={duracion}
+                                onChangeText={setDuracion}
+                                keyboardType="number-pad"
+                                testID="servicio-duracion-input"
+                            />
+                            <TextInput
+                                style={[styles.input, styles.textArea]}
+                                placeholder={DESCRIPCION_PLACEHOLDER}
+                                value={descripcion}
+                                onChangeText={setDescripcion}
+                                multiline
+                                numberOfLines={4}
+                                textAlignVertical="top"
+                                testID="servicio-descripcion-input"
+                            />
+                        </ScrollView>
 
                         {modalError ? (
-                            <View style={styles.feedbackError} testID="servicio-error-message">
-                                <Text style={styles.feedbackErrorText}>{modalError}</Text>
-                            </View>
+                            <Text style={styles.modalErrorText} testID="servicio-error-message">{modalError}</Text>
                         ) : null}
 
-                        <TouchableOpacity
-                            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-                            onPress={handleSave}
-                            disabled={saving}
-                            testID="servicio-save-button"
-                        >
-                            {saving ? <ActivityIndicator size="small" color="#fff" /> : null}
-                            <Text style={styles.saveButtonText}>{saveButtonLabel}</Text>
-                        </TouchableOpacity>
+                        {isEditing ? (
+                            <View style={styles.modalActionRow}>
+                                <TouchableOpacity
+                                    style={styles.primaryButton}
+                                    onPress={handleSave}
+                                    disabled={saving}
+                                    testID="servicio-save-button"
+                                >
+                                    <Text style={styles.primaryButtonText}>{saveButtonLabel}</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.secondaryButton}
+                                    onPress={handleToggleModal}
+                                    disabled={saving}
+                                    testID="close-servicio-form-button"
+                                >
+                                    <Text style={styles.secondaryButtonText}>Cerrar</Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : (
+                            <TouchableOpacity
+                                style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                                onPress={handleSave}
+                                disabled={saving}
+                                testID="servicio-save-button"
+                            >
+                                {saving ? <ActivityIndicator size="small" color="#fff" /> : null}
+                                <Text style={styles.saveButtonText}>{saveButtonLabel}</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </View>
             </Modal>
@@ -697,6 +720,25 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingHorizontal: 12,
     },
+    modalBackdropBottom: {
+        justifyContent: "flex-end",
+        alignItems: "stretch",
+        paddingHorizontal: 0,
+    },
+    modalCard: {
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
+        width: "100%",
+        maxWidth: undefined,
+        marginHorizontal: 0,
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        elevation: 0,
+        padding: 16,
+        maxHeight: "78%",
+    },
     modalHeader: {
         flexDirection: "row",
         alignItems: "center",
@@ -707,6 +749,9 @@ const styles = StyleSheet.create({
         color: "#0D47A1",
         fontSize: 18,
         fontWeight: "700",
+    },
+    modalTitleEdit: {
+        color: "#111827",
     },
     input: {
         borderWidth: 1,
@@ -719,6 +764,46 @@ const styles = StyleSheet.create({
     },
     textArea: {
         minHeight: 96,
+    },
+    editScroll: {
+        maxHeight: 420,
+    },
+    editContent: {
+        gap: 10,
+    },
+    modalErrorText: {
+        color: "#b91c1c",
+        fontWeight: "600",
+        marginBottom: 8,
+    },
+    modalActionRow: {
+        marginTop: 10,
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 8,
+    },
+    primaryButton: {
+        backgroundColor: "#1976D2",
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+    },
+    primaryButtonText: {
+        color: "#fff",
+        fontWeight: "700",
+    },
+    secondaryButton: {
+        backgroundColor: "#e5e7eb",
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+    },
+    secondaryButtonText: {
+        color: "#1f2937",
+        fontWeight: "700",
     },
     saveButton: {
         backgroundColor: "#1976D2",

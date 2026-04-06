@@ -364,88 +364,111 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
             <Modal
                 visible={modalVisible}
                 transparent
-                animationType="none"
+                animationType={isEditing ? "slide" : "none"}
                 onRequestClose={handleToggleModal}
                 testID="proveedor-form-modal"
             >
-                <View style={styles.modalBackdrop}>
-                    <View style={styles.formContainer}>
+                <View style={[styles.modalBackdrop, isEditing && styles.modalBackdropBottom]}>
+                    <View style={[styles.formContainer, isEditing && styles.modalCard]}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>{modalTitle}</Text>
-                            <TouchableOpacity onPress={handleToggleModal} testID="close-proveedor-form-button">
-                                <MaterialIcons name="close" size={22} color="#6b7280" />
-                            </TouchableOpacity>
+                            <Text style={[styles.modalTitle, isEditing && styles.modalTitleEdit]}>{modalTitle}</Text>
+                            {!isEditing ? (
+                                <TouchableOpacity onPress={handleToggleModal} testID="close-proveedor-form-button">
+                                    <MaterialIcons name="close" size={22} color="#6b7280" />
+                                </TouchableOpacity>
+                            ) : null}
                         </View>
 
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Nombre"
-                            value={nombre}
-                            onChangeText={setNombre}
-                            testID="proveedor-nombre-input"
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="CIF/NIF"
-                            value={cifNif}
-                            onChangeText={setCifNif}
-                            autoCapitalize="characters"
-                            testID="proveedor-cif-input"
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Persona de contacto"
-                            value={contacto}
-                            onChangeText={setContacto}
-                            testID="proveedor-contacto-input"
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Teléfono"
-                            value={telefono}
-                            onChangeText={setTelefono}
-                            keyboardType="phone-pad"
-                            testID="proveedor-telefono-input"
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Email"
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            testID="proveedor-email-input"
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Tipo de proveedor"
-                            value={tipoProveedor}
-                            onChangeText={setTipoProveedor}
-                            testID="proveedor-tipo-input"
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Dirección (opcional)"
-                            value={direccion}
-                            onChangeText={setDireccion}
-                            testID="proveedor-direccion-input"
-                        />
+                        <ScrollView style={isEditing ? styles.editScroll : undefined} contentContainerStyle={isEditing ? styles.editContent : undefined}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Nombre"
+                                value={nombre}
+                                onChangeText={setNombre}
+                                testID="proveedor-nombre-input"
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="CIF/NIF"
+                                value={cifNif}
+                                onChangeText={setCifNif}
+                                autoCapitalize="characters"
+                                testID="proveedor-cif-input"
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Persona de contacto"
+                                value={contacto}
+                                onChangeText={setContacto}
+                                testID="proveedor-contacto-input"
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Teléfono"
+                                value={telefono}
+                                onChangeText={setTelefono}
+                                keyboardType="phone-pad"
+                                testID="proveedor-telefono-input"
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Email"
+                                value={email}
+                                onChangeText={setEmail}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                                testID="proveedor-email-input"
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Tipo de proveedor"
+                                value={tipoProveedor}
+                                onChangeText={setTipoProveedor}
+                                testID="proveedor-tipo-input"
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Dirección (opcional)"
+                                value={direccion}
+                                onChangeText={setDireccion}
+                                testID="proveedor-direccion-input"
+                            />
+                        </ScrollView>
 
                         {modalError ? (
-                            <View style={styles.feedbackError} testID="proveedor-error-message">
-                                <Text style={styles.feedbackErrorText}>{modalError}</Text>
-                            </View>
+                            <Text style={styles.modalErrorText} testID="proveedor-error-message">{modalError}</Text>
                         ) : null}
 
-                        <TouchableOpacity
-                            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-                            onPress={handleSave}
-                            disabled={saving}
-                            testID="proveedor-save-button"
-                        >
-                            {saving ? <ActivityIndicator size="small" color="#fff" /> : null}
-                            <Text style={styles.saveButtonText}>{saveButtonLabel}</Text>
-                        </TouchableOpacity>
+                        {isEditing ? (
+                            <View style={styles.modalActionRow}>
+                                <TouchableOpacity
+                                    style={styles.primaryButton}
+                                    onPress={handleSave}
+                                    disabled={saving}
+                                    testID="proveedor-save-button"
+                                >
+                                    <Text style={styles.primaryButtonText}>{saveButtonLabel}</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.secondaryButton}
+                                    onPress={handleToggleModal}
+                                    disabled={saving}
+                                    testID="close-proveedor-form-button"
+                                >
+                                    <Text style={styles.secondaryButtonText}>Cerrar</Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : (
+                            <TouchableOpacity
+                                style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                                onPress={handleSave}
+                                disabled={saving}
+                                testID="proveedor-save-button"
+                            >
+                                {saving ? <ActivityIndicator size="small" color="#fff" /> : null}
+                                <Text style={styles.saveButtonText}>{saveButtonLabel}</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </View>
             </Modal>
@@ -675,6 +698,25 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingHorizontal: 12,
     },
+    modalBackdropBottom: {
+        justifyContent: "flex-end",
+        alignItems: "stretch",
+        paddingHorizontal: 0,
+    },
+    modalCard: {
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
+        width: "100%",
+        maxWidth: undefined,
+        marginHorizontal: 0,
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        elevation: 0,
+        padding: 16,
+        maxHeight: "78%",
+    },
     modalHeader: {
         flexDirection: "row",
         alignItems: "center",
@@ -686,6 +728,9 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: "700",
     },
+    modalTitleEdit: {
+        color: "#111827",
+    },
     input: {
         borderWidth: 1,
         borderColor: "#d1d5db",
@@ -694,6 +739,46 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         marginBottom: 10,
         backgroundColor: "#f9fafb",
+    },
+    editScroll: {
+        maxHeight: 420,
+    },
+    editContent: {
+        gap: 10,
+    },
+    modalErrorText: {
+        color: "#b91c1c",
+        fontWeight: "600",
+        marginBottom: 8,
+    },
+    modalActionRow: {
+        marginTop: 10,
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 8,
+    },
+    primaryButton: {
+        backgroundColor: "#1976D2",
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+    },
+    primaryButtonText: {
+        color: "#fff",
+        fontWeight: "700",
+    },
+    secondaryButton: {
+        backgroundColor: "#e5e7eb",
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+    },
+    secondaryButtonText: {
+        color: "#1f2937",
+        fontWeight: "700",
     },
     saveButton: {
         backgroundColor: "#1976D2",

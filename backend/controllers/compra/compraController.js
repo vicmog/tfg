@@ -566,6 +566,148 @@ export const getCompraById = async (req, res) => {
     }
 };
 
+export const updateCompra = async (req, res) => {
+    const idUsuario = req.user?.id_usuario;
+    const idCompraResult = normalizePositiveInteger(req.params?.id_compra, COMPRA_ERRORS.COMPRA_ID_REQUIRED);
+    const fechaRaw = typeof req.body?.fecha === "string" ? req.body.fecha.trim() : "";
+    const descripcion = typeof req.body?.descripcion === "string"
+        ? req.body.descripcion.trim() || null
+        : null;
+
+    if (idCompraResult.error) {
+        return res.status(400).json({ message: idCompraResult.error });
+    }
+
+    if (!fechaRaw) {
+        return res.status(400).json({ message: COMPRA_ERRORS.FECHA_REQUIRED });
+    }
+
+    const fecha = normalizeFecha(fechaRaw);
+
+    if (!fecha) {
+        return res.status(400).json({ message: COMPRA_ERRORS.FECHA_INVALID });
+    }
+
+    const productosResult = normalizeProductos(req.body?.productos);
+
+    if (productosResult.error) {
+        return res.status(400).json({ message: productosResult.error });
+    }
+
+    try {
+        const compra = await Compra.findOne({
+            where: {
+                id_compra: idCompraResult.value,
+            },
+        });
+
+        if (!compra) {
+            return res.status(404).json({ message: COMPRA_ERRORS.COMPRA_NOT_FOUND });
+        }
+
+        const accessResult = await ensureNegocioAccess(idUsuario, compra.id_negocio);
+        if (accessResult.status) {
+            return res.status(accessResult.status).json({ message: accessResult.message });
+        }
+
+        if (!canManageCompras(accessResult.usuarioNegocio.rol)) {
+            return res.status(403).json({ message: COMPRA_ERRORS.NO_MANAGE_PERMISSION });
+        }
+
+        const productIds = productosResult.value.map((producto) => producto.id_producto);
+        const productos = await Producto.findAll({
+            where: {
+                id_producto: {
+                    [Op.in]: productIds,
+                },
+            },
+        });
+
+        if (productos.length !== productIds.length) {
+            return res.status(400).json({ message: COMPRA_ERRORS.PRODUCTOS_NOT_FOUND });
+        }
+
+        const providerIds = [...new Set(productos.map((producto) => producto.id_proveedor))];
+        const proveedores = await Proveedor.findAll({
+            where: {
+                id_proveedor: {
+                    [Op.in]: providerIds,
+                },
+            },
+            attributes: ["id_proveedor", "id_negocio"],
+        });
+
+        const providerMap = new Map(proveedores.map((proveedor) => [proveedor.id_proveedor, proveedor.id_negocio]));
+
+        for (const producto of productos) {
+            const providerBusinessId = providerMap.get(producto.id_proveedor);
+
+            if (!providerBusinessId) {
+                return res.status(400).json({ message: COMPRA_ERRORS.PRODUCTOS_WITHOUT_PROVIDER });
+            }
+
+            if (providerBusinessId !== compra.id_negocio) {
+                return res.status(400).json({ message: COMPRA_ERRORS.PRODUCTOS_NOT_IN_NEGOCIO });
+            }
+        }
+
+        const cantidadMap = new Map(
+            productosResult.value.map((producto) => [producto.id_producto, producto])
+        );
+
+        const importeTotal = productos.reduce((acc, producto) => {
+            const productoCompra = cantidadMap.get(producto.id_producto);
+            return acc + (producto.precio_compra * productoCompra.cantidad_esperada);
+        }, 0);
+
+        await sequelize.transaction(async (transaction) => {
+            await compra.update(
+                {
+                    descripcion,
+                    fecha,
+                    importe_total: Number(importeTotal.toFixed(2)),
+                },
+                { transaction }
+            );
+
+            await CompraProducto.destroy({
+                where: {
+                    id_compra: compra.id_compra,
+                },
+                transaction,
+            });
+
+            await CompraProducto.bulkCreate(
+                productosResult.value.map((producto) => ({
+                    id_compra: compra.id_compra,
+                    id_producto: producto.id_producto,
+                    cantidad_esperada: producto.cantidad_esperada,
+                    cantidad_llegada: producto.cantidad_llegada,
+                })),
+                { transaction }
+            );
+        });
+
+        const productosSerialized = productos.map((producto) => {
+            const productoCompra = cantidadMap.get(producto.id_producto);
+
+            return {
+                id_producto: producto.id_producto,
+                nombre: producto.nombre,
+                cantidad_esperada: productoCompra.cantidad_esperada,
+                cantidad_llegada: productoCompra.cantidad_llegada,
+            };
+        });
+
+        return res.status(200).json({
+            message: COMPRA_MESSAGES.COMPRA_UPDATED,
+            compra: serializeCompra(compra, productosSerialized),
+        });
+    } catch (error) {
+        return res.status(500).json({ message: COMPRA_ERRORS.SERVER_ERROR });
+    }
+};
+
 export const deleteCompra = async (req, res) => {
     const idUsuario = req.user?.id_usuario;
     const idCompraResult = normalizePositiveInteger(req.params?.id_compra, COMPRA_ERRORS.COMPRA_ID_REQUIRED);

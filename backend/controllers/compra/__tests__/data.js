@@ -96,6 +96,32 @@ export const createCompraReqProductoFueraNegocio = {
     ...createCompraReq,
 };
 
+export const updateCompraReq = {
+    user: { id_usuario: 1 },
+    params: { id_compra: "50" },
+    body: {
+        descripcion: "Compra actualizada",
+        fecha: "2026-04-05T10:00:00.000Z",
+        productos: [
+            { id_producto: 7, cantidad_esperada: 6, cantidad_llegada: 1 },
+            { id_producto: 9, cantidad_esperada: 2, cantidad_llegada: 0 },
+        ],
+    },
+};
+
+export const updateCompraReqSinPermiso = {
+    ...updateCompraReq,
+    user: { id_usuario: 3 },
+};
+
+export const updateCompraReqSinFecha = {
+    ...updateCompraReq,
+    body: {
+        ...updateCompraReq.body,
+        fecha: "",
+    },
+};
+
 export const buildRes = () => {
     const jsonMock = jest.fn();
     const res = {
