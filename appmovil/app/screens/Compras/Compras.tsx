@@ -4,8 +4,10 @@ import {
     FlatList,
     Modal,
     Platform,
+    ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
@@ -13,8 +15,9 @@ import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/dat
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { CompraListItem } from "../types";
+import { CompraListItem, Producto } from "../types";
 import {
+    ADD_PRODUCT_ROW_TEXT,
     ADD_COMPRA_BUTTON,
     compraByIdRoute,
     comprasListRoute,
@@ -22,9 +25,11 @@ import {
     CONFIRM_DELETE_ACCEPT,
     CONFIRM_DELETE_CANCEL,
     DATE_FILTER_INVALID_ERROR,
+    DEFAULT_PRODUCTS_ERROR,
     DEFAULT_DELETE_ERROR,
     DEFAULT_FETCH_COMPRA_DETAIL_ERROR,
     DEFAULT_FETCH_COMPRAS_ERROR,
+    DEFAULT_UPDATE_ERROR,
     DELETE_BUTTON_TEXT,
     DELETE_CONFIRM_MESSAGE,
     DELETE_CONFIRM_TITLE,
@@ -33,15 +38,27 @@ import {
     DETAIL_CLOSE_BUTTON,
     DETAIL_PRODUCTS_TITLE,
     DETAIL_TITLE,
+    EDIT_BUTTON_TEXT,
+    EDIT_DATE_PLACEHOLDER,
+    EDIT_DESCRIPTION_PLACEHOLDER,
+    EDIT_TITLE,
     EMPTY_COMPRAS_MESSAGE,
     FILTER_DATE_PLACEHOLDER,
+    DUPLICATED_PRODUCT_ERROR,
+    EMPTY_PRODUCT_ID_ERROR,
     LIST_SCREEN_TITLE,
     LOADING_MORE_TEXT,
     NO_PROVIDER_MESSAGE,
+    productosByNegocioRoute,
+    SAVE_CHANGES_BUTTON_TEXT,
+    SAVING_CHANGES_BUTTON_TEXT,
+    updateCompraByIdRoute,
+    UPDATE_SUCCESS_MESSAGE,
 } from "./constants";
 import { ComprasProps } from "./types";
 
 const DATE_FILTER_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const INTEGER_REGEX = /^\d+$/;
 const PAGE_SIZE = 20;
 
 type CompraDetailResponse = {
@@ -61,6 +78,21 @@ type CompraDetailResponse = {
         proveedor_nombre?: string | null;
     }>;
 };
+
+type EditCompraRow = {
+    localId: string;
+    id_producto: number | null;
+    nombre?: string | null;
+    cantidad_esperada: string;
+    cantidad_llegada: string;
+};
+
+const createEditRow = (id: number): EditCompraRow => ({
+    localId: `edit-compra-row-${id}`,
+    id_producto: null,
+    cantidad_esperada: "",
+    cantidad_llegada: "0",
+});
 
 const formatDate = (value: string) => {
     const parsed = new Date(value);
@@ -133,6 +165,22 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
     const [detailVisible, setDetailVisible] = useState(false);
     const [detailLoading, setDetailLoading] = useState(false);
     const [detailError, setDetailError] = useState("");
+    const [editVisible, setEditVisible] = useState(false);
+    const [editLoading, setEditLoading] = useState(false);
+    const [editSaving, setEditSaving] = useState(false);
+    const [editError, setEditError] = useState("");
+    const [editingCompraId, setEditingCompraId] = useState<number | null>(null);
+    const [editDescripcion, setEditDescripcion] = useState("");
+    const [editFecha, setEditFecha] = useState("");
+    const [editRows, setEditRows] = useState<EditCompraRow[]>([]);
+    const [editDatePickerVisible, setEditDatePickerVisible] = useState(false);
+    const [editCalendarCursor, setEditCalendarCursor] = useState<Date>(new Date());
+    const [editRowsSequence, setEditRowsSequence] = useState(1);
+    const [editProductPickerVisible, setEditProductPickerVisible] = useState(false);
+    const [editPickerSearch, setEditPickerSearch] = useState("");
+    const [editPickerRowId, setEditPickerRowId] = useState<string | null>(null);
+    const [editCatalog, setEditCatalog] = useState<Producto[]>([]);
+    const [editCatalogLoading, setEditCatalogLoading] = useState(false);
     const [deletingCompraId, setDeletingCompraId] = useState<number | null>(null);
     const [confirmDeleteCompraId, setConfirmDeleteCompraId] = useState<number | null>(null);
     const [selectedCompra, setSelectedCompra] = useState<CompraDetailResponse | null>(null);
@@ -278,12 +326,100 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
 
     const webCalendarCells = useMemo(() => buildCalendarMatrix(calendarCursor), [calendarCursor]);
     const selectedDate = parseApiDate(fechaFilterDraft);
+    const editWebCalendarCells = useMemo(() => buildCalendarMatrix(editCalendarCursor), [editCalendarCursor]);
+    const selectedEditDate = parseApiDate(editFecha);
+    const editRowsWithProductData = useMemo(
+        () => editRows.map((row) => {
+            const producto = editCatalog.find((item) => item.id_producto === row.id_producto) || null;
+
+            return {
+                ...row,
+                producto,
+            };
+        }),
+        [editCatalog, editRows]
+    );
+
+    const selectedEditProductIds = useMemo(
+        () => editRows
+            .map((row) => row.id_producto)
+            .filter((idProducto): idProducto is number => idProducto !== null),
+        [editRows]
+    );
+
+    const editPickerProducts = useMemo(() => {
+        const search = editPickerSearch.trim().toLowerCase();
+        const activeRow = editRows.find((row) => row.localId === editPickerRowId);
+        const activeProductId = activeRow?.id_producto ?? null;
+
+        return editCatalog.filter((producto) => {
+            const alreadySelected = selectedEditProductIds.includes(producto.id_producto)
+                && producto.id_producto !== activeProductId;
+
+            if (alreadySelected) {
+                return false;
+            }
+
+            if (!search) {
+                return true;
+            }
+
+            return (
+                producto.nombre.toLowerCase().includes(search)
+                || producto.referencia.toLowerCase().includes(search)
+                || producto.categoria.toLowerCase().includes(search)
+            );
+        });
+    }, [editCatalog, editPickerRowId, editPickerSearch, editRows, selectedEditProductIds]);
 
     const handleOpenFiltersModal = () => {
         setFechaFilterDraft(fechaFilterApplied);
         setDatePickerVisible(false);
         setFiltersModalVisible(true);
     };
+
+    const fetchCompraDetail = useCallback(async (idCompra: number) => {
+        const token = await AsyncStorage.getItem("token");
+        const response = await fetch(compraByIdRoute(idCompra), {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            return { error: data.message || DEFAULT_FETCH_COMPRA_DETAIL_ERROR };
+        }
+
+        const data = await response.json();
+        return { compra: (data.compra || null) as CompraDetailResponse | null };
+    }, []);
+
+    const fetchEditProductsCatalog = useCallback(async () => {
+        setEditCatalogLoading(true);
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(productosByNegocioRoute(negocio.id_negocio), {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                return { error: data.message || DEFAULT_PRODUCTS_ERROR };
+            }
+
+            const data = await response.json();
+            setEditCatalog(data.productos || []);
+            return { error: "" };
+        } catch (error) {
+            return { error: CONNECTION_ERROR };
+        } finally {
+            setEditCatalogLoading(false);
+        }
+    }, [negocio.id_negocio]);
 
     const handleOpenDetail = async (idCompra: number) => {
         setDetailVisible(true);
@@ -292,25 +428,252 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
         setSelectedCompra(null);
 
         try {
-            const token = await AsyncStorage.getItem("token");
-            const response = await fetch(compraByIdRoute(idCompra), {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-
-            if (!response.ok) {
-                const data = await response.json();
-                setDetailError(data.message || DEFAULT_FETCH_COMPRA_DETAIL_ERROR);
+            const detail = await fetchCompraDetail(idCompra);
+            if (detail.error) {
+                setDetailError(detail.error);
                 return;
             }
 
-            const data = await response.json();
-            setSelectedCompra(data.compra || null);
+            setSelectedCompra(detail.compra || null);
         } catch (error) {
             setDetailError(CONNECTION_ERROR);
         } finally {
             setDetailLoading(false);
+        }
+    };
+
+    const handleOpenEdit = async (idCompra: number) => {
+        setEditVisible(true);
+        setEditLoading(true);
+        setEditError("");
+        setEditDatePickerVisible(false);
+        setEditProductPickerVisible(false);
+        setEditPickerSearch("");
+        setEditPickerRowId(null);
+        setEditingCompraId(idCompra);
+        setEditRows([]);
+        setEditCatalog([]);
+
+        try {
+            const [detail, catalogResult] = await Promise.all([
+                fetchCompraDetail(idCompra),
+                fetchEditProductsCatalog(),
+            ]);
+
+            if (catalogResult.error) {
+                setEditError(catalogResult.error);
+                return;
+            }
+
+            if (detail.error || !detail.compra) {
+                setEditError(detail.error || DEFAULT_FETCH_COMPRA_DETAIL_ERROR);
+                return;
+            }
+
+            setEditDescripcion(detail.compra.descripcion || "");
+            setEditFecha(toApiDate(new Date(detail.compra.fecha)));
+            const nextRows = (detail.compra.productos || []).map((producto, index) => ({
+                localId: `edit-compra-row-${index + 1}`,
+                id_producto: producto.id_producto,
+                nombre: producto.nombre,
+                cantidad_esperada: `${producto.cantidad_esperada}`,
+                cantidad_llegada: `${producto.cantidad_llegada}`,
+            }));
+
+            setEditRows(nextRows.length ? nextRows : [createEditRow(1)]);
+            setEditRowsSequence((nextRows.length || 1) + 1);
+        } catch (error) {
+            setEditError(CONNECTION_ERROR);
+        } finally {
+            setEditLoading(false);
+        }
+    };
+
+    const handleCloseEdit = () => {
+        setEditVisible(false);
+        setEditLoading(false);
+        setEditSaving(false);
+        setEditError("");
+        setEditDatePickerVisible(false);
+        setEditProductPickerVisible(false);
+        setEditPickerSearch("");
+        setEditPickerRowId(null);
+        setEditingCompraId(null);
+        setEditDescripcion("");
+        setEditFecha("");
+        setEditRows([]);
+        setEditCatalog([]);
+    };
+
+    const updateEditRow = (localId: string, changes: Partial<EditCompraRow>) => {
+        setEditRows((previousRows) => previousRows.map((row) => {
+            if (row.localId !== localId) {
+                return row;
+            }
+
+            return {
+                ...row,
+                ...changes,
+            };
+        }));
+    };
+
+    const addEditRow = () => {
+        setEditRows((previousRows) => [...previousRows, createEditRow(editRowsSequence)]);
+        setEditRowsSequence((previous) => previous + 1);
+    };
+
+    const removeEditRow = (localId: string) => {
+        setEditRows((previousRows) => previousRows.filter((row) => row.localId !== localId));
+    };
+
+    const openEditProductPicker = (localId: string) => {
+        setEditPickerRowId(localId);
+        setEditPickerSearch("");
+        setEditProductPickerVisible(true);
+    };
+
+    const closeEditProductPicker = () => {
+        setEditProductPickerVisible(false);
+        setEditPickerSearch("");
+        setEditPickerRowId(null);
+    };
+
+    const selectEditProduct = (idProducto: number) => {
+        if (!editPickerRowId) {
+            return;
+        }
+
+        updateEditRow(editPickerRowId, { id_producto: idProducto });
+        closeEditProductPicker();
+        setEditError("");
+    };
+
+    const handleEditDateChange = (event: DateTimePickerEvent, selectedDateValue?: Date) => {
+        if (Platform.OS !== "ios") {
+            setEditDatePickerVisible(false);
+        }
+
+        if (event.type === "dismissed" || !selectedDateValue) {
+            return;
+        }
+
+        setEditFecha(toApiDate(selectedDateValue));
+        setEditError("");
+    };
+
+    const handleOpenEditDatePicker = () => {
+        setEditDatePickerVisible(true);
+        setEditCalendarCursor(parseApiDate(editFecha) || new Date());
+    };
+
+    const handleSelectEditWebDate = (day: number) => {
+        const selected = new Date(editCalendarCursor.getFullYear(), editCalendarCursor.getMonth(), day);
+        setEditFecha(toApiDate(selected));
+        setEditError("");
+        setEditDatePickerVisible(false);
+    };
+
+    const validateEditForm = () => {
+        const fechaValue = editFecha.trim();
+        if (!fechaValue) {
+            setEditError("La fecha de compra es obligatoria");
+            return false;
+        }
+
+        const parsedDate = new Date(fechaValue);
+        if (Number.isNaN(parsedDate.getTime())) {
+            setEditError("La fecha de compra no es valida");
+            return false;
+        }
+
+        if (!editRows.length) {
+            setEditError("Debes indicar al menos un producto");
+            return false;
+        }
+
+        const selectedIds = new Set<number>();
+
+        for (const row of editRows) {
+            if (!row.id_producto) {
+                setEditError(EMPTY_PRODUCT_ID_ERROR);
+                return false;
+            }
+
+            if (selectedIds.has(row.id_producto)) {
+                setEditError(DUPLICATED_PRODUCT_ERROR);
+                return false;
+            }
+
+            selectedIds.add(row.id_producto);
+
+            const cantidadEsperada = row.cantidad_esperada.trim();
+            const cantidadLlegada = row.cantidad_llegada.trim();
+
+            if (!INTEGER_REGEX.test(cantidadEsperada) || Number.parseInt(cantidadEsperada, 10) <= 0) {
+                setEditError("La cantidad esperada debe ser un entero mayor que 0");
+                return false;
+            }
+
+            if (!INTEGER_REGEX.test(cantidadLlegada) || Number.parseInt(cantidadLlegada, 10) < 0) {
+                setEditError("La cantidad llegada debe ser un entero mayor o igual que 0");
+                return false;
+            }
+
+            if (Number.parseInt(cantidadLlegada, 10) > Number.parseInt(cantidadEsperada, 10)) {
+                setEditError("La cantidad llegada no puede ser mayor que la esperada");
+                return false;
+            }
+        }
+
+        return true;
+    };
+
+    const handleSaveEdit = async () => {
+        setEditError("");
+        setListError("");
+        setListSuccess("");
+
+        if (!editingCompraId || !validateEditForm()) {
+            return;
+        }
+
+        setEditSaving(true);
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const fechaIso = new Date(editFecha.trim()).toISOString();
+            const response = await fetch(updateCompraByIdRoute(editingCompraId), {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    descripcion: editDescripcion.trim(),
+                    fecha: fechaIso,
+                    productos: editRows.map((row) => ({
+                        id_producto: Number(row.id_producto),
+                        cantidad_esperada: row.cantidad_esperada.trim(),
+                        cantidad_llegada: row.cantidad_llegada.trim(),
+                    })),
+                }),
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setEditError(data.message || DEFAULT_UPDATE_ERROR);
+                return;
+            }
+
+            const data = await response.json();
+            setListSuccess(data.message || UPDATE_SUCCESS_MESSAGE);
+            handleCloseEdit();
+            await fetchCompras(undefined, appliedFilters.fecha);
+        } catch (error) {
+            setEditError(CONNECTION_ERROR);
+        } finally {
+            setEditSaving(false);
         }
     };
 
@@ -445,9 +808,19 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
                                     {canManageCompras ? (
                                         <View style={styles.cardActionsRow}>
                                             <TouchableOpacity
+                                                style={[styles.actionIconButton, styles.editIconButton]}
+                                                onPress={() => handleOpenEdit(item.id_compra)}
+                                                disabled={isDeleting}
+                                                accessibilityLabel={EDIT_BUTTON_TEXT}
+                                                testID={`compras-edit-button-${item.id_compra}`}
+                                            >
+                                                <MaterialIcons name="edit" size={16} color="#fff" />
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
                                                 style={[styles.actionIconButton, styles.deleteIconButton]}
                                                 onPress={() => handleAskDeleteCompra(item.id_compra)}
                                                 disabled={isDeleting}
+                                                accessibilityLabel={DELETE_BUTTON_TEXT}
                                                 testID={`compras-delete-button-${item.id_compra}`}
                                             >
                                                 {isDeleting ? (
@@ -601,6 +974,239 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
                                 <Text style={styles.secondaryButtonText}>Cerrar</Text>
                             </TouchableOpacity>
                         </View>
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal
+                visible={editVisible}
+                transparent
+                animationType="slide"
+                onRequestClose={handleCloseEdit}
+            >
+                <View style={styles.modalBackdrop}>
+                    <View style={styles.modalCard}>
+                        <Text style={styles.modalTitle}>{EDIT_TITLE}</Text>
+
+                        {editLoading ? (
+                            <ActivityIndicator size="small" color="#1976D2" testID="compras-edit-loading" />
+                        ) : null}
+
+                        {editError ? (
+                            <Text style={styles.errorText} testID="compras-edit-error-message">{editError}</Text>
+                        ) : null}
+
+                        {!editLoading ? (
+                            <ScrollView style={styles.editScroll} contentContainerStyle={styles.editContent}>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder={EDIT_DESCRIPTION_PLACEHOLDER}
+                                    value={editDescripcion}
+                                    onChangeText={setEditDescripcion}
+                                    testID="compras-edit-descripcion-input"
+                                />
+
+                                <TouchableOpacity
+                                    style={styles.input}
+                                    onPress={handleOpenEditDatePicker}
+                                    testID="compras-edit-fecha-input"
+                                >
+                                    <View style={styles.datePickerRow}>
+                                        <MaterialIcons name="calendar-month" size={18} color="#4b5563" />
+                                        <Text style={editFecha ? styles.datePickerText : styles.datePickerPlaceholder}>
+                                            {editFecha || EDIT_DATE_PLACEHOLDER}
+                                        </Text>
+                                    </View>
+                                </TouchableOpacity>
+
+                                {editDatePickerVisible && Platform.OS !== "web" ? (
+                                    <DateTimePicker
+                                        testID="compras-edit-date-picker"
+                                        value={parseApiDate(editFecha) || new Date()}
+                                        mode="date"
+                                        display={Platform.OS === "ios" ? "spinner" : "default"}
+                                        onChange={handleEditDateChange}
+                                    />
+                                ) : null}
+
+                                {editDatePickerVisible && Platform.OS === "web" ? (
+                                    <View style={styles.webCalendarCard} testID="compras-edit-date-picker-web">
+                                        <View style={styles.webCalendarHeader}>
+                                            <TouchableOpacity
+                                                style={styles.webCalendarNavButton}
+                                                onPress={() => setEditCalendarCursor(new Date(editCalendarCursor.getFullYear(), editCalendarCursor.getMonth() - 1, 1))}
+                                                testID="compras-edit-calendar-prev-month"
+                                            >
+                                                <MaterialIcons name="chevron-left" size={18} color="#374151" />
+                                            </TouchableOpacity>
+                                            <Text style={styles.webCalendarTitle}>
+                                                {editCalendarCursor.toLocaleDateString("es-ES", { month: "long", year: "numeric" })}
+                                            </Text>
+                                            <TouchableOpacity
+                                                style={styles.webCalendarNavButton}
+                                                onPress={() => setEditCalendarCursor(new Date(editCalendarCursor.getFullYear(), editCalendarCursor.getMonth() + 1, 1))}
+                                                testID="compras-edit-calendar-next-month"
+                                            >
+                                                <MaterialIcons name="chevron-right" size={18} color="#374151" />
+                                            </TouchableOpacity>
+                                        </View>
+
+                                        <View style={styles.webWeekdaysRow}>
+                                            {["L", "M", "X", "J", "V", "S", "D"].map((label) => (
+                                                <Text key={label} style={styles.webWeekdayLabel}>{label}</Text>
+                                            ))}
+                                        </View>
+
+                                        <View style={styles.webCalendarGrid}>
+                                            {editWebCalendarCells.map((day, index) => {
+                                                if (!day) {
+                                                    return <View key={`edit-empty-${index}`} style={styles.webCalendarDayEmpty} />;
+                                                }
+
+                                                const isSelected = !!selectedEditDate
+                                                    && selectedEditDate.getFullYear() === editCalendarCursor.getFullYear()
+                                                    && selectedEditDate.getMonth() === editCalendarCursor.getMonth()
+                                                    && selectedEditDate.getDate() === day;
+
+                                                return (
+                                                    <TouchableOpacity
+                                                        key={`edit-day-${day}`}
+                                                        style={[styles.webCalendarDayButton, isSelected && styles.webCalendarDayButtonSelected]}
+                                                        onPress={() => handleSelectEditWebDate(day)}
+                                                        testID={`compras-edit-calendar-day-${day}`}
+                                                    >
+                                                        <Text style={[styles.webCalendarDayText, isSelected && styles.webCalendarDayTextSelected]}>{day}</Text>
+                                                    </TouchableOpacity>
+                                                );
+                                            })}
+                                        </View>
+                                    </View>
+                                ) : null}
+
+                                {editRowsWithProductData.map((row, index) => (
+                                    <View key={row.localId} style={styles.editRowCard} testID={`compras-edit-row-${index}`}>
+                                        <View style={styles.editRowHeader}>
+                                            <TouchableOpacity
+                                                style={styles.productSelectButton}
+                                                onPress={() => openEditProductPicker(row.localId)}
+                                                testID={`compras-edit-open-product-picker-${index}`}
+                                            >
+                                                <MaterialIcons name="search" size={18} color="#1d4ed8" />
+                                                <Text style={styles.productSelectButtonText}>
+                                                    {row.producto
+                                                        ? `${row.producto.nombre} (${row.producto.referencia})`
+                                                        : "Seleccionar producto"}
+                                                </Text>
+                                            </TouchableOpacity>
+
+                                            <TouchableOpacity
+                                                style={styles.removeRowButton}
+                                                onPress={() => removeEditRow(row.localId)}
+                                                testID={`compras-edit-remove-row-${index}`}
+                                            >
+                                                <MaterialIcons name="delete-outline" size={16} color="#dc2626" />
+                                            </TouchableOpacity>
+                                        </View>
+
+                                        <TextInput
+                                            style={styles.input}
+                                            value={row.cantidad_esperada}
+                                            onChangeText={(text) => updateEditRow(row.localId, { cantidad_esperada: text.replace(/[^0-9]/g, "") })}
+                                            placeholder="Cantidad esperada"
+                                            keyboardType="numeric"
+                                            testID={`compras-edit-cantidad-esperada-${index}`}
+                                        />
+                                        <TextInput
+                                            style={styles.input}
+                                            value={row.cantidad_llegada}
+                                            onChangeText={(text) => updateEditRow(row.localId, { cantidad_llegada: text.replace(/[^0-9]/g, "") })}
+                                            placeholder="Cantidad llegada"
+                                            keyboardType="numeric"
+                                            testID={`compras-edit-cantidad-llegada-${index}`}
+                                        />
+                                    </View>
+                                ))}
+
+                                <TouchableOpacity
+                                    style={styles.addProductButton}
+                                    onPress={addEditRow}
+                                    testID="compras-edit-add-product-row"
+                                >
+                                    <MaterialIcons name="add" size={18} color="#fff" />
+                                    <Text style={styles.addProductButtonText}>{ADD_PRODUCT_ROW_TEXT}</Text>
+                                </TouchableOpacity>
+                            </ScrollView>
+                        ) : null}
+
+                        <View style={styles.modalActionRow}>
+                            <TouchableOpacity
+                                style={[styles.primaryButton, editSaving && styles.disabledButton]}
+                                onPress={handleSaveEdit}
+                                disabled={editSaving || editLoading}
+                                testID="compras-edit-save-button"
+                            >
+                                <Text style={styles.primaryButtonText}>
+                                    {editSaving ? SAVING_CHANGES_BUTTON_TEXT : SAVE_CHANGES_BUTTON_TEXT}
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.secondaryButton}
+                                onPress={handleCloseEdit}
+                                disabled={editSaving}
+                                testID="compras-edit-close-button"
+                            >
+                                <Text style={styles.secondaryButtonText}>{DETAIL_CLOSE_BUTTON}</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal
+                visible={editProductPickerVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={closeEditProductPicker}
+            >
+                <View style={styles.pickerBackdrop}>
+                    <View style={styles.pickerCard}>
+                        <Text style={styles.modalTitle}>Seleccionar producto</Text>
+
+                        {editCatalogLoading ? (
+                            <ActivityIndicator size="small" color="#1976D2" />
+                        ) : null}
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Buscar por nombre, referencia o categoria"
+                            value={editPickerSearch}
+                            onChangeText={setEditPickerSearch}
+                            testID="compras-edit-picker-search"
+                        />
+
+                        <ScrollView style={styles.pickerList}>
+                            {editPickerProducts.length ? editPickerProducts.map((producto, index) => (
+                                <TouchableOpacity
+                                    key={`${producto.id_producto}`}
+                                    style={styles.pickerItem}
+                                    onPress={() => selectEditProduct(producto.id_producto)}
+                                    testID={`compras-edit-picker-item-${index}`}
+                                >
+                                    <Text style={styles.pickerItemTitle}>{producto.nombre}</Text>
+                                    <Text style={styles.pickerItemSubtitle}>Ref: {producto.referencia} | Cat: {producto.categoria}</Text>
+                                </TouchableOpacity>
+                            )) : (
+                                <Text style={styles.emptyText}>No hay productos disponibles</Text>
+                            )}
+                        </ScrollView>
+
+                        <TouchableOpacity
+                            style={styles.secondaryButton}
+                            onPress={closeEditProductPicker}
+                            testID="compras-edit-picker-close"
+                        >
+                            <Text style={styles.secondaryButtonText}>{DETAIL_CLOSE_BUTTON}</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </Modal>
@@ -844,6 +1450,7 @@ const styles = StyleSheet.create({
     },
     cardActionsRow: {
         marginLeft: 8,
+        gap: 8,
     },
     actionIconButton: {
         height: 34,
@@ -854,6 +1461,9 @@ const styles = StyleSheet.create({
     },
     deleteIconButton: {
         backgroundColor: "#dc2626",
+    },
+    editIconButton: {
+        backgroundColor: "#2563eb",
     },
     compraDate: {
         color: "#111827",
@@ -913,6 +1523,103 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 16,
         padding: 16,
         maxHeight: "78%",
+    },
+    editScroll: {
+        maxHeight: 420,
+    },
+    editContent: {
+        gap: 10,
+    },
+    editRowCard: {
+        backgroundColor: "#f8fafc",
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        padding: 8,
+        gap: 8,
+    },
+    editRowHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+    },
+    productSelectButton: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: "#bfdbfe",
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        backgroundColor: "#eff6ff",
+    },
+    productSelectButtonText: {
+        flex: 1,
+        color: "#1e3a8a",
+        fontWeight: "600",
+    },
+    removeRowButton: {
+        height: 34,
+        width: 34,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: "#fecaca",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#fff1f2",
+    },
+    addProductButton: {
+        marginTop: 4,
+        alignSelf: "flex-start",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        backgroundColor: "#1976D2",
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 8,
+    },
+    addProductButtonText: {
+        color: "#fff",
+        fontWeight: "700",
+    },
+    pickerBackdrop: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.35)",
+        justifyContent: "center",
+        paddingHorizontal: 16,
+    },
+    pickerCard: {
+        backgroundColor: "#fff",
+        borderRadius: 12,
+        padding: 14,
+        maxHeight: "72%",
+    },
+    pickerList: {
+        marginTop: 10,
+        marginBottom: 10,
+    },
+    pickerItem: {
+        borderWidth: 1,
+        borderColor: "#dbeafe",
+        borderRadius: 8,
+        padding: 10,
+        marginBottom: 8,
+        backgroundColor: "#f8fbff",
+    },
+    pickerItemTitle: {
+        color: "#1f2937",
+        fontWeight: "700",
+    },
+    pickerItemSubtitle: {
+        marginTop: 2,
+        color: "#4b5563",
+        fontSize: 12,
+    },
+    disabledButton: {
+        opacity: 0.7,
     },
     modalTitle: {
         fontSize: 18,

@@ -1,4 +1,4 @@
-import { createCompra, deleteCompra, getCompraById, getCompras } from "../compraController.js";
+import { createCompra, deleteCompra, getCompraById, getCompras, updateCompra } from "../compraController.js";
 import { Compra } from "../../../models/Compra.js";
 import { CompraProducto } from "../../../models/CompraProducto.js";
 import { Producto } from "../../../models/Producto.js";
@@ -21,6 +21,9 @@ import {
     mockUsuarioAdmin,
     mockUsuarioJefe,
     mockUsuarioTrabajador,
+    updateCompraReq,
+    updateCompraReqSinFecha,
+    updateCompraReqSinPermiso,
 } from "./data.js";
 
 jest.mock("../../../models/Compra.js");
@@ -326,6 +329,83 @@ describe("CompraController Unit Tests", () => {
         expect(res.status).toHaveBeenCalledWith(200);
         expect(jsonMock).toHaveBeenCalledWith({
             message: "Compra eliminada correctamente",
+        });
+    });
+
+    it("deberia actualizar compra correctamente para jefe", async () => {
+        const updateMock = jest.fn().mockImplementation(async (payload) => ({
+            ...payload,
+        }));
+
+        Compra.findOne.mockResolvedValue({
+            id_compra: 50,
+            id_negocio: 10,
+            estado: "pendiente",
+            update: updateMock,
+        });
+        UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioJefe);
+        Producto.findAll.mockResolvedValue(mockProductos);
+        Proveedor.findAll.mockResolvedValue(mockProveedores);
+
+        const { res, jsonMock } = buildRes();
+
+        await updateCompra(updateCompraReq, res);
+
+        expect(updateMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                descripcion: "Compra actualizada",
+                importe_total: 36,
+            }),
+            expect.any(Object)
+        );
+        expect(CompraProducto.destroy).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: { id_compra: 50 },
+            })
+        );
+        expect(CompraProducto.bulkCreate).toHaveBeenCalledWith(
+            expect.arrayContaining([
+                expect.objectContaining({ id_producto: 7, cantidad_esperada: 6 }),
+            ]),
+            expect.any(Object)
+        );
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                message: "Compra actualizada correctamente",
+                compra: expect.objectContaining({ id_compra: 50, id_negocio: 10 }),
+            })
+        );
+    });
+
+    it("deberia fallar al actualizar compra sin permisos", async () => {
+        Compra.findOne.mockResolvedValue({
+            id_compra: 50,
+            id_negocio: 10,
+            estado: "pendiente",
+            update: jest.fn(),
+        });
+        UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioTrabajador);
+        const { res, jsonMock } = buildRes();
+
+        await updateCompra(updateCompraReqSinPermiso, res);
+
+        expect(CompraProducto.destroy).not.toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(403);
+        expect(jsonMock).toHaveBeenCalledWith({
+            message: "No tienes permisos para gestionar compras",
+        });
+    });
+
+    it("deberia fallar al actualizar compra sin fecha", async () => {
+        const { res, jsonMock } = buildRes();
+
+        await updateCompra(updateCompraReqSinFecha, res);
+
+        expect(Compra.findOne).not.toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+            message: "La fecha de compra es obligatoria",
         });
     });
 
