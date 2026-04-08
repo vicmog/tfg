@@ -54,6 +54,15 @@ export type Servicio = {
     updatedAt?: string;
 };
 
+export type Recurso = {
+    id_recurso: number;
+    id_negocio: number;
+    nombre: string;
+    capacidad: number;
+    createdAt?: string;
+    updatedAt?: string;
+};
+
 export type Proveedor = {
     id_proveedor: number;
     id_negocio: number;

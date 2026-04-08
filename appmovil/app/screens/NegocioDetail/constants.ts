@@ -8,6 +8,7 @@ export const MODULOS: Modulo[] = [
   { id: "clientes", nombre: "Gestión de Clientes", icono: "people", color: "#4CAF50" },
   { id: "empleados", nombre: "Empleados", icono: "badge", color: "#607D8B" },
   { id: "servicios", nombre: "Servicios", icono: "build", color: "#9C27B0" },
+  { id: "recursos", nombre: "Recursos", icono: "meeting-room", color: "#26A69A" },
   { id: "productos", nombre: "Productos", icono: "inventory", color: "#2196F3" },
   { id: "proveedores", nombre: "Proveedores", icono: "local-shipping", color: "#FF9800" },
   { id: "compras", nombre: "Compras", icono: "shopping-cart", color: "#FF5722" },
