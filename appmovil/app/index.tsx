@@ -14,6 +14,7 @@ import NegocioUsers from "./screens/NegocioUsers/NegocioUsers";
 import Clientes from "./screens/Clientes/Clientes";
 import Empleados from "./screens/Empleados/Empleados";
 import Servicios from "./screens/Servicios/Servicios";
+import Recursos from "./screens/Recursos/Recursos";
 import Proveedores from "./screens/Proveedores/Proveedores";
 import Productos from "./screens/Productos/Productos";
 import CrearProducto from "./screens/Productos/CrearProducto";
@@ -38,6 +39,7 @@ export type NavigationScreenList = {
   Clientes: { negocio: Negocio };
   Empleados: { negocio: Negocio };
   Servicios: { negocio: Negocio };
+  Recursos: { negocio: Negocio };
   Proveedores: { negocio: Negocio };
   Productos: { negocio: Negocio };
   CrearProducto: { negocio: Negocio };
@@ -78,6 +80,7 @@ const App: React.FC = () => {
           <Stack.Screen name="Clientes" component={Clientes} />
           <Stack.Screen name="Empleados" component={Empleados} />
           <Stack.Screen name="Servicios" component={Servicios} />
+          <Stack.Screen name="Recursos" component={Recursos} />
           <Stack.Screen name="Proveedores" component={Proveedores} />
           <Stack.Screen name="Productos" component={Productos} />
           <Stack.Screen name="CrearProducto" component={CrearProducto} />

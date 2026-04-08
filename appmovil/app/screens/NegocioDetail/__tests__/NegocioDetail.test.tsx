@@ -58,6 +58,7 @@ describe("NegocioDetail", () => {
             expect(getByTestId("modulo-productos")).toBeTruthy();
             expect(getByTestId("modulo-proveedores")).toBeTruthy();
             expect(getByTestId("modulo-servicios")).toBeTruthy();
+            expect(getByTestId("modulo-recursos")).toBeTruthy();
             expect(getByTestId("modulo-reservas")).toBeTruthy();
             expect(getByTestId("modulo-ventas")).toBeTruthy();
             expect(getByTestId("modulo-gastos")).toBeTruthy();
@@ -191,6 +192,19 @@ describe("NegocioDetail", () => {
 
         fireEvent.press(getByTestId("modulo-servicios"));
         expect(mockNavigation.navigate).toHaveBeenCalledWith("Servicios", { negocio: mockNegocio });
+    });
+
+    it("navega a Recursos al pulsar módulo recursos", async () => {
+        const { getByTestId } = render(
+            <NegocioDetail navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("modulo-recursos")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("modulo-recursos"));
+        expect(mockNavigation.navigate).toHaveBeenCalledWith("Recursos", { negocio: mockNegocio });
     });
 
     it("navega a Proveedores al pulsar módulo proveedores", async () => {
