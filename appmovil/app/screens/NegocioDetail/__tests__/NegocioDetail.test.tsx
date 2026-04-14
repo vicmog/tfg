@@ -80,6 +80,19 @@ describe("NegocioDetail", () => {
         expect(mockNavigation.navigate).toHaveBeenCalledWith("Compras", { negocio: mockNegocio });
     });
 
+    it("navega a Reservas al pulsar modulo reservas", async () => {
+        const { getByTestId } = render(
+            <NegocioDetail navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("modulo-reservas")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("modulo-reservas"));
+        expect(mockNavigation.navigate).toHaveBeenCalledWith("Reservas", { negocio: mockNegocio });
+    });
+
     it("muestra botones de ajustes para jefe", async () => {
         const { getByTestId } = render(
             <NegocioDetail navigation={mockNavigation} route={mockRoute} />
