@@ -78,6 +78,11 @@ const NegocioDetail: React.FC<NegocioDetailProps> = ({ route, navigation }) => {
 
         if (modulo.id === "compras") {
             navigation.navigate("Compras", { negocio });
+            return;
+        }
+
+        if (modulo.id === "reservas") {
+            navigation.navigate("Reservas", { negocio });
         }
     };
 

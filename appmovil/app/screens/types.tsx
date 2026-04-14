@@ -63,6 +63,18 @@ export type Recurso = {
     updatedAt?: string;
 };
 
+export type Reserva = {
+    id_reserva: number;
+    id_recurso: number;
+    id_cliente: number;
+    id_servicio?: number | null;
+    servicio_nombre?: string | null;
+    duracion_minutos?: number;
+    fecha_hora_inicio: string;
+    fecha_hora_fin: string;
+    estado: string;
+};
+
 export type Proveedor = {
     id_proveedor: number;
     id_negocio: number;
