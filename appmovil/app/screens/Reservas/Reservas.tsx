@@ -56,13 +56,18 @@ import {
     SELECT_SERVICIO_LABEL,
     serviciosByNegocioRoute,
     SUCCESS_MESSAGE,
+    CLOSING_HOUR,
+    INTEGER_REGEX,
+    MIN_EVENT_BLOCK_HEIGHT,
+    OPENING_HOUR,
+    TIMELINE_EVENT_HORIZONTAL_GAP,
+    TIMELINE_LANE_WIDTH,
+    TIMELINE_PIXELS_PER_MINUTE,
+    WEEK_LABELS,
 } from "./constants";
 import { ReservasProps } from "./types";
 
-const INTEGER_REGEX = /^\d+$/;
-const WEEK_LABELS = ["L", "M", "X", "J", "V", "S", "D"];
-const OPENING_HOUR = 8;
-const CLOSING_HOUR = 21;
+
 
 const toLocalDateKey = (value: string | Date) => {
     const date = new Date(value);
@@ -99,6 +104,16 @@ const toDateTimeDisplay = (value: string | Date) => {
         month: "2-digit",
         hour: "2-digit",
         minute: "2-digit",
+    });
+};
+
+const toTimeDisplay = (value: string | Date) => {
+    const date = new Date(value);
+
+    return date.toLocaleTimeString("es-ES", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
     });
 };
 
@@ -167,6 +182,9 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
     const [recursoPickerVisible, setRecursoPickerVisible] = useState(false);
     const [servicioPickerVisible, setServicioPickerVisible] = useState(false);
     const [datePickerVisible, setDatePickerVisible] = useState(false);
+    const [detailModalVisible, setDetailModalVisible] = useState(false);
+    const [selectedReservaDetail, setSelectedReservaDetail] = useState<Reserva | null>(null);
+    const [timelineFilterRecursoId, setTimelineFilterRecursoId] = useState<number | null>(null);
 
     const [calendarCursor, setCalendarCursor] = useState<Date>(new Date());
     const [selectedDay, setSelectedDay] = useState<string>(toLocalDateKey(new Date()));
@@ -205,6 +223,83 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
         () => reservasByDay.get(selectedDay) || [],
         [reservasByDay, selectedDay]
     );
+
+    const reservasSelectedDayFiltered = useMemo(() => {
+        if (!timelineFilterRecursoId) {
+            return reservasSelectedDay;
+        }
+
+        return reservasSelectedDay.filter((reserva) => reserva.id_recurso === timelineFilterRecursoId);
+    }, [reservasSelectedDay, timelineFilterRecursoId]);
+
+    const timelineFilterRecursos = useMemo(
+        () => [...recursos].sort((a, b) => a.nombre.localeCompare(b.nombre, "es-ES")),
+        [recursos]
+    );
+
+    const timelineHourLabels = useMemo(
+        () => Array.from({ length: CLOSING_HOUR - OPENING_HOUR + 1 }, (_, index) => `${OPENING_HOUR + index}:00`),
+        []
+    );
+
+    const timelineHeight = useMemo(
+        () => (CLOSING_HOUR - OPENING_HOUR) * 60 * TIMELINE_PIXELS_PER_MINUTE,
+        []
+    );
+
+    const timelineResourceLanes = useMemo(() => {
+        const uniqueResourceIds = [...new Set(reservasSelectedDayFiltered.map((reserva) => reserva.id_recurso))].sort((a, b) => a - b);
+        return new Map(uniqueResourceIds.map((resourceId, index) => [resourceId, index]));
+    }, [reservasSelectedDayFiltered]);
+
+    const timelineLaneCount = useMemo(() => Math.max(1, timelineResourceLanes.size), [timelineResourceLanes]);
+    const timelineContentWidth = useMemo(() => timelineLaneCount * TIMELINE_LANE_WIDTH, [timelineLaneCount]);
+
+    const timelineEvents = useMemo(() => {
+        const dayDate = dateFromKey(selectedDay);
+        const dayStart = new Date(dayDate);
+        dayStart.setHours(OPENING_HOUR, 0, 0, 0);
+
+        const dayEnd = new Date(dayDate);
+        dayEnd.setHours(CLOSING_HOUR, 0, 0, 0);
+
+        const dayStartMs = dayStart.getTime();
+        const dayEndMs = dayEnd.getTime();
+
+        return reservasSelectedDayFiltered
+            .map((reserva) => {
+                const startMs = new Date(reserva.fecha_hora_inicio).getTime();
+                const endMs = new Date(reserva.fecha_hora_fin).getTime();
+
+                if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
+                    return null;
+                }
+
+                const visibleStartMs = Math.max(startMs, dayStartMs);
+                const visibleEndMs = Math.min(endMs, dayEndMs);
+
+                if (visibleEndMs <= visibleStartMs) {
+                    return null;
+                }
+
+                let top = ((visibleStartMs - dayStartMs) / 60000) * TIMELINE_PIXELS_PER_MINUTE;
+                const rawHeight = ((visibleEndMs - visibleStartMs) / 60000) * TIMELINE_PIXELS_PER_MINUTE;
+                const height = Math.max(rawHeight, MIN_EVENT_BLOCK_HEIGHT);
+
+                if (top + height > timelineHeight) {
+                    top = Math.max(0, timelineHeight - height);
+                }
+
+                return {
+                    reserva,
+                    top,
+                    height,
+                    laneIndex: timelineResourceLanes.get(reserva.id_recurso) ?? 0,
+                };
+            })
+            .filter((item): item is { reserva: Reserva; top: number; height: number; laneIndex: number } => item !== null)
+            .sort((a, b) => a.top - b.top || a.laneIndex - b.laneIndex);
+            }, [reservasSelectedDayFiltered, selectedDay, timelineHeight, timelineResourceLanes]);
 
     const selectedDurationMinutes = useMemo(() => {
         if (!INTEGER_REGEX.test(duracionMinutos.trim())) {
@@ -439,6 +534,16 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
         setFormModalVisible(true);
     };
 
+    const handleOpenReservaDetail = (reserva: Reserva) => {
+        setSelectedReservaDetail(reserva);
+        setDetailModalVisible(true);
+    };
+
+    const handleCloseReservaDetail = () => {
+        setDetailModalVisible(false);
+        setSelectedReservaDetail(null);
+    };
+
     const handleSave = async () => {
         setError("");
         setSuccess("");
@@ -616,26 +721,121 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                     </View>
 
                     <View style={styles.dayListCard}>
-                        <Text style={styles.dayListTitle}>Reservas {selectedDay}</Text>
-                        {reservasSelectedDay.length === 0 ? (
-                            <Text style={styles.emptyText}>{CALENDAR_EMPTY_MESSAGE}</Text>
-                        ) : (
-                            reservasSelectedDay.map((reserva) => {
-                                const cliente = clienteById.get(reserva.id_cliente);
-                                const recurso = recursoById.get(reserva.id_recurso);
-                                const servicio = reserva.id_servicio ? servicioById.get(reserva.id_servicio) : null;
+                        <Text style={styles.dayListTitle}>Agenda {selectedDay}</Text>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.resourceFilterContainer}
+                            testID="reservas-resource-filter-scroll"
+                        >
+                            <TouchableOpacity
+                                style={[styles.resourceFilterChip, !timelineFilterRecursoId && styles.resourceFilterChipSelected]}
+                                onPress={() => setTimelineFilterRecursoId(null)}
+                                testID="reservas-filter-recurso-all"
+                            >
+                                <Text
+                                    style={[
+                                        styles.resourceFilterChipText,
+                                        !timelineFilterRecursoId && styles.resourceFilterChipTextSelected,
+                                    ]}
+                                >
+                                    Todos
+                                </Text>
+                            </TouchableOpacity>
+
+                            {timelineFilterRecursos.map((recurso) => {
+                                const isSelected = timelineFilterRecursoId === recurso.id_recurso;
 
                                 return (
-                                    <View key={reserva.id_reserva} style={styles.eventCard} testID={`reserva-item-${reserva.id_reserva}`}>
-                                        <Text style={styles.eventTitle}>{cliente ? formatClienteName(cliente) : `Cliente #${reserva.id_cliente}`}</Text>
-                                        <Text style={styles.eventMeta}>Recurso: {recurso?.nombre || `#${reserva.id_recurso}`}</Text>
-                                        <Text style={styles.eventMeta}>Servicio: {reserva.servicio_nombre || servicio?.nombre || "-"}</Text>
-                                        <Text style={styles.eventMeta}>Inicio: {toDateTimeDisplay(reserva.fecha_hora_inicio)}</Text>
-                                        <Text style={styles.eventMeta}>Fin: {toDateTimeDisplay(reserva.fecha_hora_fin)}</Text>
-                                    </View>
+                                    <TouchableOpacity
+                                        key={`timeline-filter-${recurso.id_recurso}`}
+                                        style={[styles.resourceFilterChip, isSelected && styles.resourceFilterChipSelected]}
+                                        onPress={() => setTimelineFilterRecursoId(recurso.id_recurso)}
+                                        testID={`reservas-filter-recurso-${recurso.id_recurso}`}
+                                    >
+                                        <Text style={[styles.resourceFilterChipText, isSelected && styles.resourceFilterChipTextSelected]}>
+                                            {recurso.nombre}
+                                        </Text>
+                                    </TouchableOpacity>
                                 );
-                            })
-                        )}
+                            })}
+                        </ScrollView>
+
+                        <View style={styles.timelineWrapper}>
+                            <View style={styles.timelineHoursColumn}>
+                                {timelineHourLabels.map((hour, index) => (
+                                    <Text
+                                        key={`${hour}-${index}`}
+                                        style={[styles.timelineHourLabel, index === timelineHourLabels.length - 1 && styles.timelineLastHourLabel]}
+                                    >
+                                        {hour}
+                                    </Text>
+                                ))}
+                            </View>
+
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator
+                                contentContainerStyle={styles.timelineHorizontalContent}
+                                testID="reservas-timeline-horizontal-scroll"
+                            >
+                                <View style={[styles.timelineGrid, { height: timelineHeight, width: timelineContentWidth }]}>
+                                    {Array.from({ length: CLOSING_HOUR - OPENING_HOUR + 1 }).map((_, index) => (
+                                        <View
+                                            key={`timeline-line-${index}`}
+                                            style={[
+                                                styles.timelineHourLine,
+                                                { top: index * 60 * TIMELINE_PIXELS_PER_MINUTE },
+                                            ]}
+                                        />
+                                    ))}
+
+                                    {Array.from({ length: timelineLaneCount - 1 }).map((_, index) => (
+                                        <View
+                                            key={`timeline-lane-divider-${index}`}
+                                            style={[
+                                                styles.timelineLaneDivider,
+                                                { left: (index + 1) * TIMELINE_LANE_WIDTH },
+                                            ]}
+                                        />
+                                    ))}
+
+                                    {timelineEvents.length === 0 ? (
+                                        <View style={styles.timelineEmptyContainer}>
+                                            <Text style={styles.emptyText}>{CALENDAR_EMPTY_MESSAGE}</Text>
+                                        </View>
+                                    ) : (
+                                        timelineEvents.map(({ reserva, top, height, laneIndex }) => {
+                                            const recurso = recursoById.get(reserva.id_recurso);
+
+                                            return (
+                                                <TouchableOpacity
+                                                    key={reserva.id_reserva}
+                                                    style={[
+                                                        styles.timelineEventBlock,
+                                                        {
+                                                            top,
+                                                            height,
+                                                            left: laneIndex * TIMELINE_LANE_WIDTH,
+                                                            width: TIMELINE_LANE_WIDTH,
+                                                        },
+                                                    ]}
+                                                    onPress={() => handleOpenReservaDetail(reserva)}
+                                                    testID={`reserva-item-${reserva.id_reserva}`}
+                                                >
+                                                    <Text style={styles.timelineEventTime} numberOfLines={1}>
+                                                        {toTimeDisplay(reserva.fecha_hora_inicio)} - {toTimeDisplay(reserva.fecha_hora_fin)}
+                                                    </Text>
+                                                    <Text style={styles.timelineEventResource} numberOfLines={1}>
+                                                        {recurso?.nombre || `#${reserva.id_recurso}`}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            );
+                                        })
+                                    )}
+                                </View>
+                            </ScrollView>
+                        </View>
                     </View>
                 </ScrollView>
             )}
@@ -762,6 +962,48 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                 <Text style={styles.saveButtonText}>{saving ? SAVING_BUTTON_TEXT : SAVE_BUTTON_TEXT}</Text>
                             </TouchableOpacity>
                         </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal
+                visible={detailModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={handleCloseReservaDetail}
+                testID="reserva-detail-modal"
+            >
+                <View style={styles.modalBackdrop}>
+                    <View style={styles.modalCard}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Detalle de reserva</Text>
+                            <TouchableOpacity onPress={handleCloseReservaDetail} testID="reserva-detail-close-button">
+                                <MaterialIcons name="close" size={22} color="#6b7280" />
+                            </TouchableOpacity>
+                        </View>
+
+                        {selectedReservaDetail ? (
+                            <View style={styles.detailContent}>
+                                <Text style={styles.detailLine}>
+                                    Cliente: {clienteById.get(selectedReservaDetail.id_cliente)
+                                        ? formatClienteName(clienteById.get(selectedReservaDetail.id_cliente) as Cliente)
+                                        : `#${selectedReservaDetail.id_cliente}`}
+                                </Text>
+                                <Text style={styles.detailLine}>
+                                    Recurso: {recursoById.get(selectedReservaDetail.id_recurso)?.nombre || `#${selectedReservaDetail.id_recurso}`}
+                                </Text>
+                                <Text style={styles.detailLine}>
+                                    Servicio: {selectedReservaDetail.servicio_nombre || (selectedReservaDetail.id_servicio
+                                        ? servicioById.get(selectedReservaDetail.id_servicio)?.nombre
+                                        : "-") || "-"}
+                                </Text>
+                                <Text style={styles.detailLine}>Inicio: {toDateTimeDisplay(selectedReservaDetail.fecha_hora_inicio)}</Text>
+                                <Text style={styles.detailLine}>Fin: {toDateTimeDisplay(selectedReservaDetail.fecha_hora_fin)}</Text>
+                                <Text style={styles.detailLine}>
+                                    Hora: {toTimeDisplay(selectedReservaDetail.fecha_hora_inicio)} - {toTimeDisplay(selectedReservaDetail.fecha_hora_fin)}
+                                </Text>
+                            </View>
+                        ) : null}
                     </View>
                 </View>
             </Modal>
@@ -1033,21 +1275,110 @@ const styles = StyleSheet.create({
         color: "#111827",
         marginBottom: 10,
     },
-    eventCard: {
+    resourceFilterContainer: {
+        flexDirection: "row",
+        gap: 8,
+        paddingBottom: 8,
+    },
+    resourceFilterChip: {
+        borderWidth: 1,
+        borderColor: "#cbd5e1",
+        backgroundColor: "#fff",
+        borderRadius: 999,
+        paddingHorizontal: 12,
+        paddingVertical: 7,
+    },
+    resourceFilterChipSelected: {
+        borderColor: "#2563eb",
+        backgroundColor: "#dbeafe",
+    },
+    resourceFilterChipText: {
+        color: "#334155",
+        fontSize: 12,
+        fontWeight: "600",
+    },
+    resourceFilterChipTextSelected: {
+        color: "#1d4ed8",
+    },
+    timelineWrapper: {
+        flexDirection: "row",
+        alignItems: "flex-start",
+    },
+    timelineHoursColumn: {
+        width: 46,
+        marginRight: 8,
+    },
+    timelineHourLabel: {
+        height: 60 * TIMELINE_PIXELS_PER_MINUTE,
+        color: "#6b7280",
+        fontSize: 11,
+        textAlign: "right",
+        paddingRight: 4,
+    },
+    timelineLastHourLabel: {
+        height: 16,
+    },
+    timelineGrid: {
+        borderRadius: 10,
+        backgroundColor: "#f8fafc",
         borderWidth: 1,
         borderColor: "#e5e7eb",
-        borderRadius: 10,
-        padding: 10,
-        marginBottom: 8,
+        position: "relative",
+        overflow: "hidden",
     },
-    eventTitle: {
+    timelineHorizontalContent: {
+        minWidth: "100%",
+    },
+    timelineHourLine: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        height: 1,
+        backgroundColor: "#e5e7eb",
+    },
+    timelineLaneDivider: {
+        position: "absolute",
+        top: 0,
+        bottom: 0,
+        width: 1,
+        backgroundColor: "#e5e7eb",
+    },
+    timelineEmptyContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 12,
+    },
+    timelineEventBlock: {
+        position: "absolute",
+        borderRadius: 8,
+        backgroundColor: "#dbeafe",
+        borderWidth: 1,
+        borderColor: "#93c5fd",
+        paddingHorizontal: 8,
+        paddingVertical: 6,
+        marginHorizontal: TIMELINE_EVENT_HORIZONTAL_GAP,
+        justifyContent: "center",
+    },
+    timelineEventTime: {
+        color: "#1d4ed8",
         fontWeight: "700",
-        color: "#0D47A1",
-        marginBottom: 4,
+        fontSize: 11,
+        textAlign: "center",
     },
-    eventMeta: {
-        color: "#4b5563",
-        fontSize: 13,
+    timelineEventResource: {
+        color: "#1e3a8a",
+        fontWeight: "700",
+        fontSize: 12,
+        textAlign: "center",
+        marginTop: 2,
+    },
+    detailContent: {
+        gap: 6,
+    },
+    detailLine: {
+        color: "#1f2937",
+        fontSize: 14,
     },
     emptyText: {
         color: "#6b7280",

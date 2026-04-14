@@ -47,3 +47,12 @@ export const CONNECTION_ERROR = "Error de conexion. Intentalo de nuevo.";
 export const EMPTY_CLIENTES_MESSAGE = "No hay clientes disponibles";
 export const EMPTY_RECURSOS_MESSAGE = "No hay recursos disponibles";
 export const EMPTY_SERVICIOS_MESSAGE = "No hay servicios disponibles";
+
+export const INTEGER_REGEX = /^\d+$/;
+export const WEEK_LABELS = ["L", "M", "X", "J", "V", "S", "D"];
+export const OPENING_HOUR = 8;
+export const CLOSING_HOUR = 21;
+export const TIMELINE_PIXELS_PER_MINUTE = 1.2;
+export const MIN_EVENT_BLOCK_HEIGHT = 42;
+export const TIMELINE_EVENT_HORIZONTAL_GAP = 4;
+export const TIMELINE_LANE_WIDTH = 148;
