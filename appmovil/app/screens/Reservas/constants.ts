@@ -2,6 +2,7 @@ import { API_ROUTES } from "@/app/constants/apiRoutes";
 
 export const reservasRoute = API_ROUTES.reservas;
 export const reservasByNegocioRoute = (idNegocio: number) => API_ROUTES.reservasByNegocio(idNegocio);
+export const updateReservaByIdRoute = (idReserva: number) => API_ROUTES.updateReservaById(idReserva);
 export const clientesByNegocioRoute = (idNegocio: number) => API_ROUTES.clientesByNegocio(idNegocio);
 export const recursosByNegocioRoute = (idNegocio: number) => API_ROUTES.recursosByNegocio(idNegocio);
 export const serviciosByNegocioRoute = (idNegocio: number) => API_ROUTES.serviciosByNegocio(idNegocio);
@@ -11,6 +12,8 @@ export const FORM_TITLE = "Registro de reserva";
 export const ADD_RESERVA_BUTTON = "Añadir reserva";
 export const SAVE_BUTTON_TEXT = "Guardar";
 export const SAVING_BUTTON_TEXT = "Guardando...";
+export const SAVE_CHANGES_BUTTON_TEXT = "Guardar cambios";
+export const SAVING_CHANGES_BUTTON_TEXT = "Guardando cambios...";
 export const SUCCESS_MESSAGE = "Reserva registrada correctamente";
 
 export const SELECT_CLIENTE_LABEL = "Cliente";

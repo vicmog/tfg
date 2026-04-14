@@ -68,6 +68,30 @@ export const getReservasReq = {
     user: { id_usuario: 1 },
 };
 
+export const updateReservaReq = {
+    params: { id_reserva: "11" },
+    body: {
+        id_recurso: 7,
+        id_cliente: 5,
+        id_servicio: 3,
+        fecha_hora_inicio: "2026-04-12T11:00:00.000Z",
+        duracion_minutos: 60,
+    },
+    user: { id_usuario: 1 },
+};
+
+export const updateReservaReqNotFound = {
+    params: { id_reserva: "999" },
+    body: {
+        id_recurso: 7,
+        id_cliente: 5,
+        id_servicio: 3,
+        fecha_hora_inicio: "2026-04-12T11:00:00.000Z",
+        duracion_minutos: 60,
+    },
+    user: { id_usuario: 1 },
+};
+
 export const buildRes = () => {
     const jsonMock = jest.fn();
     const res = {
