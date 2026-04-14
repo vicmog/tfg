@@ -17,6 +17,7 @@ import Servicios from "./screens/Servicios/Servicios";
 import Recursos from "./screens/Recursos/Recursos";
 import Reservas from "./screens/Reservas";
 import { CrearReserva } from "./screens/Reservas";
+import { EditarReserva } from "./screens/Reservas";
 import Proveedores from "./screens/Proveedores/Proveedores";
 import Productos from "./screens/Productos/Productos";
 import CrearProducto from "./screens/Productos/CrearProducto";
@@ -24,7 +25,7 @@ import EditarProducto from "./screens/Productos/EditarProducto";
 import Descuentos from "./screens/Descuentos/Descuentos";
 import Compras from "./screens/Compras/Compras";
 import CrearCompra from "./screens/Compras/CrearCompra";
-import { Negocio, Producto } from "./screens/types";
+import { Negocio, Producto, Reserva } from "./screens/types";
 
 export type NavigationScreenList = {
   Home: undefined;
@@ -44,6 +45,7 @@ export type NavigationScreenList = {
   Recursos: { negocio: Negocio };
   Reservas: { negocio: Negocio };
   CrearReserva: { negocio: Negocio };
+  EditarReserva: { negocio: Negocio; reserva: Reserva };
   Proveedores: { negocio: Negocio };
   Productos: { negocio: Negocio };
   CrearProducto: { negocio: Negocio };
@@ -87,6 +89,7 @@ const App: React.FC = () => {
           <Stack.Screen name="Recursos" component={Recursos} />
           <Stack.Screen name="Reservas" component={Reservas} />
           <Stack.Screen name="CrearReserva" component={CrearReserva} />
+          <Stack.Screen name="EditarReserva" component={EditarReserva} />
           <Stack.Screen name="Proveedores" component={Proveedores} />
           <Stack.Screen name="Productos" component={Productos} />
           <Stack.Screen name="CrearProducto" component={CrearProducto} />

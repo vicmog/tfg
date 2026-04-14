@@ -1,4 +1,4 @@
-import { createReserva, getReservasByNegocio } from "../reservaController.js";
+import { createReserva, getReservasByNegocio, updateReserva } from "../reservaController.js";
 import { Recurso } from "../../../models/Recurso.js";
 import { Cliente } from "../../../models/Cliente.js";
 import { Reserva } from "../../../models/Reserva.js";
@@ -17,6 +17,8 @@ import {
     mockReserva,
     mockServicio,
     mockUsuarioNegocio,
+    updateReservaReq,
+    updateReservaReqNotFound,
 } from "./data.js";
 
 jest.mock("../../../models/Recurso.js");
@@ -115,6 +117,49 @@ describe("ReservaController Unit Tests", () => {
             expect(res.status).toHaveBeenCalledWith(200);
             expect(jsonMock).toHaveBeenCalledWith({
                 reservas: [expect.objectContaining({ id_reserva: 11 })],
+            });
+        });
+    });
+
+    describe("updateReserva", () => {
+        it("deberia actualizar una reserva correctamente", async () => {
+            const updateMock = jest.fn().mockResolvedValue({});
+            const reservaInstance = {
+                ...mockReserva,
+                update: updateMock,
+            };
+
+            Reserva.findByPk.mockResolvedValue(reservaInstance);
+            Recurso.findByPk.mockResolvedValue(mockRecurso);
+            Cliente.findByPk.mockResolvedValue(mockCliente);
+            Servicio.findByPk.mockResolvedValue(mockServicio);
+            UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioNegocio);
+            Reserva.findOne.mockResolvedValue(null);
+            ServicioReserva.destroy.mockResolvedValue(1);
+            ServicioReserva.create.mockResolvedValue({ id_servicio: 3, id_reserva: 11 });
+
+            const { res, jsonMock } = buildRes();
+            await updateReserva(updateReservaReq, res);
+
+            expect(updateMock).toHaveBeenCalled();
+            expect(ServicioReserva.destroy).toHaveBeenCalledWith({ where: { id_reserva: 11 } });
+            expect(ServicioReserva.create).toHaveBeenCalledWith({ id_servicio: 3, id_reserva: 11 });
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Reserva actualizada correctamente",
+                reserva: expect.objectContaining({ id_reserva: 11 }),
+            });
+        });
+
+        it("deberia devolver 404 si la reserva no existe", async () => {
+            Reserva.findByPk.mockResolvedValue(null);
+
+            const { res, jsonMock } = buildRes();
+            await updateReserva(updateReservaReqNotFound, res);
+
+            expect(res.status).toHaveBeenCalledWith(404);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "Reserva no encontrada",
             });
         });
     });

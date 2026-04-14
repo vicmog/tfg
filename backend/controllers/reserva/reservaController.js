@@ -214,6 +214,160 @@ export const createReserva = async (req, res) => {
     }
 };
 
+export const updateReserva = async (req, res) => {
+    const { id_reserva } = req.params;
+    const {
+        id_recurso,
+        id_cliente,
+        id_servicio,
+        fecha_hora_inicio,
+        duracion_minutos,
+    } = req.body;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: RESERVA_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (!id_reserva) {
+        return res.status(400).json({ message: RESERVA_ERRORS.RESERVA_ID_REQUIRED });
+    }
+
+    if (!id_recurso) {
+        return res.status(400).json({ message: RESERVA_ERRORS.RECURSO_ID_REQUIRED });
+    }
+
+    if (!id_cliente) {
+        return res.status(400).json({ message: RESERVA_ERRORS.CLIENTE_ID_REQUIRED });
+    }
+
+    if (!id_servicio) {
+        return res.status(400).json({ message: RESERVA_ERRORS.SERVICIO_ID_REQUIRED });
+    }
+
+    if (!fecha_hora_inicio) {
+        return res.status(400).json({ message: RESERVA_ERRORS.FECHA_INICIO_REQUIRED });
+    }
+
+    const inicioDate = parseDateValue(fecha_hora_inicio);
+    if (!inicioDate) {
+        return res.status(400).json({ message: RESERVA_ERRORS.FECHA_INICIO_INVALID });
+    }
+
+    const idReservaInt = Number.parseInt(`${id_reserva}`, 10);
+    if (!Number.isInteger(idReservaInt) || idReservaInt <= 0) {
+        return res.status(400).json({ message: RESERVA_ERRORS.RESERVA_ID_REQUIRED });
+    }
+
+    try {
+        const reserva = await Reserva.findByPk(idReservaInt);
+        if (!reserva) {
+            return res.status(404).json({ message: RESERVA_ERRORS.RESERVA_NOT_FOUND });
+        }
+
+        const recurso = await Recurso.findByPk(id_recurso);
+        if (!recurso) {
+            return res.status(404).json({ message: RESERVA_ERRORS.RECURSO_NOT_FOUND });
+        }
+
+        const cliente = await Cliente.findByPk(id_cliente);
+        if (!cliente) {
+            return res.status(404).json({ message: RESERVA_ERRORS.CLIENTE_NOT_FOUND });
+        }
+
+        const servicio = await Servicio.findByPk(id_servicio);
+        if (!servicio) {
+            return res.status(404).json({ message: RESERVA_ERRORS.SERVICIO_NOT_FOUND });
+        }
+
+        if (cliente.bloqueado) {
+            return res.status(400).json({ message: RESERVA_ERRORS.CLIENTE_BLOCKED });
+        }
+
+        if (cliente.id_negocio !== recurso.id_negocio) {
+            return res.status(400).json({ message: RESERVA_ERRORS.RESOURCE_CLIENT_NEGOCIO_MISMATCH });
+        }
+
+        if (servicio.id_negocio !== recurso.id_negocio) {
+            return res.status(400).json({ message: RESERVA_ERRORS.SERVICIO_NEGOCIO_MISMATCH });
+        }
+
+        const durationInputValue = `${duracion_minutos ?? servicio.duracion}`.trim();
+
+        if (!durationInputValue) {
+            return res.status(400).json({ message: RESERVA_ERRORS.DURACION_REQUIRED });
+        }
+
+        if (!INTEGER_REGEX.test(durationInputValue)) {
+            return res.status(400).json({ message: RESERVA_ERRORS.DURACION_INVALID });
+        }
+
+        const durationMinutes = Number.parseInt(durationInputValue, 10);
+
+        if (!Number.isInteger(durationMinutes) || durationMinutes <= 0) {
+            return res.status(400).json({ message: RESERVA_ERRORS.DURACION_INVALID });
+        }
+
+        const finDate = new Date(inicioDate.getTime() + durationMinutes * 60 * 1000);
+
+        const usuarioNegocio = await UsuarioNegocio.findOne({
+            where: {
+                id_usuario,
+                id_negocio: recurso.id_negocio,
+            },
+        });
+
+        if (!usuarioNegocio) {
+            return res.status(403).json({ message: RESERVA_ERRORS.NO_ACCESS_TO_NEGOCIO });
+        }
+
+        const overlappingReserva = await Reserva.findOne({
+            where: {
+                id_recurso,
+                estado: { [Op.ne]: "cancelada" },
+                id_reserva: { [Op.ne]: idReservaInt },
+                [Op.and]: [
+                    { fecha_hora_inicio: { [Op.lt]: finDate } },
+                    { fecha_hora_fin: { [Op.gt]: inicioDate } },
+                ],
+            },
+        });
+
+        if (overlappingReserva) {
+            return res.status(409).json({ message: RESERVA_ERRORS.RESERVA_SOLAPADA });
+        }
+
+        await reserva.update({
+            id_recurso,
+            id_cliente,
+            fecha: toLegacyDate(inicioDate),
+            hora_inicio: toLegacyTime(inicioDate),
+            hora_fin: toLegacyTime(finDate),
+            fecha_hora_inicio: inicioDate,
+            fecha_hora_fin: finDate,
+        });
+
+        await ServicioReserva.destroy({ where: { id_reserva: idReservaInt } });
+        await ServicioReserva.create({
+            id_servicio,
+            id_reserva: idReservaInt,
+        });
+
+        return res.status(200).json({
+            message: RESERVA_MESSAGES.RESERVA_UPDATED,
+            reserva: serializeReserva({
+                ...toPlain(reserva),
+                id_servicio,
+                servicio_nombre: servicio.nombre,
+                duracion_minutos: durationMinutes,
+            }),
+        });
+    } catch (error) {
+        console.error("Error actualizando reserva:", error);
+        return res.status(500).json({ message: RESERVA_ERRORS.SERVER_ERROR });
+    }
+};
+
 export const getReservasByNegocio = async (req, res) => {
     const { id_negocio } = req.params;
     const id_usuario = req.user?.id_usuario;

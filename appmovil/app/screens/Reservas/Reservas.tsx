@@ -1043,6 +1043,16 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                 <Text style={styles.detailLine}>
                                     Hora: {toTimeDisplay(selectedReservaDetail.fecha_hora_inicio)} - {toTimeDisplay(selectedReservaDetail.fecha_hora_fin)}
                                 </Text>
+                                <TouchableOpacity
+                                    style={styles.editReservaButton}
+                                    onPress={() => {
+                                        setDetailModalVisible(false);
+                                        navigation.navigate("EditarReserva", { negocio, reserva: selectedReservaDetail });
+                                    }}
+                                    testID="reserva-detail-edit-button"
+                                >
+                                    <Text style={styles.editReservaButtonText}>Editar reserva</Text>
+                                </TouchableOpacity>
                             </View>
                         ) : null}
                     </View>
@@ -1447,6 +1457,17 @@ const styles = StyleSheet.create({
     detailLine: {
         color: "#1f2937",
         fontSize: 14,
+    },
+    editReservaButton: {
+        marginTop: 8,
+        backgroundColor: "#1976D2",
+        borderRadius: 8,
+        alignItems: "center",
+        paddingVertical: 10,
+    },
+    editReservaButtonText: {
+        color: "#fff",
+        fontWeight: "700",
     },
     emptyText: {
         color: "#6b7280",

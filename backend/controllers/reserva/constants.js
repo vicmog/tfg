@@ -1,5 +1,6 @@
 export const RESERVA_ERRORS = {
     USER_NOT_AUTHENTICATED: "Usuario no autenticado",
+    RESERVA_ID_REQUIRED: "La reserva es obligatoria",
     NEGOCIO_ID_REQUIRED: "El negocio es obligatorio",
     RECURSO_ID_REQUIRED: "El recurso es obligatorio",
     CLIENTE_ID_REQUIRED: "El cliente es obligatorio",
@@ -14,6 +15,7 @@ export const RESERVA_ERRORS = {
     CLIENTE_BLOCKED: "No se puede reservar para un cliente bloqueado",
     RESOURCE_CLIENT_NEGOCIO_MISMATCH: "El recurso y el cliente no pertenecen al mismo negocio",
     SERVICIO_NEGOCIO_MISMATCH: "El servicio no pertenece al mismo negocio del recurso",
+    RESERVA_NOT_FOUND: "Reserva no encontrada",
     NO_ACCESS_TO_NEGOCIO: "No tienes acceso a este negocio",
     RESERVA_SOLAPADA: "Ya existe una reserva para ese recurso en el rango indicado",
     SERVER_ERROR: "Error en el servidor",
@@ -21,4 +23,5 @@ export const RESERVA_ERRORS = {
 
 export const RESERVA_MESSAGES = {
     RESERVA_CREATED: "Reserva registrada correctamente",
+    RESERVA_UPDATED: "Reserva actualizada correctamente",
 };
