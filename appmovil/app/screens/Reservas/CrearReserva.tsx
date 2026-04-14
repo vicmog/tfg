@@ -56,6 +56,7 @@ import {
 import { CrearReservaProps } from "./types";
 
 const INTEGER_REGEX = /^\d+$/;
+const WEEK_LABELS = ["L", "M", "X", "J", "V", "S", "D"];
 const OPENING_HOUR = 8;
 const CLOSING_HOUR = 21;
 
@@ -92,6 +93,31 @@ const formatClienteName = (cliente: Cliente) => {
     return fullName || `Cliente #${cliente.id_cliente}`;
 };
 
+const buildCalendarMatrix = (cursor: Date) => {
+    const year = cursor.getFullYear();
+    const month = cursor.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const startWeekDay = (firstDay.getDay() + 6) % 7;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const cells: Array<number | null> = [];
+
+    for (let i = 0; i < startWeekDay; i += 1) {
+        cells.push(null);
+    }
+
+    for (let day = 1; day <= daysInMonth; day += 1) {
+        cells.push(day);
+    }
+
+    while (cells.length % 7 !== 0) {
+        cells.push(null);
+    }
+
+    return cells;
+};
+
+const normalizeText = (value: string) => value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
 const CrearReserva: React.FC<CrearReservaProps> = ({ route, navigation }) => {
     const { negocio } = route.params;
 
@@ -115,6 +141,10 @@ const CrearReserva: React.FC<CrearReservaProps> = ({ route, navigation }) => {
     const [recursoPickerVisible, setRecursoPickerVisible] = useState(false);
     const [servicioPickerVisible, setServicioPickerVisible] = useState(false);
     const [datePickerVisible, setDatePickerVisible] = useState(false);
+    const [datePickerCursor, setDatePickerCursor] = useState<Date>(new Date());
+    const [clienteSearchQuery, setClienteSearchQuery] = useState("");
+    const [recursoSearchQuery, setRecursoSearchQuery] = useState("");
+    const [servicioSearchQuery, setServicioSearchQuery] = useState("");
 
     const selectedCliente = useMemo(
         () => clientes.find((cliente) => cliente.id_cliente === selectedClienteId) || null,
@@ -131,6 +161,33 @@ const CrearReserva: React.FC<CrearReservaProps> = ({ route, navigation }) => {
         [servicios, selectedServicioId]
     );
 
+    const filteredClientes = useMemo(() => {
+        const query = normalizeText(clienteSearchQuery.trim());
+        if (!query) {
+            return clientes;
+        }
+
+        return clientes.filter((cliente) => normalizeText(formatClienteName(cliente)).includes(query));
+    }, [clientes, clienteSearchQuery]);
+
+    const filteredRecursos = useMemo(() => {
+        const query = normalizeText(recursoSearchQuery.trim());
+        if (!query) {
+            return recursos;
+        }
+
+        return recursos.filter((recurso) => normalizeText(recurso.nombre).includes(query));
+    }, [recursos, recursoSearchQuery]);
+
+    const filteredServicios = useMemo(() => {
+        const query = normalizeText(servicioSearchQuery.trim());
+        if (!query) {
+            return servicios;
+        }
+
+        return servicios.filter((servicio) => normalizeText(servicio.nombre).includes(query));
+    }, [servicios, servicioSearchQuery]);
+
     const selectedDurationMinutes = useMemo(() => {
         if (!INTEGER_REGEX.test(duracionMinutos.trim())) {
             return 0;
@@ -138,6 +195,8 @@ const CrearReserva: React.FC<CrearReservaProps> = ({ route, navigation }) => {
 
         return Number.parseInt(duracionMinutos.trim(), 10);
     }, [duracionMinutos]);
+
+    const webCalendarCells = useMemo(() => buildCalendarMatrix(datePickerCursor), [datePickerCursor]);
 
     const availableSlots = useMemo(() => {
         if (!selectedRecursoId || !selectedFecha || selectedDurationMinutes <= 0) {
@@ -327,7 +386,16 @@ const CrearReserva: React.FC<CrearReservaProps> = ({ route, navigation }) => {
     };
 
     const handleOpenDatePicker = () => {
+        const selectedDate = dateFromKey(selectedFecha);
+        setDatePickerCursor(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
         setDatePickerVisible(true);
+    };
+
+    const handleSelectDateFromCalendar = (day: number) => {
+        const pickedDate = new Date(datePickerCursor.getFullYear(), datePickerCursor.getMonth(), day);
+        setSelectedFecha(toLocalDateKey(pickedDate));
+        setSelectedSlotInicioIso(null);
+        setDatePickerVisible(false);
     };
 
     const handleSave = async () => {
@@ -403,7 +471,10 @@ const CrearReserva: React.FC<CrearReservaProps> = ({ route, navigation }) => {
                     <Text style={styles.fieldLabel}>{SELECT_CLIENTE_LABEL}</Text>
                     <TouchableOpacity
                         style={styles.selector}
-                        onPress={() => setClientePickerVisible(true)}
+                        onPress={() => {
+                            setClienteSearchQuery("");
+                            setClientePickerVisible(true);
+                        }}
                         testID="reservas-open-clientes-picker"
                     >
                         <Text style={selectedCliente ? styles.selectorValue : styles.selectorPlaceholder}>
@@ -412,26 +483,32 @@ const CrearReserva: React.FC<CrearReservaProps> = ({ route, navigation }) => {
                         <MaterialIcons name="expand-more" size={20} color="#6b7280" />
                     </TouchableOpacity>
 
-                    <Text style={styles.fieldLabel}>{SELECT_RECURSO_LABEL}</Text>
-                    <TouchableOpacity
-                        style={styles.selector}
-                        onPress={() => setRecursoPickerVisible(true)}
-                        testID="reservas-open-recursos-picker"
-                    >
-                        <Text style={selectedRecurso ? styles.selectorValue : styles.selectorPlaceholder}>
-                            {selectedRecurso ? selectedRecurso.nombre : PICK_RECURSO_PLACEHOLDER}
-                        </Text>
-                        <MaterialIcons name="expand-more" size={20} color="#6b7280" />
-                    </TouchableOpacity>
-
                     <Text style={styles.fieldLabel}>{SELECT_SERVICIO_LABEL}</Text>
                     <TouchableOpacity
                         style={styles.selector}
-                        onPress={() => setServicioPickerVisible(true)}
+                        onPress={() => {
+                            setServicioSearchQuery("");
+                            setServicioPickerVisible(true);
+                        }}
                         testID="reservas-open-servicios-picker"
                     >
                         <Text style={selectedServicio ? styles.selectorValue : styles.selectorPlaceholder}>
                             {selectedServicio ? selectedServicio.nombre : PICK_SERVICIO_PLACEHOLDER}
+                        </Text>
+                        <MaterialIcons name="expand-more" size={20} color="#6b7280" />
+                    </TouchableOpacity>
+
+                    <Text style={styles.fieldLabel}>{SELECT_RECURSO_LABEL}</Text>
+                    <TouchableOpacity
+                        style={styles.selector}
+                        onPress={() => {
+                            setRecursoSearchQuery("");
+                            setRecursoPickerVisible(true);
+                        }}
+                        testID="reservas-open-recursos-picker"
+                    >
+                        <Text style={selectedRecurso ? styles.selectorValue : styles.selectorPlaceholder}>
+                            {selectedRecurso ? selectedRecurso.nombre : PICK_RECURSO_PLACEHOLDER}
                         </Text>
                         <MaterialIcons name="expand-more" size={20} color="#6b7280" />
                     </TouchableOpacity>
@@ -446,14 +523,64 @@ const CrearReserva: React.FC<CrearReservaProps> = ({ route, navigation }) => {
                         <MaterialIcons name="event" size={20} color="#6b7280" />
                     </TouchableOpacity>
 
-                    {datePickerVisible && Platform.OS !== "web" ? (
-                        <DateTimePicker
-                            testID="reservas-date-picker"
-                            value={dateFromKey(selectedFecha)}
-                            mode="date"
-                            display={Platform.OS === "ios" ? "spinner" : "default"}
-                            onChange={handleDateChange}
-                        />
+                    {datePickerVisible ? (
+                        Platform.OS === "web" ? (
+                            <View style={styles.inlineCalendarCard} testID="reservas-date-picker">
+                                <View style={styles.inlineCalendarHeader}>
+                                    <TouchableOpacity
+                                        onPress={() => setDatePickerCursor((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
+                                        testID="crear-reserva-prev-month"
+                                    >
+                                        <MaterialIcons name="chevron-left" size={20} color="#374151" />
+                                    </TouchableOpacity>
+                                    <Text style={styles.inlineCalendarTitle}>
+                                        {datePickerCursor.toLocaleDateString("es-ES", { month: "long", year: "numeric" })}
+                                    </Text>
+                                    <TouchableOpacity
+                                        onPress={() => setDatePickerCursor((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
+                                        testID="crear-reserva-next-month"
+                                    >
+                                        <MaterialIcons name="chevron-right" size={20} color="#374151" />
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View style={styles.inlineWeekRow}>
+                                    {WEEK_LABELS.map((label) => (
+                                        <Text key={label} style={styles.inlineWeekLabel}>{label}</Text>
+                                    ))}
+                                </View>
+
+                                <View style={styles.inlineDaysGrid}>
+                                    {webCalendarCells.map((day, index) => {
+                                        if (day === null) {
+                                            return <View key={`empty-${index}`} style={styles.inlineDayCell} />;
+                                        }
+
+                                        const dayKey = toLocalDateKey(new Date(datePickerCursor.getFullYear(), datePickerCursor.getMonth(), day));
+                                        const isSelected = dayKey === selectedFecha;
+
+                                        return (
+                                            <TouchableOpacity
+                                                key={`calendar-day-${day}`}
+                                                style={[styles.inlineDayCell, isSelected && styles.inlineDayCellSelected]}
+                                                onPress={() => handleSelectDateFromCalendar(day)}
+                                                testID={`crear-reserva-calendar-day-${day}`}
+                                            >
+                                                <Text style={[styles.inlineDayText, isSelected && styles.inlineDayTextSelected]}>{day}</Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </View>
+                            </View>
+                        ) : (
+                            <DateTimePicker
+                                testID="reservas-date-picker"
+                                value={dateFromKey(selectedFecha)}
+                                mode="date"
+                                display={Platform.OS === "ios" ? "spinner" : "default"}
+                                onChange={handleDateChange}
+                            />
+                        )
                     ) : null}
 
                     <Text style={styles.fieldLabel}>{DURACION_LABEL}</Text>
@@ -521,10 +648,19 @@ const CrearReserva: React.FC<CrearReservaProps> = ({ route, navigation }) => {
                                 <MaterialIcons name="close" size={22} color="#6b7280" />
                             </TouchableOpacity>
                         </View>
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Buscar cliente"
+                            value={clienteSearchQuery}
+                            onChangeText={setClienteSearchQuery}
+                            testID="crear-reserva-search-cliente-input"
+                        />
                         <ScrollView>
                             {clientes.length === 0 ? (
                                 <Text style={styles.emptyText}>{EMPTY_CLIENTES_MESSAGE}</Text>
-                            ) : clientes.map((cliente) => (
+                            ) : filteredClientes.length === 0 ? (
+                                <Text style={styles.emptyText}>No hay clientes que coincidan</Text>
+                            ) : filteredClientes.map((cliente) => (
                                 <TouchableOpacity
                                     key={cliente.id_cliente}
                                     style={styles.optionRow}
@@ -556,10 +692,19 @@ const CrearReserva: React.FC<CrearReservaProps> = ({ route, navigation }) => {
                                 <MaterialIcons name="close" size={22} color="#6b7280" />
                             </TouchableOpacity>
                         </View>
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Buscar recurso"
+                            value={recursoSearchQuery}
+                            onChangeText={setRecursoSearchQuery}
+                            testID="crear-reserva-search-recurso-input"
+                        />
                         <ScrollView>
                             {recursos.length === 0 ? (
                                 <Text style={styles.emptyText}>{EMPTY_RECURSOS_MESSAGE}</Text>
-                            ) : recursos.map((recurso) => (
+                            ) : filteredRecursos.length === 0 ? (
+                                <Text style={styles.emptyText}>No hay recursos que coincidan</Text>
+                            ) : filteredRecursos.map((recurso) => (
                                 <TouchableOpacity
                                     key={recurso.id_recurso}
                                     style={styles.optionRow}
@@ -592,10 +737,19 @@ const CrearReserva: React.FC<CrearReservaProps> = ({ route, navigation }) => {
                                 <MaterialIcons name="close" size={22} color="#6b7280" />
                             </TouchableOpacity>
                         </View>
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Buscar servicio"
+                            value={servicioSearchQuery}
+                            onChangeText={setServicioSearchQuery}
+                            testID="crear-reserva-search-servicio-input"
+                        />
                         <ScrollView>
                             {servicios.length === 0 ? (
                                 <Text style={styles.emptyText}>{EMPTY_SERVICIOS_MESSAGE}</Text>
-                            ) : servicios.map((servicio) => (
+                            ) : filteredServicios.length === 0 ? (
+                                <Text style={styles.emptyText}>No hay servicios que coincidan</Text>
+                            ) : filteredServicios.map((servicio) => (
                                 <TouchableOpacity
                                     key={servicio.id_servicio}
                                     style={styles.optionRow}
@@ -690,6 +844,57 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         backgroundColor: "#fff",
     },
+    inlineCalendarCard: {
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        backgroundColor: "#fff",
+        borderRadius: 10,
+        padding: 10,
+        marginTop: 8,
+    },
+    inlineCalendarHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 8,
+    },
+    inlineCalendarTitle: {
+        color: "#111827",
+        fontWeight: "700",
+        textTransform: "capitalize",
+    },
+    inlineWeekRow: {
+        flexDirection: "row",
+        marginBottom: 6,
+    },
+    inlineWeekLabel: {
+        flex: 1,
+        textAlign: "center",
+        color: "#6b7280",
+        fontSize: 12,
+        fontWeight: "600",
+    },
+    inlineDaysGrid: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+    },
+    inlineDayCell: {
+        width: "14.2857%",
+        height: 36,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 8,
+    },
+    inlineDayCellSelected: {
+        backgroundColor: "#dbeafe",
+    },
+    inlineDayText: {
+        color: "#1f2937",
+        fontWeight: "600",
+    },
+    inlineDayTextSelected: {
+        color: "#1d4ed8",
+    },
     saveButton: {
         marginTop: 16,
         backgroundColor: "#1976D2",
@@ -728,6 +933,15 @@ const styles = StyleSheet.create({
     modalTitle: {
         fontWeight: "700",
         color: "#111827",
+    },
+    searchInput: {
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        marginBottom: 10,
+        backgroundColor: "#fff",
     },
     optionRow: {
         paddingVertical: 10,

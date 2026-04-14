@@ -134,6 +134,8 @@ const formatClienteName = (cliente: Cliente) => {
     return fullName || `Cliente #${cliente.id_cliente}`;
 };
 
+const normalizeText = (value: string) => value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
 const buildCalendarMatrix = (cursor: Date) => {
     const year = cursor.getFullYear();
     const month = cursor.getMonth();
@@ -185,6 +187,9 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
     const [detailModalVisible, setDetailModalVisible] = useState(false);
     const [selectedReservaDetail, setSelectedReservaDetail] = useState<Reserva | null>(null);
     const [timelineFilterRecursoId, setTimelineFilterRecursoId] = useState<number | null>(null);
+    const [clienteSearchQuery, setClienteSearchQuery] = useState("");
+    const [recursoSearchQuery, setRecursoSearchQuery] = useState("");
+    const [servicioSearchQuery, setServicioSearchQuery] = useState("");
 
     const [calendarCursor, setCalendarCursor] = useState<Date>(new Date());
     const [selectedDay, setSelectedDay] = useState<string>(toLocalDateKey(new Date()));
@@ -205,6 +210,33 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
         () => servicios.find((servicio) => servicio.id_servicio === selectedServicioId) || null,
         [servicios, selectedServicioId]
     );
+
+    const filteredClientes = useMemo(() => {
+        const query = normalizeText(clienteSearchQuery.trim());
+        if (!query) {
+            return clientes;
+        }
+
+        return clientes.filter((cliente) => normalizeText(formatClienteName(cliente)).includes(query));
+    }, [clientes, clienteSearchQuery]);
+
+    const filteredRecursos = useMemo(() => {
+        const query = normalizeText(recursoSearchQuery.trim());
+        if (!query) {
+            return recursos;
+        }
+
+        return recursos.filter((recurso) => normalizeText(recurso.nombre).includes(query));
+    }, [recursos, recursoSearchQuery]);
+
+    const filteredServicios = useMemo(() => {
+        const query = normalizeText(servicioSearchQuery.trim());
+        if (!query) {
+            return servicios;
+        }
+
+        return servicios.filter((servicio) => normalizeText(servicio.nombre).includes(query));
+    }, [servicios, servicioSearchQuery]);
 
     const reservasByDay = useMemo(() => {
         const map = new Map<string, Reserva[]>();
@@ -860,7 +892,10 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                             <Text style={styles.fieldLabel}>{SELECT_CLIENTE_LABEL}</Text>
                             <TouchableOpacity
                                 style={styles.selector}
-                                onPress={() => setClientePickerVisible(true)}
+                                onPress={() => {
+                                    setClienteSearchQuery("");
+                                    setClientePickerVisible(true);
+                                }}
                                 testID="reservas-open-clientes-picker"
                             >
                                 <Text style={selectedCliente ? styles.selectorValue : styles.selectorPlaceholder}>
@@ -869,26 +904,32 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                 <MaterialIcons name="expand-more" size={20} color="#6b7280" />
                             </TouchableOpacity>
 
-                            <Text style={styles.fieldLabel}>{SELECT_RECURSO_LABEL}</Text>
-                            <TouchableOpacity
-                                style={styles.selector}
-                                onPress={() => setRecursoPickerVisible(true)}
-                                testID="reservas-open-recursos-picker"
-                            >
-                                <Text style={selectedRecurso ? styles.selectorValue : styles.selectorPlaceholder}>
-                                    {selectedRecurso ? selectedRecurso.nombre : PICK_RECURSO_PLACEHOLDER}
-                                </Text>
-                                <MaterialIcons name="expand-more" size={20} color="#6b7280" />
-                            </TouchableOpacity>
-
                             <Text style={styles.fieldLabel}>{SELECT_SERVICIO_LABEL}</Text>
                             <TouchableOpacity
                                 style={styles.selector}
-                                onPress={() => setServicioPickerVisible(true)}
+                                onPress={() => {
+                                    setServicioSearchQuery("");
+                                    setServicioPickerVisible(true);
+                                }}
                                 testID="reservas-open-servicios-picker"
                             >
                                 <Text style={selectedServicio ? styles.selectorValue : styles.selectorPlaceholder}>
                                     {selectedServicio ? selectedServicio.nombre : PICK_SERVICIO_PLACEHOLDER}
+                                </Text>
+                                <MaterialIcons name="expand-more" size={20} color="#6b7280" />
+                            </TouchableOpacity>
+
+                            <Text style={styles.fieldLabel}>{SELECT_RECURSO_LABEL}</Text>
+                            <TouchableOpacity
+                                style={styles.selector}
+                                onPress={() => {
+                                    setRecursoSearchQuery("");
+                                    setRecursoPickerVisible(true);
+                                }}
+                                testID="reservas-open-recursos-picker"
+                            >
+                                <Text style={selectedRecurso ? styles.selectorValue : styles.selectorPlaceholder}>
+                                    {selectedRecurso ? selectedRecurso.nombre : PICK_RECURSO_PLACEHOLDER}
                                 </Text>
                                 <MaterialIcons name="expand-more" size={20} color="#6b7280" />
                             </TouchableOpacity>
@@ -903,7 +944,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                 <MaterialIcons name="event" size={20} color="#6b7280" />
                             </TouchableOpacity>
 
-                            {datePickerVisible && Platform.OS !== "web" ? (
+                            {datePickerVisible ? (
                                 <DateTimePicker
                                     testID="reservas-date-picker"
                                     value={dateFromKey(selectedFecha)}
@@ -1022,10 +1063,19 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                 <MaterialIcons name="close" size={22} color="#6b7280" />
                             </TouchableOpacity>
                         </View>
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Buscar cliente"
+                            value={clienteSearchQuery}
+                            onChangeText={setClienteSearchQuery}
+                            testID="reservas-search-cliente-input"
+                        />
                         <ScrollView>
                             {clientes.length === 0 ? (
                                 <Text style={styles.emptyText}>{EMPTY_CLIENTES_MESSAGE}</Text>
-                            ) : clientes.map((cliente) => (
+                            ) : filteredClientes.length === 0 ? (
+                                <Text style={styles.emptyText}>No hay clientes que coincidan</Text>
+                            ) : filteredClientes.map((cliente) => (
                                 <TouchableOpacity
                                     key={cliente.id_cliente}
                                     style={styles.optionRow}
@@ -1057,10 +1107,19 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                 <MaterialIcons name="close" size={22} color="#6b7280" />
                             </TouchableOpacity>
                         </View>
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Buscar recurso"
+                            value={recursoSearchQuery}
+                            onChangeText={setRecursoSearchQuery}
+                            testID="reservas-search-recurso-input"
+                        />
                         <ScrollView>
                             {recursos.length === 0 ? (
                                 <Text style={styles.emptyText}>{EMPTY_RECURSOS_MESSAGE}</Text>
-                            ) : recursos.map((recurso) => (
+                            ) : filteredRecursos.length === 0 ? (
+                                <Text style={styles.emptyText}>No hay recursos que coincidan</Text>
+                            ) : filteredRecursos.map((recurso) => (
                                 <TouchableOpacity
                                     key={recurso.id_recurso}
                                     style={styles.optionRow}
@@ -1093,10 +1152,19 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                 <MaterialIcons name="close" size={22} color="#6b7280" />
                             </TouchableOpacity>
                         </View>
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Buscar servicio"
+                            value={servicioSearchQuery}
+                            onChangeText={setServicioSearchQuery}
+                            testID="reservas-search-servicio-input"
+                        />
                         <ScrollView>
                             {servicios.length === 0 ? (
                                 <Text style={styles.emptyText}>{EMPTY_SERVICIOS_MESSAGE}</Text>
-                            ) : servicios.map((servicio) => (
+                            ) : filteredServicios.length === 0 ? (
+                                <Text style={styles.emptyText}>No hay servicios que coincidan</Text>
+                            ) : filteredServicios.map((servicio) => (
                                 <TouchableOpacity
                                     key={servicio.id_servicio}
                                     style={styles.optionRow}
@@ -1421,6 +1489,15 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "700",
         color: "#111827",
+    },
+    searchInput: {
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        marginBottom: 10,
+        backgroundColor: "#fff",
     },
     fieldLabel: {
         color: "#374151",
