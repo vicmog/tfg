@@ -10,6 +10,7 @@ import {
     buildRes,
     createReservaReq,
     createReservaReqDuracionInvalida,
+    createReservaReqRecurrente,
     createReservaReqSinInicio,
     cancelReservaReq,
     deleteReservaReq,
@@ -36,6 +37,12 @@ jest.mock("../../../utils/mailer.js", () => ({
 describe("ReservaController Unit Tests", () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        Reserva.sequelize = {
+            transaction: jest.fn().mockResolvedValue({
+                commit: jest.fn().mockResolvedValue(undefined),
+                rollback: jest.fn().mockResolvedValue(undefined),
+            }),
+        };
     });
 
     describe("createReserva", () => {
@@ -52,17 +59,21 @@ describe("ReservaController Unit Tests", () => {
             await createReserva(createReservaReq, res);
 
             expect(Reserva.create).toHaveBeenCalled();
-            expect(ServicioReserva.create).toHaveBeenCalledWith({ id_servicio: 3, id_reserva: 11 });
+            expect(ServicioReserva.create).toHaveBeenCalledWith(
+                { id_servicio: 3, id_reserva: 11 },
+                expect.objectContaining({ transaction: expect.any(Object) })
+            );
             expect(sendClienteEmail).toHaveBeenCalledWith(
                 "cliente@test.com",
                 "Confirmacion de reserva",
                 expect.stringContaining("Tu reserva ha sido registrada correctamente")
             );
             expect(res.status).toHaveBeenCalledWith(201);
-            expect(jsonMock).toHaveBeenCalledWith({
+            expect(jsonMock).toHaveBeenCalledWith(expect.objectContaining({
                 message: "Reserva registrada correctamente",
                 reserva: expect.objectContaining({ id_reserva: 11 }),
-            });
+                reservas: expect.arrayContaining([expect.objectContaining({ id_reserva: 11 })]),
+            }));
         });
 
         it("deberia validar fecha inicio obligatoria", async () => {
@@ -99,9 +110,87 @@ describe("ReservaController Unit Tests", () => {
 
             expect(Reserva.create).not.toHaveBeenCalled();
             expect(res.status).toHaveBeenCalledWith(409);
-            expect(jsonMock).toHaveBeenCalledWith({
+            expect(jsonMock).toHaveBeenCalledWith(expect.objectContaining({
                 message: "Ya existe una reserva para ese recurso en el rango indicado",
-            });
+            }));
+        });
+
+        it("deberia crear una recurrencia y devolver todas las reservas", async () => {
+            const reserva1 = {
+                ...mockReserva,
+                id_reserva: 11,
+                fecha_hora_inicio: new Date("2026-04-12T09:00:00.000Z"),
+                fecha_hora_fin: new Date("2026-04-12T10:00:00.000Z"),
+            };
+            const reserva2 = {
+                ...mockReserva,
+                id_reserva: 12,
+                fecha_hora_inicio: new Date("2026-04-19T09:00:00.000Z"),
+                fecha_hora_fin: new Date("2026-04-19T10:00:00.000Z"),
+            };
+            const reserva3 = {
+                ...mockReserva,
+                id_reserva: 13,
+                fecha_hora_inicio: new Date("2026-04-26T09:00:00.000Z"),
+                fecha_hora_fin: new Date("2026-04-26T10:00:00.000Z"),
+            };
+
+            Recurso.findByPk.mockResolvedValue(mockRecurso);
+            Cliente.findByPk.mockResolvedValue(mockCliente);
+            Servicio.findByPk.mockResolvedValue(mockServicio);
+            UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioNegocio);
+            Reserva.findOne.mockResolvedValue(null);
+            Reserva.create
+                .mockResolvedValueOnce(reserva1)
+                .mockResolvedValueOnce(reserva2)
+                .mockResolvedValueOnce(reserva3);
+            ServicioReserva.create.mockResolvedValue({});
+
+            const { res, jsonMock } = buildRes();
+            await createReserva(createReservaReqRecurrente, res);
+
+            expect(Reserva.findOne).toHaveBeenCalledTimes(3);
+            expect(Reserva.create).toHaveBeenCalledTimes(3);
+            expect(ServicioReserva.create).toHaveBeenCalledTimes(3);
+            expect(sendClienteEmail).toHaveBeenCalledWith(
+                "cliente@test.com",
+                "Confirmacion de reserva",
+                expect.stringContaining("Tus 3 reservas recurrentes han sido registradas correctamente.")
+            );
+            expect(res.status).toHaveBeenCalledWith(201);
+            expect(jsonMock).toHaveBeenCalledWith(expect.objectContaining({
+                message: "Reservas recurrentes registradas correctamente",
+                reserva: expect.objectContaining({ id_reserva: 11 }),
+                reservas: expect.arrayContaining([
+                    expect.objectContaining({ id_reserva: 11 }),
+                    expect.objectContaining({ id_reserva: 12 }),
+                    expect.objectContaining({ id_reserva: 13 }),
+                ]),
+            }));
+        });
+
+        it("deberia rechazar una recurrencia con conflictos", async () => {
+            Recurso.findByPk.mockResolvedValue(mockRecurso);
+            Cliente.findByPk.mockResolvedValue(mockCliente);
+            Servicio.findByPk.mockResolvedValue(mockServicio);
+            UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioNegocio);
+            Reserva.findOne
+                .mockResolvedValueOnce(null)
+                .mockResolvedValueOnce({ id_reserva: 20 })
+                .mockResolvedValueOnce(null);
+
+            const { res, jsonMock } = buildRes();
+            await createReserva(createReservaReqRecurrente, res);
+
+            expect(Reserva.create).not.toHaveBeenCalled();
+            expect(ServicioReserva.create).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(409);
+            expect(jsonMock).toHaveBeenCalledWith(expect.objectContaining({
+                message: "No se pudo registrar la recurrencia porque hay conflictos con reservas existentes",
+                conflictos: expect.arrayContaining([
+                    expect.objectContaining({ ocurrencia: 2 }),
+                ]),
+            }));
         });
     });
 

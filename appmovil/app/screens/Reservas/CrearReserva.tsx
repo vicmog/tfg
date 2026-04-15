@@ -28,6 +28,8 @@ import {
     EMPTY_CLIENTES_MESSAGE,
     EMPTY_DURACION_ERROR,
     EMPTY_FRANJA_ERROR,
+    EMPTY_RECURRENCIA_CANTIDAD_ERROR,
+    EMPTY_RECURRENCIA_INTERVALO_ERROR,
     EMPTY_RECURSO_ERROR,
     EMPTY_RECURSOS_MESSAGE,
     EMPTY_SERVICIO_ERROR,
@@ -35,8 +37,16 @@ import {
     FECHA_INICIO_LABEL,
     FORM_TITLE,
     FRANJA_LABEL,
+    RECURRENCIA_LABEL,
+    RECURRENCIA_ACTIVAR,
+    RECURRENCIA_CANTIDAD_LABEL,
+    RECURRENCIA_CANTIDAD_PLACEHOLDER,
+    RECURRENCIA_INTERVALO_LABEL,
+    RECURRENCIA_INTERVALO_PLACEHOLDER,
     INVALID_DURACION_ERROR,
     INVALID_FECHA_INICIO_ERROR,
+    INVALID_RECURRENCIA_CANTIDAD_ERROR,
+    INVALID_RECURRENCIA_INTERVALO_ERROR,
     PICK_CLIENTE_PLACEHOLDER,
     PICK_FRANJA_PLACEHOLDER,
     PICK_RECURSO_PLACEHOLDER,
@@ -132,6 +142,9 @@ const CrearReserva: React.FC<CrearReservaProps> = ({ route, navigation }) => {
     const [selectedFecha, setSelectedFecha] = useState<string>(toLocalDateKey(new Date()));
     const [selectedSlotInicioIso, setSelectedSlotInicioIso] = useState<string | null>(null);
     const [duracionMinutos, setDuracionMinutos] = useState("");
+    const [isRecurring, setIsRecurring] = useState(false);
+    const [recurrenceCount, setRecurrenceCount] = useState("2");
+    const [recurrenceIntervalDays, setRecurrenceIntervalDays] = useState("7");
 
     const [loadingData, setLoadingData] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -357,6 +370,28 @@ const CrearReserva: React.FC<CrearReservaProps> = ({ route, navigation }) => {
             return false;
         }
 
+        if (isRecurring) {
+            if (!recurrenceCount.trim()) {
+                setError(EMPTY_RECURRENCIA_CANTIDAD_ERROR);
+                return false;
+            }
+
+            if (!INTEGER_REGEX.test(recurrenceCount.trim()) || Number.parseInt(recurrenceCount.trim(), 10) < 2) {
+                setError(INVALID_RECURRENCIA_CANTIDAD_ERROR);
+                return false;
+            }
+
+            if (!recurrenceIntervalDays.trim()) {
+                setError(EMPTY_RECURRENCIA_INTERVALO_ERROR);
+                return false;
+            }
+
+            if (!INTEGER_REGEX.test(recurrenceIntervalDays.trim()) || Number.parseInt(recurrenceIntervalDays.trim(), 10) <= 0) {
+                setError(INVALID_RECURRENCIA_INTERVALO_ERROR);
+                return false;
+            }
+        }
+
         return true;
     };
 
@@ -426,6 +461,13 @@ const CrearReserva: React.FC<CrearReservaProps> = ({ route, navigation }) => {
                     id_servicio: selectedServicioId,
                     fecha_hora_inicio: selectedSlotInicioIso,
                     duracion_minutos: duracionMinutos.trim(),
+                    recurrencia: isRecurring
+                        ? {
+                            activa: true,
+                            cantidad: Number.parseInt(recurrenceCount.trim(), 10),
+                            intervalo_dias: Number.parseInt(recurrenceIntervalDays.trim(), 10),
+                        }
+                        : undefined,
                 }),
             });
 
@@ -595,6 +637,44 @@ const CrearReserva: React.FC<CrearReservaProps> = ({ route, navigation }) => {
                         keyboardType="number-pad"
                         testID="reservas-duracion-input"
                     />
+
+                    <Text style={styles.fieldLabel}>{RECURRENCIA_LABEL}</Text>
+                    <TouchableOpacity
+                        style={[styles.selector, styles.recurringToggle]}
+                        onPress={() => setIsRecurring((prev) => !prev)}
+                        testID="reservas-recurring-toggle"
+                    >
+                        <Text style={styles.selectorValue}>{RECURRENCIA_ACTIVAR}</Text>
+                        <MaterialIcons
+                            name={isRecurring ? "check-box" : "check-box-outline-blank"}
+                            size={22}
+                            color={isRecurring ? "#1d4ed8" : "#6b7280"}
+                        />
+                    </TouchableOpacity>
+
+                    {isRecurring ? (
+                        <View style={styles.recurrenciaContainer}>
+                            <Text style={styles.fieldLabel}>{RECURRENCIA_CANTIDAD_LABEL}</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder={RECURRENCIA_CANTIDAD_PLACEHOLDER}
+                                value={recurrenceCount}
+                                onChangeText={setRecurrenceCount}
+                                keyboardType="number-pad"
+                                testID="reservas-recurring-count-input"
+                            />
+
+                            <Text style={styles.fieldLabel}>{RECURRENCIA_INTERVALO_LABEL}</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder={RECURRENCIA_INTERVALO_PLACEHOLDER}
+                                value={recurrenceIntervalDays}
+                                onChangeText={setRecurrenceIntervalDays}
+                                keyboardType="number-pad"
+                                testID="reservas-recurring-interval-input"
+                            />
+                        </View>
+                    ) : null}
 
                     <Text style={styles.fieldLabel}>{FRANJA_LABEL}</Text>
                     <View style={styles.slotsContainer} testID="reservas-slots-container">
@@ -828,6 +908,12 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
+    },
+    recurringToggle: {
+        marginBottom: 2,
+    },
+    recurrenciaContainer: {
+        marginTop: 4,
     },
     selectorValue: {
         color: "#111827",

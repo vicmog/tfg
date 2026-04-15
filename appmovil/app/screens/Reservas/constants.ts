@@ -62,6 +62,12 @@ export const SELECT_SERVICIO_LABEL = "Servicio";
 export const FECHA_INICIO_LABEL = "Inicio";
 export const DURACION_LABEL = "Duración (min)";
 export const FRANJA_LABEL = "Franja horaria";
+export const RECURRENCIA_LABEL = "Reserva recurrente";
+export const RECURRENCIA_ACTIVAR = "Activar recurrencia";
+export const RECURRENCIA_CANTIDAD_LABEL = "Cantidad de reservas";
+export const RECURRENCIA_CANTIDAD_PLACEHOLDER = "Ej: 4";
+export const RECURRENCIA_INTERVALO_LABEL = "Intervalo (días)";
+export const RECURRENCIA_INTERVALO_PLACEHOLDER = "Ej: 7";
 export const CALENDAR_EMPTY_MESSAGE = "No hay reservas para este día";
 export const AVAILABLE_SLOTS_EMPTY_MESSAGE = "No hay franjas disponibles para ese día";
 
@@ -79,8 +85,12 @@ export const EMPTY_FECHA_INICIO_ERROR = "La fecha y hora de inicio es obligatori
 export const FECHA_PASADA_ERROR = "No puedes crear reservas en fechas pasadas";
 export const EMPTY_DURACION_ERROR = "La duración de la reserva es obligatoria";
 export const EMPTY_FRANJA_ERROR = "Debes seleccionar una franja horaria";
+export const EMPTY_RECURRENCIA_CANTIDAD_ERROR = "Debes indicar cuántas veces se repite la reserva";
+export const EMPTY_RECURRENCIA_INTERVALO_ERROR = "Debes indicar cada cuántos días se repite";
 export const INVALID_FECHA_INICIO_ERROR = "La fecha y hora de inicio no es valida";
 export const INVALID_DURACION_ERROR = "La duración de la reserva debe ser un número entero mayor que 0";
+export const INVALID_RECURRENCIA_CANTIDAD_ERROR = "La cantidad de reservas debe ser un número entero mayor o igual a 2";
+export const INVALID_RECURRENCIA_INTERVALO_ERROR = "El intervalo debe ser un número entero mayor que 0";
 
 export const DEFAULT_CLIENTES_ERROR = "No se pudieron obtener los clientes";
 export const DEFAULT_RECURSOS_ERROR = "No se pudieron obtener los recursos";
