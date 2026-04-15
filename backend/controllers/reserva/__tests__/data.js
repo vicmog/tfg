@@ -42,6 +42,22 @@ export const createReservaReq = {
     user: { id_usuario: 1 },
 };
 
+export const createReservaReqRecurrente = {
+    body: {
+        id_recurso: 7,
+        id_cliente: 5,
+        id_servicio: 3,
+        fecha_hora_inicio: "2026-04-12T09:00:00.000Z",
+        duracion_minutos: 60,
+        recurrencia: {
+            activa: true,
+            cantidad: 3,
+            intervalo_dias: 7,
+        },
+    },
+    user: { id_usuario: 1 },
+};
+
 export const createReservaReqSinInicio = {
     body: {
         id_recurso: 7,

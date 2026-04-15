@@ -95,6 +95,7 @@ export const createReserva = async (req, res) => {
         id_servicio,
         fecha_hora_inicio,
         duracion_minutos,
+        recurrencia,
     } = req.body;
     const id_usuario = req.user?.id_usuario;
 
@@ -121,6 +122,27 @@ export const createReserva = async (req, res) => {
     const inicioDate = parseDateValue(fecha_hora_inicio);
     if (!inicioDate) {
         return res.status(400).json({ message: RESERVA_ERRORS.FECHA_INICIO_INVALID });
+    }
+
+    const recurrenciaActiva = recurrencia?.activa === true;
+    const recurrenciaCantidadRaw = `${recurrencia?.cantidad ?? ""}`.trim();
+    const recurrenciaIntervaloRaw = `${recurrencia?.intervalo_dias ?? ""}`.trim();
+
+    const recurrenciaCantidad = recurrenciaActiva
+        ? Number.parseInt(recurrenciaCantidadRaw, 10)
+        : 1;
+    const recurrenciaIntervaloDias = recurrenciaActiva
+        ? Number.parseInt(recurrenciaIntervaloRaw, 10)
+        : 1;
+
+    if (recurrenciaActiva) {
+        if (!INTEGER_REGEX.test(recurrenciaCantidadRaw) || !Number.isInteger(recurrenciaCantidad) || recurrenciaCantidad < 2) {
+            return res.status(400).json({ message: RESERVA_ERRORS.RECURRENCIA_CANTIDAD_INVALID });
+        }
+
+        if (!INTEGER_REGEX.test(recurrenciaIntervaloRaw) || !Number.isInteger(recurrenciaIntervaloDias) || recurrenciaIntervaloDias <= 0) {
+            return res.status(400).json({ message: RESERVA_ERRORS.RECURRENCIA_INTERVALO_INVALID });
+        }
     }
 
     try {
@@ -180,63 +202,114 @@ export const createReserva = async (req, res) => {
             return res.status(403).json({ message: RESERVA_ERRORS.NO_ACCESS_TO_NEGOCIO });
         }
 
-        const overlappingReserva = await Reserva.findOne({
-            where: {
-                id_recurso,
-                estado: { [Op.ne]: "cancelada" },
-                [Op.and]: [
-                    { fecha_hora_inicio: { [Op.lt]: finDate } },
-                    { fecha_hora_fin: { [Op.gt]: inicioDate } },
-                ],
-            },
+        const ocurrencias = Array.from({ length: recurrenciaActiva ? recurrenciaCantidad : 1 }, (_, index) => {
+            const inicioOcurrencia = new Date(inicioDate.getTime());
+            inicioOcurrencia.setDate(inicioOcurrencia.getDate() + (index * recurrenciaIntervaloDias));
+
+            const finOcurrencia = new Date(inicioOcurrencia.getTime() + durationMinutes * 60 * 1000);
+
+            return {
+                inicio: inicioOcurrencia,
+                fin: finOcurrencia,
+                indice: index + 1,
+            };
         });
 
-        if (overlappingReserva) {
-            return res.status(409).json({ message: RESERVA_ERRORS.RESERVA_SOLAPADA });
+        const conflictos = [];
+        for (const ocurrencia of ocurrencias) {
+            const overlappingReserva = await Reserva.findOne({
+                where: {
+                    id_recurso,
+                    estado: { [Op.ne]: "cancelada" },
+                    [Op.and]: [
+                        { fecha_hora_inicio: { [Op.lt]: ocurrencia.fin } },
+                        { fecha_hora_fin: { [Op.gt]: ocurrencia.inicio } },
+                    ],
+                },
+            });
+
+            if (overlappingReserva) {
+                conflictos.push({
+                    ocurrencia: ocurrencia.indice,
+                    fecha_hora_inicio: ocurrencia.inicio,
+                    fecha_hora_fin: ocurrencia.fin,
+                });
+            }
         }
 
-        const reserva = await Reserva.create({
-            id_recurso,
-            id_cliente,
-            fecha: toLegacyDate(inicioDate),
-            hora_inicio: toLegacyTime(inicioDate),
-            hora_fin: toLegacyTime(finDate),
-            fecha_hora_inicio: inicioDate,
-            fecha_hora_fin: finDate,
-        });
+        if (conflictos.length > 0) {
+            return res.status(409).json({
+                message: recurrenciaActiva ? RESERVA_ERRORS.RECURRENCIA_CONFLICTS : RESERVA_ERRORS.RESERVA_SOLAPADA,
+                conflictos,
+            });
+        }
 
-        await ServicioReserva.create({
-            id_servicio,
-            id_reserva: reserva.id_reserva,
-        });
+        const transaction = await Reserva.sequelize.transaction();
+        const reservasCreadas = [];
+
+        try {
+            for (const ocurrencia of ocurrencias) {
+                const reserva = await Reserva.create({
+                    id_recurso,
+                    id_cliente,
+                    fecha: toLegacyDate(ocurrencia.inicio),
+                    hora_inicio: toLegacyTime(ocurrencia.inicio),
+                    hora_fin: toLegacyTime(ocurrencia.fin),
+                    fecha_hora_inicio: ocurrencia.inicio,
+                    fecha_hora_fin: ocurrencia.fin,
+                }, { transaction });
+
+                await ServicioReserva.create({
+                    id_servicio,
+                    id_reserva: reserva.id_reserva,
+                }, { transaction });
+
+                reservasCreadas.push(reserva);
+            }
+
+            await transaction.commit();
+        } catch (error) {
+            await transaction.rollback();
+            throw error;
+        }
 
         if (cliente.email) {
             const clienteNombre = [cliente.nombre, cliente.apellido1].filter(Boolean).join(" ").trim();
             const subject = "Confirmacion de reserva";
+            const primeraOcurrencia = ocurrencias[0];
+            const ultimaOcurrencia = ocurrencias[ocurrencias.length - 1];
             const text = [
                 `Hola ${clienteNombre || "cliente"},`,
                 "",
-                "Tu reserva ha sido registrada correctamente.",
+                recurrenciaActiva
+                    ? `Tus ${ocurrencias.length} reservas recurrentes han sido registradas correctamente.`
+                    : "Tu reserva ha sido registrada correctamente.",
                 `Recurso: ${recurso.nombre}`,
                 `Servicio: ${servicio.nombre}`,
                 `Duracion: ${durationMinutes} min`,
-                `Inicio: ${formatDateForEmail(inicioDate)}`,
-                `Fin: ${formatDateForEmail(finDate)}`,
+                `Inicio: ${formatDateForEmail(primeraOcurrencia.inicio)}`,
+                `Fin: ${formatDateForEmail(primeraOcurrencia.fin)}`,
+                recurrenciaActiva ? `Ultima ocurrencia: ${formatDateForEmail(ultimaOcurrencia.inicio)}` : null,
                 "",
                 "Gracias por confiar en nosotros.",
-            ].join("\n");
+            ].filter(Boolean).join("\n");
 
             await sendClienteEmail(cliente.email, subject, text);
         }
 
+        const reservasSerializadas = reservasCreadas.map((reserva) => serializeReserva({
+            ...toPlain(reserva),
+            id_servicio,
+            servicio_nombre: servicio.nombre,
+            duracion_minutos: durationMinutes,
+        }));
+
+        const [primeraReserva] = reservasSerializadas;
+
         return res.status(201).json({
-            message: RESERVA_MESSAGES.RESERVA_CREATED,
-            reserva: serializeReserva({
-                ...toPlain(reserva),
-                id_servicio,
-                servicio_nombre: servicio.nombre,
-                duracion_minutos: durationMinutes,
-            }),
+            message: recurrenciaActiva ? RESERVA_MESSAGES.RESERVA_RECURRENT_CREATED : RESERVA_MESSAGES.RESERVA_CREATED,
+            reserva: primeraReserva,
+            reservas: reservasSerializadas,
         });
     } catch (error) {
         return res.status(500).json({ message: RESERVA_ERRORS.SERVER_ERROR });

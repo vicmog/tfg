@@ -20,11 +20,15 @@ export const RESERVA_ERRORS = {
     RESERVA_ALREADY_COMPLETED: "La reserva ya estaba completada",
     NO_ACCESS_TO_NEGOCIO: "No tienes acceso a este negocio",
     RESERVA_SOLAPADA: "Ya existe una reserva para ese recurso en el rango indicado",
+    RECURRENCIA_CANTIDAD_INVALID: "La cantidad de repeticiones debe ser un número entero mayor o igual a 2",
+    RECURRENCIA_INTERVALO_INVALID: "El intervalo de recurrencia debe ser un número entero mayor que 0",
+    RECURRENCIA_CONFLICTS: "No se pudo registrar la recurrencia porque hay conflictos con reservas existentes",
     SERVER_ERROR: "Error en el servidor",
 };
 
 export const RESERVA_MESSAGES = {
     RESERVA_CREATED: "Reserva registrada correctamente",
+    RESERVA_RECURRENT_CREATED: "Reservas recurrentes registradas correctamente",
     RESERVA_UPDATED: "Reserva actualizada correctamente",
     RESERVA_CANCELLED: "Reserva cancelada correctamente",
     RESERVA_COMPLETED: "Reserva completada correctamente",
