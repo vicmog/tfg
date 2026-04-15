@@ -59,6 +59,35 @@ const formatDateForEmail = (value) => {
     });
 };
 
+const resolveReservaForUser = async (idReservaInt, idUsuario) => {
+    const reserva = await Reserva.findByPk(idReservaInt);
+    if (!reserva) {
+        return { error: { status: 404, message: RESERVA_ERRORS.RESERVA_NOT_FOUND } };
+    }
+
+    if (!reserva.id_recurso) {
+        return { error: { status: 404, message: RESERVA_ERRORS.RECURSO_NOT_FOUND } };
+    }
+
+    const recurso = await Recurso.findByPk(reserva.id_recurso);
+    if (!recurso) {
+        return { error: { status: 404, message: RESERVA_ERRORS.RECURSO_NOT_FOUND } };
+    }
+
+    const usuarioNegocio = await UsuarioNegocio.findOne({
+        where: {
+            id_usuario: idUsuario,
+            id_negocio: recurso.id_negocio,
+        },
+    });
+
+    if (!usuarioNegocio) {
+        return { error: { status: 403, message: RESERVA_ERRORS.NO_ACCESS_TO_NEGOCIO } };
+    }
+
+    return { reserva };
+};
+
 export const createReserva = async (req, res) => {
     const {
         id_recurso,
@@ -364,6 +393,82 @@ export const updateReserva = async (req, res) => {
         });
     } catch (error) {
         console.error("Error actualizando reserva:", error);
+        return res.status(500).json({ message: RESERVA_ERRORS.SERVER_ERROR });
+    }
+};
+
+export const cancelReserva = async (req, res) => {
+    const { id_reserva } = req.params;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: RESERVA_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (!id_reserva) {
+        return res.status(400).json({ message: RESERVA_ERRORS.RESERVA_ID_REQUIRED });
+    }
+
+    const idReservaInt = Number.parseInt(`${id_reserva}`, 10);
+    if (!Number.isInteger(idReservaInt) || idReservaInt <= 0) {
+        return res.status(400).json({ message: RESERVA_ERRORS.RESERVA_ID_REQUIRED });
+    }
+
+    try {
+        const resolved = await resolveReservaForUser(idReservaInt, id_usuario);
+        if (resolved.error) {
+            return res.status(resolved.error.status).json({ message: resolved.error.message });
+        }
+
+        const { reserva } = resolved;
+
+        if (reserva.estado === "cancelada") {
+            return res.status(409).json({ message: RESERVA_ERRORS.RESERVA_ALREADY_CANCELLED });
+        }
+
+        await reserva.update({ estado: "cancelada" });
+
+        return res.status(200).json({
+            message: RESERVA_MESSAGES.RESERVA_CANCELLED,
+            reserva: serializeReserva(toPlain(reserva)),
+        });
+    } catch (error) {
+        console.error("Error cancelando reserva:", error);
+        return res.status(500).json({ message: RESERVA_ERRORS.SERVER_ERROR });
+    }
+};
+
+export const deleteReserva = async (req, res) => {
+    const { id_reserva } = req.params;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: RESERVA_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (!id_reserva) {
+        return res.status(400).json({ message: RESERVA_ERRORS.RESERVA_ID_REQUIRED });
+    }
+
+    const idReservaInt = Number.parseInt(`${id_reserva}`, 10);
+    if (!Number.isInteger(idReservaInt) || idReservaInt <= 0) {
+        return res.status(400).json({ message: RESERVA_ERRORS.RESERVA_ID_REQUIRED });
+    }
+
+    try {
+        const resolved = await resolveReservaForUser(idReservaInt, id_usuario);
+        if (resolved.error) {
+            return res.status(resolved.error.status).json({ message: resolved.error.message });
+        }
+
+        const { reserva } = resolved;
+
+        await ServicioReserva.destroy({ where: { id_reserva: idReservaInt } });
+        await reserva.destroy();
+
+        return res.status(200).json({ message: RESERVA_MESSAGES.RESERVA_DELETED });
+    } catch (error) {
+        console.error("Error eliminando reserva:", error);
         return res.status(500).json({ message: RESERVA_ERRORS.SERVER_ERROR });
     }
 };

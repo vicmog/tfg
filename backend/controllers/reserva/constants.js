@@ -16,6 +16,7 @@ export const RESERVA_ERRORS = {
     RESOURCE_CLIENT_NEGOCIO_MISMATCH: "El recurso y el cliente no pertenecen al mismo negocio",
     SERVICIO_NEGOCIO_MISMATCH: "El servicio no pertenece al mismo negocio del recurso",
     RESERVA_NOT_FOUND: "Reserva no encontrada",
+    RESERVA_ALREADY_CANCELLED: "La reserva ya estaba cancelada",
     NO_ACCESS_TO_NEGOCIO: "No tienes acceso a este negocio",
     RESERVA_SOLAPADA: "Ya existe una reserva para ese recurso en el rango indicado",
     SERVER_ERROR: "Error en el servidor",
@@ -24,4 +25,6 @@ export const RESERVA_ERRORS = {
 export const RESERVA_MESSAGES = {
     RESERVA_CREATED: "Reserva registrada correctamente",
     RESERVA_UPDATED: "Reserva actualizada correctamente",
+    RESERVA_CANCELLED: "Reserva cancelada correctamente",
+    RESERVA_DELETED: "Reserva eliminada correctamente",
 };
