@@ -92,6 +92,16 @@ export const updateReservaReqNotFound = {
     user: { id_usuario: 1 },
 };
 
+export const cancelReservaReq = {
+    params: { id_reserva: "11" },
+    user: { id_usuario: 1 },
+};
+
+export const deleteReservaReq = {
+    params: { id_reserva: "11" },
+    user: { id_usuario: 1 },
+};
+
 export const buildRes = () => {
     const jsonMock = jest.fn();
     const res = {

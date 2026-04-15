@@ -1,4 +1,4 @@
-import { createReserva, getReservasByNegocio, updateReserva } from "../reservaController.js";
+import { cancelReserva, createReserva, deleteReserva, getReservasByNegocio, updateReserva } from "../reservaController.js";
 import { Recurso } from "../../../models/Recurso.js";
 import { Cliente } from "../../../models/Cliente.js";
 import { Reserva } from "../../../models/Reserva.js";
@@ -11,6 +11,8 @@ import {
     createReservaReq,
     createReservaReqDuracionInvalida,
     createReservaReqSinInicio,
+    cancelReservaReq,
+    deleteReservaReq,
     getReservasReq,
     mockCliente,
     mockRecurso,
@@ -161,6 +163,71 @@ describe("ReservaController Unit Tests", () => {
             expect(jsonMock).toHaveBeenCalledWith({
                 message: "Reserva no encontrada",
             });
+        });
+    });
+
+    describe("cancelReserva", () => {
+        it("deberia cancelar una reserva", async () => {
+            const reservaInstance = {
+                ...mockReserva,
+                estado: "pendiente",
+                update: jest.fn().mockResolvedValue({}),
+                toJSON: jest.fn().mockReturnValue({ ...mockReserva, estado: "cancelada" }),
+            };
+
+            Reserva.findByPk.mockResolvedValue(reservaInstance);
+            Recurso.findByPk.mockResolvedValue(mockRecurso);
+            UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioNegocio);
+
+            const { res, jsonMock } = buildRes();
+            await cancelReserva(cancelReservaReq, res);
+
+            expect(reservaInstance.update).toHaveBeenCalledWith({ estado: "cancelada" });
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith(
+                expect.objectContaining({ message: "Reserva cancelada correctamente" })
+            );
+        });
+
+        it("no deberia cancelar una reserva ya cancelada", async () => {
+            const reservaInstance = {
+                ...mockReserva,
+                estado: "cancelada",
+                update: jest.fn(),
+            };
+
+            Reserva.findByPk.mockResolvedValue(reservaInstance);
+            Recurso.findByPk.mockResolvedValue(mockRecurso);
+            UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioNegocio);
+
+            const { res, jsonMock } = buildRes();
+            await cancelReserva(cancelReservaReq, res);
+
+            expect(reservaInstance.update).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(409);
+            expect(jsonMock).toHaveBeenCalledWith({ message: "La reserva ya estaba cancelada" });
+        });
+    });
+
+    describe("deleteReserva", () => {
+        it("deberia eliminar una reserva", async () => {
+            const reservaInstance = {
+                ...mockReserva,
+                destroy: jest.fn().mockResolvedValue({}),
+            };
+
+            Reserva.findByPk.mockResolvedValue(reservaInstance);
+            Recurso.findByPk.mockResolvedValue(mockRecurso);
+            UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioNegocio);
+            ServicioReserva.destroy.mockResolvedValue(1);
+
+            const { res, jsonMock } = buildRes();
+            await deleteReserva(deleteReservaReq, res);
+
+            expect(ServicioReserva.destroy).toHaveBeenCalledWith({ where: { id_reserva: 11 } });
+            expect(reservaInstance.destroy).toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({ message: "Reserva eliminada correctamente" });
         });
     });
 });

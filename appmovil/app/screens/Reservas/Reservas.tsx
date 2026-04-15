@@ -18,6 +18,7 @@ import { Cliente, Recurso, Reserva, Servicio } from "../types";
 import {
     ADD_RESERVA_BUTTON,
     CALENDAR_EMPTY_MESSAGE,
+    cancelReservaByIdRoute,
     clientesByNegocioRoute,
     CONNECTION_ERROR,
     DEFAULT_CLIENTES_ERROR,
@@ -25,6 +26,7 @@ import {
     DEFAULT_RESERVAS_ERROR,
     DEFAULT_RECURSOS_ERROR,
     DEFAULT_SERVICIOS_ERROR,
+    deleteReservaByIdRoute,
     DURACION_LABEL,
     DURACION_PLACEHOLDER,
     EMPTY_FRANJA_ERROR,
@@ -47,6 +49,8 @@ import {
     PICK_SERVICIO_PLACEHOLDER,
     reservasByNegocioRoute,
     reservasRoute,
+    RESERVA_CANCELADA_MESSAGE,
+    RESERVA_ELIMINADA_MESSAGE,
     recursosByNegocioRoute,
     SAVE_BUTTON_TEXT,
     SAVING_BUTTON_TEXT,
@@ -59,6 +63,7 @@ import {
     CLOSING_HOUR,
     INTEGER_REGEX,
     MIN_EVENT_BLOCK_HEIGHT,
+    MIN_CANCELLED_EVENT_BLOCK_HEIGHT,
     OPENING_HOUR,
     TIMELINE_EVENT_HORIZONTAL_GAP,
     TIMELINE_LANE_WIDTH,
@@ -135,6 +140,7 @@ const formatClienteName = (cliente: Cliente) => {
 };
 
 const normalizeText = (value: string) => value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+type ReservaActionType = "cancel" | "delete";
 
 const buildCalendarMatrix = (cursor: Date) => {
     const year = cursor.getFullYear();
@@ -186,6 +192,10 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
     const [datePickerVisible, setDatePickerVisible] = useState(false);
     const [detailModalVisible, setDetailModalVisible] = useState(false);
     const [selectedReservaDetail, setSelectedReservaDetail] = useState<Reserva | null>(null);
+    const [confirmActionVisible, setConfirmActionVisible] = useState(false);
+    const [pendingAction, setPendingAction] = useState<ReservaActionType | null>(null);
+    const [pendingReserva, setPendingReserva] = useState<Reserva | null>(null);
+    const [actionLoading, setActionLoading] = useState(false);
     const [timelineFilterRecursoId, setTimelineFilterRecursoId] = useState<number | null>(null);
     const [clienteSearchQuery, setClienteSearchQuery] = useState("");
     const [recursoSearchQuery, setRecursoSearchQuery] = useState("");
@@ -316,7 +326,9 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
 
                 let top = ((visibleStartMs - dayStartMs) / 60000) * TIMELINE_PIXELS_PER_MINUTE;
                 const rawHeight = ((visibleEndMs - visibleStartMs) / 60000) * TIMELINE_PIXELS_PER_MINUTE;
-                const height = Math.max(rawHeight, MIN_EVENT_BLOCK_HEIGHT);
+                const isCancelled = `${reserva.estado || ""}`.toLowerCase() === "cancelada";
+                const minHeight = isCancelled ? MIN_CANCELLED_EVENT_BLOCK_HEIGHT : MIN_EVENT_BLOCK_HEIGHT;
+                const height = Math.max(rawHeight, minHeight);
 
                 if (top + height > timelineHeight) {
                     top = Math.max(0, timelineHeight - height);
@@ -576,6 +588,66 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
         setSelectedReservaDetail(null);
     };
 
+    const handleOpenConfirmAction = (action: ReservaActionType, reserva: Reserva) => {
+        setPendingAction(action);
+        setPendingReserva(reserva);
+        setConfirmActionVisible(true);
+    };
+
+    const handleCloseConfirmAction = () => {
+        if (actionLoading) {
+            return;
+        }
+
+        setConfirmActionVisible(false);
+        setPendingAction(null);
+        setPendingReserva(null);
+    };
+
+    const handleExecuteReservaAction = async () => {
+        if (!pendingAction || !pendingReserva) {
+            return;
+        }
+
+        setActionLoading(true);
+        setError("");
+        setSuccess("");
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const endpoint = pendingAction === "cancel"
+                ? cancelReservaByIdRoute(pendingReserva.id_reserva)
+                : deleteReservaByIdRoute(pendingReserva.id_reserva);
+            const method = pendingAction === "cancel" ? "PATCH" : "DELETE";
+
+            const response = await fetch(endpoint, {
+                method,
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                setError(data.message || DEFAULT_CREATE_ERROR);
+                return;
+            }
+
+            setSuccess(data.message || (pendingAction === "cancel" ? RESERVA_CANCELADA_MESSAGE : RESERVA_ELIMINADA_MESSAGE));
+            setDetailModalVisible(false);
+            setSelectedReservaDetail(null);
+            setConfirmActionVisible(false);
+            setPendingAction(null);
+            setPendingReserva(null);
+            await fetchData();
+        } catch (requestError) {
+            setError(CONNECTION_ERROR);
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     const handleSave = async () => {
         setError("");
         setSuccess("");
@@ -811,7 +883,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                 contentContainerStyle={styles.timelineHorizontalContent}
                                 testID="reservas-timeline-horizontal-scroll"
                             >
-                                <View style={[styles.timelineGrid, { height: timelineHeight, width: timelineContentWidth }]}>
+                                <View style={[styles.timelineGrid, { height: timelineHeight, width: timelineContentWidth, minWidth: "100%" }]}>
                                     {Array.from({ length: CLOSING_HOUR - OPENING_HOUR + 1 }).map((_, index) => (
                                         <View
                                             key={`timeline-line-${index}`}
@@ -839,12 +911,14 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                     ) : (
                                         timelineEvents.map(({ reserva, top, height, laneIndex }) => {
                                             const recurso = recursoById.get(reserva.id_recurso);
+                                            const isCancelled = `${reserva.estado || ""}`.toLowerCase() === "cancelada";
 
                                             return (
                                                 <TouchableOpacity
                                                     key={reserva.id_reserva}
                                                     style={[
                                                         styles.timelineEventBlock,
+                                                        isCancelled && styles.timelineEventBlockCancelled,
                                                         {
                                                             top,
                                                             height,
@@ -858,9 +932,10 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                                     <Text style={styles.timelineEventTime} numberOfLines={1}>
                                                         {toTimeDisplay(reserva.fecha_hora_inicio)} - {toTimeDisplay(reserva.fecha_hora_fin)}
                                                     </Text>
-                                                    <Text style={styles.timelineEventResource} numberOfLines={1}>
+                                                    <Text style={[styles.timelineEventResource, isCancelled && styles.timelineEventResourceCancelled]} numberOfLines={1}>
                                                         {recurso?.nombre || `#${reserva.id_recurso}`}
                                                     </Text>
+                                                    {isCancelled ? <Text style={styles.timelineEventState}>Cancelada</Text> : null}
                                                 </TouchableOpacity>
                                             );
                                         })
@@ -1025,6 +1100,11 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
 
                         {selectedReservaDetail ? (
                             <View style={styles.detailContent}>
+                                {(() => {
+                                    const isCancelled = `${selectedReservaDetail.estado || ""}`.toLowerCase() === "cancelada";
+
+                                    return (
+                                        <>
                                 <Text style={styles.detailLine}>
                                     Cliente: {clienteById.get(selectedReservaDetail.id_cliente)
                                         ? formatClienteName(clienteById.get(selectedReservaDetail.id_cliente) as Cliente)
@@ -1043,6 +1123,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                 <Text style={styles.detailLine}>
                                     Hora: {toTimeDisplay(selectedReservaDetail.fecha_hora_inicio)} - {toTimeDisplay(selectedReservaDetail.fecha_hora_fin)}
                                 </Text>
+                                <Text style={styles.detailLine}>Estado: {selectedReservaDetail.estado || "pendiente"}</Text>
                                 <TouchableOpacity
                                     style={styles.editReservaButton}
                                     onPress={() => {
@@ -1053,8 +1134,66 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                 >
                                     <Text style={styles.editReservaButtonText}>Editar reserva</Text>
                                 </TouchableOpacity>
+                                {!isCancelled ? (
+                                    <TouchableOpacity
+                                        style={[styles.editReservaButton, styles.cancelReservaButton]}
+                                        onPress={() => handleOpenConfirmAction("cancel", selectedReservaDetail)}
+                                        testID="reserva-detail-cancel-button"
+                                    >
+                                        <Text style={styles.editReservaButtonText}>Cancelar reserva</Text>
+                                    </TouchableOpacity>
+                                ) : null}
+                                <TouchableOpacity
+                                    style={[styles.editReservaButton, styles.deleteReservaButton]}
+                                    onPress={() => handleOpenConfirmAction("delete", selectedReservaDetail)}
+                                    testID="reserva-detail-delete-button"
+                                >
+                                    <Text style={styles.editReservaButtonText}>Borrar reserva</Text>
+                                </TouchableOpacity>
+                                        </>
+                                    );
+                                })()}
                             </View>
                         ) : null}
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal
+                visible={confirmActionVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={handleCloseConfirmAction}
+                testID="reserva-confirm-action-modal"
+            >
+                <View style={styles.modalBackdrop}>
+                    <View style={styles.modalCard}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Confirmar acción</Text>
+                            <TouchableOpacity onPress={handleCloseConfirmAction} disabled={actionLoading}>
+                                <MaterialIcons name="close" size={22} color="#6b7280" />
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={styles.detailLine}>¿Está seguro?</Text>
+                        <View style={styles.confirmActionsRow}>
+                            <TouchableOpacity
+                                style={[styles.confirmActionButton, styles.confirmActionCancelButton]}
+                                onPress={handleCloseConfirmAction}
+                                disabled={actionLoading}
+                                testID="reserva-confirm-no"
+                            >
+                                <Text style={styles.confirmActionButtonText}>No</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.confirmActionButton, styles.confirmActionAcceptButton]}
+                                onPress={handleExecuteReservaAction}
+                                disabled={actionLoading}
+                                testID="reserva-confirm-yes"
+                            >
+                                {actionLoading ? <ActivityIndicator size="small" color="#fff" /> : null}
+                                <Text style={styles.confirmActionButtonText}>Sí</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </Modal>
@@ -1438,6 +1577,10 @@ const styles = StyleSheet.create({
         marginHorizontal: TIMELINE_EVENT_HORIZONTAL_GAP,
         justifyContent: "center",
     },
+    timelineEventBlockCancelled: {
+        backgroundColor: "#f3f4f6",
+        borderColor: "#d1d5db",
+    },
     timelineEventTime: {
         color: "#1d4ed8",
         fontWeight: "700",
@@ -1449,6 +1592,16 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         fontSize: 12,
         textAlign: "center",
+        marginTop: 2,
+    },
+    timelineEventResourceCancelled: {
+        color: "#6b7280",
+    },
+    timelineEventState: {
+        textAlign: "center",
+        color: "#dc2626",
+        fontSize: 10,
+        fontWeight: "700",
         marginTop: 2,
     },
     detailContent: {
@@ -1466,6 +1619,36 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
     },
     editReservaButtonText: {
+        color: "#fff",
+        fontWeight: "700",
+    },
+    cancelReservaButton: {
+        backgroundColor: "#f59e0b",
+    },
+    deleteReservaButton: {
+        backgroundColor: "#dc2626",
+    },
+    confirmActionsRow: {
+        flexDirection: "row",
+        gap: 8,
+        marginTop: 14,
+    },
+    confirmActionButton: {
+        flex: 1,
+        borderRadius: 8,
+        paddingVertical: 10,
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "row",
+        gap: 6,
+    },
+    confirmActionCancelButton: {
+        backgroundColor: "#6b7280",
+    },
+    confirmActionAcceptButton: {
+        backgroundColor: "#1d4ed8",
+    },
+    confirmActionButtonText: {
         color: "#fff",
         fontWeight: "700",
     },
