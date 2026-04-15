@@ -30,17 +30,42 @@ import {
     deleteReservaByIdRoute,
     DURACION_LABEL,
     DURACION_PLACEHOLDER,
+    EMPTY_FECHA_INICIO_ERROR,
     EMPTY_FRANJA_ERROR,
     EMPTY_CLIENTE_ERROR,
     EMPTY_CLIENTES_MESSAGE,
+    EMPTY_CLIENTES_FILTERED_MESSAGE,
     EMPTY_DURACION_ERROR,
     EMPTY_RECURSO_ERROR,
     EMPTY_RECURSOS_MESSAGE,
+    EMPTY_RECURSOS_FILTERED_MESSAGE,
     EMPTY_SERVICIO_ERROR,
     EMPTY_SERVICIOS_MESSAGE,
+    EMPTY_SERVICIOS_FILTERED_MESSAGE,
     FECHA_INICIO_LABEL,
+    FECHA_PASADA_ERROR,
     FRANJA_LABEL,
     AVAILABLE_SLOTS_EMPTY_MESSAGE,
+    AGENDA_TITLE_PREFIX,
+    CONFIRM_ACTION_TITLE,
+    CONFIRM_CANCEL_QUESTION,
+    CONFIRM_COMPLETE_QUESTION,
+    CONFIRM_DELETE_QUESTION,
+    CONFIRM_NO_BUTTON,
+    CONFIRM_YES_BUTTON,
+    DEFAULT_ESTADO_LABEL,
+    DETAIL_CANCEL_BUTTON,
+    DETAIL_CLIENTE_LABEL,
+    DETAIL_COMPLETE_BUTTON,
+    DETAIL_DELETE_BUTTON,
+    DETAIL_ESTADO_LABEL,
+    DETAIL_FIN_LABEL,
+    DETAIL_HORA_LABEL,
+    DETAIL_INICIO_LABEL,
+    DETAIL_MODAL_TITLE,
+    DETAIL_RECURSO_LABEL,
+    DETAIL_SERVICIO_LABEL,
+    DETAIL_EDIT_BUTTON,
     FORM_TITLE,
     INVALID_DURACION_ERROR,
     INVALID_FECHA_INICIO_ERROR,
@@ -57,9 +82,20 @@ import {
     SAVE_BUTTON_TEXT,
     SAVING_BUTTON_TEXT,
     SCREEN_TITLE,
+    SEARCH_CLIENTE_PLACEHOLDER,
+    SEARCH_RECURSO_PLACEHOLDER,
+    SEARCH_SERVICIO_PLACEHOLDER,
     SELECT_CLIENTE_LABEL,
+    SELECTED_DAY_LABEL,
     SELECT_RECURSO_LABEL,
     SELECT_SERVICIO_LABEL,
+    SERVICIO_DURACION_PREFIX,
+    SERVICIO_DURACION_SUFFIX,
+    STATUS_CANCELLED_LABEL,
+    STATUS_COMPLETED_LABEL,
+    STATUS_PENDING_LABEL,
+    TODAY_BUTTON_TEXT,
+    FILTER_ALL_TEXT,
     serviciosByNegocioRoute,
     SUCCESS_MESSAGE,
     CLOSING_HOUR,
@@ -145,7 +181,7 @@ const normalizeText = (value: string) => value.toLowerCase().normalize("NFD").re
 type ReservaActionType = "complete" | "cancel" | "delete";
 
 const getReservaStatusKey = (estado?: string) => {
-    const normalized = normalizeText(`${estado || "pendiente"}`);
+    const normalized = normalizeText(`${estado || DEFAULT_ESTADO_LABEL}`);
 
     if (normalized === "cancelada") {
         return "cancelled";
@@ -541,7 +577,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
         }
 
         if (!selectedFecha.trim()) {
-            setError("La fecha y hora de inicio es obligatoria");
+            setError(EMPTY_FECHA_INICIO_ERROR);
             return false;
         }
 
@@ -554,7 +590,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         if (fechaDate.getTime() < today.getTime()) {
-            setError("No puedes crear reservas en fechas pasadas");
+            setError(FECHA_PASADA_ERROR);
             return false;
         }
 
@@ -613,7 +649,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
         today.setHours(0, 0, 0, 0);
 
         if (pickedDay.getTime() < today.getTime()) {
-            setError("No puedes crear reservas en fechas pasadas");
+            setError(FECHA_PASADA_ERROR);
             return;
         }
 
@@ -843,7 +879,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                     <View style={styles.calendarCard}>
                         <TouchableOpacity style={styles.selectedDayToggle} onPress={toggleCalendar} testID="reservas-selected-day-toggle">
                             <View>
-                                <Text style={styles.selectedDayLabel}>Día seleccionado</Text>
+                                <Text style={styles.selectedDayLabel}>{SELECTED_DAY_LABEL}</Text>
                                 <Text style={styles.selectedDayValue}>{toDayLabel(dateFromKey(selectedDay))}</Text>
                             </View>
                             <View style={styles.selectedDayActions}>
@@ -852,7 +888,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                     onPress={handleGoToToday}
                                     testID="reservas-go-today"
                                 >
-                                    <Text style={styles.todayButtonText}>Hoy</Text>
+                                    <Text style={styles.todayButtonText}>{TODAY_BUTTON_TEXT}</Text>
                                 </TouchableOpacity>
                                 <MaterialIcons
                                     name={isCalendarExpanded ? "expand-less" : "expand-more"}
@@ -919,20 +955,20 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                     </View>
 
                     <View style={styles.dayListCard}>
-                        <Text style={styles.dayListTitle}>Agenda del {agendaDayLabel}</Text>
+                        <Text style={styles.dayListTitle}>{`${AGENDA_TITLE_PREFIX} ${agendaDayLabel}`}</Text>
 
                         <View style={styles.timelineLegendRow}>
                             <View style={styles.timelineLegendItem}>
                                 <View style={[styles.timelineLegendDot, styles.timelineLegendDotPending]} />
-                                <Text style={styles.timelineLegendText}>Pendiente</Text>
+                                <Text style={styles.timelineLegendText}>{STATUS_PENDING_LABEL}</Text>
                             </View>
                             <View style={styles.timelineLegendItem}>
                                 <View style={[styles.timelineLegendDot, styles.timelineLegendDotCancelled]} />
-                                <Text style={styles.timelineLegendText}>Cancelada</Text>
+                                <Text style={styles.timelineLegendText}>{STATUS_CANCELLED_LABEL}</Text>
                             </View>
                             <View style={styles.timelineLegendItem}>
                                 <View style={[styles.timelineLegendDot, styles.timelineLegendDotCompleted]} />
-                                <Text style={styles.timelineLegendText}>Completada</Text>
+                                <Text style={styles.timelineLegendText}>{STATUS_COMPLETED_LABEL}</Text>
                             </View>
                         </View>
 
@@ -953,7 +989,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                         !timelineFilterRecursoId && styles.resourceFilterChipTextSelected,
                                     ]}
                                 >
-                                    Todos
+                                    {FILTER_ALL_TEXT}
                                 </Text>
                             </TouchableOpacity>
 
@@ -1065,8 +1101,8 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                                     >
                                                         {recurso?.nombre || `#${reserva.id_recurso}`}
                                                     </Text>
-                                                    {isCancelled ? <Text style={styles.timelineEventState}>Cancelada</Text> : null}
-                                                    {isCompleted ? <Text style={styles.timelineEventStateCompleted}>Completada</Text> : null}
+                                                    {isCancelled ? <Text style={styles.timelineEventState}>{STATUS_CANCELLED_LABEL}</Text> : null}
+                                                    {isCompleted ? <Text style={styles.timelineEventStateCompleted}>{STATUS_COMPLETED_LABEL}</Text> : null}
                                                 </TouchableOpacity>
                                             );
                                         })
@@ -1223,7 +1259,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                 <View style={styles.modalBackdrop}>
                     <View style={styles.modalCard}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Detalle de reserva</Text>
+                            <Text style={styles.modalTitle}>{DETAIL_MODAL_TITLE}</Text>
                             <TouchableOpacity onPress={handleCloseReservaDetail} testID="reserva-detail-close-button">
                                 <MaterialIcons name="close" size={22} color="#6b7280" />
                             </TouchableOpacity>
@@ -1239,24 +1275,24 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                     return (
                                         <>
                                 <Text style={styles.detailLine}>
-                                    Cliente: {clienteById.get(selectedReservaDetail.id_cliente)
+                                    {`${DETAIL_CLIENTE_LABEL} `}{clienteById.get(selectedReservaDetail.id_cliente)
                                         ? formatClienteName(clienteById.get(selectedReservaDetail.id_cliente) as Cliente)
                                         : `#${selectedReservaDetail.id_cliente}`}
                                 </Text>
                                 <Text style={styles.detailLine}>
-                                    Recurso: {recursoById.get(selectedReservaDetail.id_recurso)?.nombre || `#${selectedReservaDetail.id_recurso}`}
+                                    {`${DETAIL_RECURSO_LABEL} `}{recursoById.get(selectedReservaDetail.id_recurso)?.nombre || `#${selectedReservaDetail.id_recurso}`}
                                 </Text>
                                 <Text style={styles.detailLine}>
-                                    Servicio: {selectedReservaDetail.servicio_nombre || (selectedReservaDetail.id_servicio
+                                    {`${DETAIL_SERVICIO_LABEL} `}{selectedReservaDetail.servicio_nombre || (selectedReservaDetail.id_servicio
                                         ? servicioById.get(selectedReservaDetail.id_servicio)?.nombre
                                         : "-") || "-"}
                                 </Text>
-                                <Text style={styles.detailLine}>Inicio: {toDateTimeDisplay(selectedReservaDetail.fecha_hora_inicio)}</Text>
-                                <Text style={styles.detailLine}>Fin: {toDateTimeDisplay(selectedReservaDetail.fecha_hora_fin)}</Text>
+                                <Text style={styles.detailLine}>{`${DETAIL_INICIO_LABEL} ${toDateTimeDisplay(selectedReservaDetail.fecha_hora_inicio)}`}</Text>
+                                <Text style={styles.detailLine}>{`${DETAIL_FIN_LABEL} ${toDateTimeDisplay(selectedReservaDetail.fecha_hora_fin)}`}</Text>
                                 <Text style={styles.detailLine}>
-                                    Hora: {toTimeDisplay(selectedReservaDetail.fecha_hora_inicio)} - {toTimeDisplay(selectedReservaDetail.fecha_hora_fin)}
+                                    {`${DETAIL_HORA_LABEL} `}{toTimeDisplay(selectedReservaDetail.fecha_hora_inicio)} - {toTimeDisplay(selectedReservaDetail.fecha_hora_fin)}
                                 </Text>
-                                <Text style={styles.detailLine}>Estado: {selectedReservaDetail.estado || "pendiente"}</Text>
+                                <Text style={styles.detailLine}>{`${DETAIL_ESTADO_LABEL} ${selectedReservaDetail.estado || DEFAULT_ESTADO_LABEL}`}</Text>
                                 <TouchableOpacity
                                     style={[styles.detailActionButton, styles.detailActionButtonPrimary]}
                                     onPress={() => {
@@ -1266,7 +1302,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                     testID="reserva-detail-edit-button"
                                 >
                                     <MaterialIcons name="edit" size={18} color="#fff" />
-                                    <Text style={styles.detailActionButtonText}>Editar reserva</Text>
+                                    <Text style={styles.detailActionButtonText}>{DETAIL_EDIT_BUTTON}</Text>
                                 </TouchableOpacity>
 
                                 {!isCancelled && !isCompleted ? (
@@ -1276,7 +1312,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                         testID="reserva-detail-complete-button"
                                     >
                                         <MaterialIcons name="check-circle" size={18} color="#fff" />
-                                        <Text style={styles.detailActionButtonText}>Marcar como completada</Text>
+                                        <Text style={styles.detailActionButtonText}>{DETAIL_COMPLETE_BUTTON}</Text>
                                     </TouchableOpacity>
                                 ) : null}
 
@@ -1287,7 +1323,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                         testID="reserva-detail-cancel-button"
                                     >
                                         <MaterialIcons name="event-busy" size={18} color="#fff" />
-                                        <Text style={styles.detailActionButtonText}>Cancelar reserva</Text>
+                                        <Text style={styles.detailActionButtonText}>{DETAIL_CANCEL_BUTTON}</Text>
                                     </TouchableOpacity>
                                 ) : null}
                                 <TouchableOpacity
@@ -1296,7 +1332,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                     testID="reserva-detail-delete-button"
                                 >
                                     <MaterialIcons name="delete" size={18} color="#fff" />
-                                    <Text style={styles.detailActionButtonText}>Borrar reserva</Text>
+                                    <Text style={styles.detailActionButtonText}>{DETAIL_DELETE_BUTTON}</Text>
                                 </TouchableOpacity>
                                         </>
                                     );
@@ -1317,17 +1353,17 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                 <View style={styles.modalBackdrop}>
                     <View style={styles.modalCard}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Confirmar acción</Text>
+                            <Text style={styles.modalTitle}>{CONFIRM_ACTION_TITLE}</Text>
                             <TouchableOpacity onPress={handleCloseConfirmAction} disabled={actionLoading}>
                                 <MaterialIcons name="close" size={22} color="#6b7280" />
                             </TouchableOpacity>
                         </View>
                         <Text style={styles.detailLine}>
                             {pendingAction === "complete"
-                                ? "¿Marcar esta reserva como completada?"
+                                ? CONFIRM_COMPLETE_QUESTION
                                 : pendingAction === "cancel"
-                                    ? "¿Cancelar esta reserva?"
-                                    : "¿Borrar esta reserva?"}
+                                    ? CONFIRM_CANCEL_QUESTION
+                                    : CONFIRM_DELETE_QUESTION}
                         </Text>
                         <View style={styles.confirmActionsRow}>
                             <TouchableOpacity
@@ -1336,7 +1372,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                 disabled={actionLoading}
                                 testID="reserva-confirm-no"
                             >
-                                <Text style={styles.confirmActionButtonText}>No</Text>
+                                <Text style={styles.confirmActionButtonText}>{CONFIRM_NO_BUTTON}</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.confirmActionButton, styles.confirmActionAcceptButton]}
@@ -1345,7 +1381,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                 testID="reserva-confirm-yes"
                             >
                                 {actionLoading ? <ActivityIndicator size="small" color="#fff" /> : null}
-                                <Text style={styles.confirmActionButtonText}>Sí</Text>
+                                <Text style={styles.confirmActionButtonText}>{CONFIRM_YES_BUTTON}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -1368,7 +1404,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                         </View>
                         <TextInput
                             style={styles.searchInput}
-                            placeholder="Buscar cliente"
+                            placeholder={SEARCH_CLIENTE_PLACEHOLDER}
                             value={clienteSearchQuery}
                             onChangeText={setClienteSearchQuery}
                             testID="reservas-search-cliente-input"
@@ -1377,7 +1413,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                             {clientes.length === 0 ? (
                                 <Text style={styles.emptyText}>{EMPTY_CLIENTES_MESSAGE}</Text>
                             ) : filteredClientes.length === 0 ? (
-                                <Text style={styles.emptyText}>No hay clientes que coincidan</Text>
+                                <Text style={styles.emptyText}>{EMPTY_CLIENTES_FILTERED_MESSAGE}</Text>
                             ) : filteredClientes.map((cliente) => (
                                 <TouchableOpacity
                                     key={cliente.id_cliente}
@@ -1412,7 +1448,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                         </View>
                         <TextInput
                             style={styles.searchInput}
-                            placeholder="Buscar recurso"
+                            placeholder={SEARCH_RECURSO_PLACEHOLDER}
                             value={recursoSearchQuery}
                             onChangeText={setRecursoSearchQuery}
                             testID="reservas-search-recurso-input"
@@ -1421,7 +1457,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                             {recursos.length === 0 ? (
                                 <Text style={styles.emptyText}>{EMPTY_RECURSOS_MESSAGE}</Text>
                             ) : filteredRecursos.length === 0 ? (
-                                <Text style={styles.emptyText}>No hay recursos que coincidan</Text>
+                                <Text style={styles.emptyText}>{EMPTY_RECURSOS_FILTERED_MESSAGE}</Text>
                             ) : filteredRecursos.map((recurso) => (
                                 <TouchableOpacity
                                     key={recurso.id_recurso}
@@ -1457,7 +1493,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                         </View>
                         <TextInput
                             style={styles.searchInput}
-                            placeholder="Buscar servicio"
+                            placeholder={SEARCH_SERVICIO_PLACEHOLDER}
                             value={servicioSearchQuery}
                             onChangeText={setServicioSearchQuery}
                             testID="reservas-search-servicio-input"
@@ -1466,7 +1502,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                             {servicios.length === 0 ? (
                                 <Text style={styles.emptyText}>{EMPTY_SERVICIOS_MESSAGE}</Text>
                             ) : filteredServicios.length === 0 ? (
-                                <Text style={styles.emptyText}>No hay servicios que coincidan</Text>
+                                <Text style={styles.emptyText}>{EMPTY_SERVICIOS_FILTERED_MESSAGE}</Text>
                             ) : filteredServicios.map((servicio) => (
                                 <TouchableOpacity
                                     key={servicio.id_servicio}
@@ -1475,7 +1511,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                     testID={`reservas-select-servicio-${servicio.id_servicio}`}
                                 >
                                     <Text style={styles.optionText}>{servicio.nombre}</Text>
-                                    <Text style={styles.optionMeta}>Duración: {servicio.duracion} min</Text>
+                                    <Text style={styles.optionMeta}>{`${SERVICIO_DURACION_PREFIX} ${servicio.duracion} ${SERVICIO_DURACION_SUFFIX}`}</Text>
                                 </TouchableOpacity>
                             ))}
                         </ScrollView>
