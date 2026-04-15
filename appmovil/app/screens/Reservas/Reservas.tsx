@@ -19,6 +19,7 @@ import {
     ADD_RESERVA_BUTTON,
     CALENDAR_EMPTY_MESSAGE,
     cancelReservaByIdRoute,
+    completeReservaByIdRoute,
     clientesByNegocioRoute,
     CONNECTION_ERROR,
     DEFAULT_CLIENTES_ERROR,
@@ -50,6 +51,7 @@ import {
     reservasByNegocioRoute,
     reservasRoute,
     RESERVA_CANCELADA_MESSAGE,
+    RESERVA_COMPLETADA_MESSAGE,
     RESERVA_ELIMINADA_MESSAGE,
     recursosByNegocioRoute,
     SAVE_BUTTON_TEXT,
@@ -140,7 +142,21 @@ const formatClienteName = (cliente: Cliente) => {
 };
 
 const normalizeText = (value: string) => value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-type ReservaActionType = "cancel" | "delete";
+type ReservaActionType = "complete" | "cancel" | "delete";
+
+const getReservaStatusKey = (estado?: string) => {
+    const normalized = normalizeText(`${estado || "pendiente"}`);
+
+    if (normalized === "cancelada") {
+        return "cancelled";
+    }
+
+    if (normalized === "completada" || normalized === "finalizada") {
+        return "completed";
+    }
+
+    return "pending";
+};
 
 const buildCalendarMatrix = (cursor: Date) => {
     const year = cursor.getFullYear();
@@ -284,10 +300,30 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
         []
     );
 
+    const timelinePixelsPerMinute = 1.6;
+    const timelineHourLabelHeight = 60 * timelinePixelsPerMinute;
+
     const timelineHeight = useMemo(
-        () => (CLOSING_HOUR - OPENING_HOUR) * 60 * TIMELINE_PIXELS_PER_MINUTE,
-        []
+        () => (CLOSING_HOUR - OPENING_HOUR) * 60 * timelinePixelsPerMinute,
+        [timelinePixelsPerMinute]
     );
+
+    const currentTimeTop = useMemo(() => {
+        if (selectedDay !== todayKey) {
+            return null;
+        }
+
+        const now = new Date();
+        const minutesNow = now.getHours() * 60 + now.getMinutes();
+        const openingMinutes = OPENING_HOUR * 60;
+        const closingMinutes = CLOSING_HOUR * 60;
+
+        if (minutesNow < openingMinutes || minutesNow > closingMinutes) {
+            return null;
+        }
+
+        return (minutesNow - openingMinutes) * timelinePixelsPerMinute;
+    }, [selectedDay, timelinePixelsPerMinute, todayKey]);
 
     const timelineResourceLanes = useMemo(() => {
         const uniqueResourceIds = [...new Set(reservasSelectedDayFiltered.map((reserva) => reserva.id_recurso))].sort((a, b) => a - b);
@@ -324,10 +360,11 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                     return null;
                 }
 
-                let top = ((visibleStartMs - dayStartMs) / 60000) * TIMELINE_PIXELS_PER_MINUTE;
-                const rawHeight = ((visibleEndMs - visibleStartMs) / 60000) * TIMELINE_PIXELS_PER_MINUTE;
-                const isCancelled = `${reserva.estado || ""}`.toLowerCase() === "cancelada";
-                const minHeight = isCancelled ? MIN_CANCELLED_EVENT_BLOCK_HEIGHT : MIN_EVENT_BLOCK_HEIGHT;
+                let top = ((visibleStartMs - dayStartMs) / 60000) * timelinePixelsPerMinute;
+                const rawHeight = ((visibleEndMs - visibleStartMs) / 60000) * timelinePixelsPerMinute;
+                const statusKey = getReservaStatusKey(reserva.estado);
+                const hasStatusLabel = statusKey === "cancelled" || statusKey === "completed";
+                const minHeight = hasStatusLabel ? MIN_CANCELLED_EVENT_BLOCK_HEIGHT : MIN_EVENT_BLOCK_HEIGHT;
                 const height = Math.max(rawHeight, minHeight);
 
                 if (top + height > timelineHeight) {
@@ -343,7 +380,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
             })
             .filter((item): item is { reserva: Reserva; top: number; height: number; laneIndex: number } => item !== null)
             .sort((a, b) => a.top - b.top || a.laneIndex - b.laneIndex);
-            }, [reservasSelectedDayFiltered, selectedDay, timelineHeight, timelineResourceLanes]);
+            }, [reservasSelectedDayFiltered, selectedDay, timelineHeight, timelinePixelsPerMinute, timelineResourceLanes]);
 
     const selectedDurationMinutes = useMemo(() => {
         if (!INTEGER_REGEX.test(duracionMinutos.trim())) {
@@ -514,6 +551,13 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
             return false;
         }
 
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (fechaDate.getTime() < today.getTime()) {
+            setError("No puedes crear reservas en fechas pasadas");
+            return false;
+        }
+
         if (!duracionMinutos.trim()) {
             setError(EMPTY_DURACION_ERROR);
             return false;
@@ -560,6 +604,16 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
         }
 
         if (event.type === "dismissed" || !selectedDateValue) {
+            return;
+        }
+
+        const pickedDay = new Date(selectedDateValue);
+        pickedDay.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (pickedDay.getTime() < today.getTime()) {
+            setError("No puedes crear reservas en fechas pasadas");
             return;
         }
 
@@ -615,10 +669,18 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
 
         try {
             const token = await AsyncStorage.getItem("token");
-            const endpoint = pendingAction === "cancel"
-                ? cancelReservaByIdRoute(pendingReserva.id_reserva)
-                : deleteReservaByIdRoute(pendingReserva.id_reserva);
-            const method = pendingAction === "cancel" ? "PATCH" : "DELETE";
+            let endpoint = deleteReservaByIdRoute(pendingReserva.id_reserva);
+            let method = "DELETE";
+
+            if (pendingAction === "cancel") {
+                endpoint = cancelReservaByIdRoute(pendingReserva.id_reserva);
+                method = "PATCH";
+            }
+
+            if (pendingAction === "complete") {
+                endpoint = completeReservaByIdRoute(pendingReserva.id_reserva);
+                method = "PATCH";
+            }
 
             const response = await fetch(endpoint, {
                 method,
@@ -634,7 +696,13 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                 return;
             }
 
-            setSuccess(data.message || (pendingAction === "cancel" ? RESERVA_CANCELADA_MESSAGE : RESERVA_ELIMINADA_MESSAGE));
+            const fallbackMessage = pendingAction === "cancel"
+                ? RESERVA_CANCELADA_MESSAGE
+                : pendingAction === "complete"
+                    ? RESERVA_COMPLETADA_MESSAGE
+                    : RESERVA_ELIMINADA_MESSAGE;
+
+            setSuccess(data.message || fallbackMessage);
             setDetailModalVisible(false);
             setSelectedReservaDetail(null);
             setConfirmActionVisible(false);
@@ -702,6 +770,11 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
         year: "numeric",
     });
 
+    const agendaDayLabel = useMemo(() => {
+        const label = toDayLabel(dateFromKey(selectedDay));
+        return label.charAt(0).toUpperCase() + label.slice(1);
+    }, [selectedDay]);
+
     const toggleCalendar = () => {
         if (isCalendarExpanded) {
             setIsCalendarExpanded(false);
@@ -719,6 +792,13 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
         if (dayKey === todayKey) {
             setIsCalendarExpanded(false);
         }
+    };
+
+    const handleGoToToday = () => {
+        const today = new Date();
+        setSelectedDay(todayKey);
+        setCalendarCursor(new Date(today.getFullYear(), today.getMonth(), 1));
+        setIsCalendarExpanded(false);
     };
 
     return (
@@ -766,11 +846,20 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                 <Text style={styles.selectedDayLabel}>Día seleccionado</Text>
                                 <Text style={styles.selectedDayValue}>{toDayLabel(dateFromKey(selectedDay))}</Text>
                             </View>
-                            <MaterialIcons
-                                name={isCalendarExpanded ? "expand-less" : "expand-more"}
-                                size={22}
-                                color="#374151"
-                            />
+                            <View style={styles.selectedDayActions}>
+                                <TouchableOpacity
+                                    style={styles.todayButton}
+                                    onPress={handleGoToToday}
+                                    testID="reservas-go-today"
+                                >
+                                    <Text style={styles.todayButtonText}>Hoy</Text>
+                                </TouchableOpacity>
+                                <MaterialIcons
+                                    name={isCalendarExpanded ? "expand-less" : "expand-more"}
+                                    size={22}
+                                    color="#374151"
+                                />
+                            </View>
                         </TouchableOpacity>
 
                         {isCalendarExpanded ? (
@@ -806,16 +895,21 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                         const dayKey = toLocalDateKey(new Date(calendarCursor.getFullYear(), calendarCursor.getMonth(), day));
                                         const events = reservasByDay.get(dayKey) || [];
                                         const isSelected = selectedDay === dayKey;
+                                        const isToday = dayKey === todayKey;
 
                                         return (
                                             <TouchableOpacity
                                                 key={`day-${day}`}
-                                                style={[styles.dayCell, isSelected && styles.dayCellSelected]}
+                                                style={[styles.dayCell, isToday && styles.dayCellToday, isSelected && styles.dayCellSelected]}
                                                 onPress={() => handleSelectCalendarDay(dayKey)}
                                                 testID={`reservas-calendar-day-${day}`}
                                             >
-                                                <Text style={[styles.dayText, isSelected && styles.dayTextSelected]}>{day}</Text>
-                                                {events.length ? <View style={styles.dayDot} /> : null}
+                                                <Text style={[styles.dayText, isToday && styles.dayTextToday, isSelected && styles.dayTextSelected]}>{day}</Text>
+                                                {events.length ? (
+                                                    <View style={styles.dayBadge}>
+                                                        <Text style={styles.dayBadgeText}>{events.length > 9 ? "9+" : events.length}</Text>
+                                                    </View>
+                                                ) : null}
                                             </TouchableOpacity>
                                         );
                                     })}
@@ -825,7 +919,23 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                     </View>
 
                     <View style={styles.dayListCard}>
-                        <Text style={styles.dayListTitle}>Agenda {selectedDay}</Text>
+                        <Text style={styles.dayListTitle}>Agenda del {agendaDayLabel}</Text>
+
+                        <View style={styles.timelineLegendRow}>
+                            <View style={styles.timelineLegendItem}>
+                                <View style={[styles.timelineLegendDot, styles.timelineLegendDotPending]} />
+                                <Text style={styles.timelineLegendText}>Pendiente</Text>
+                            </View>
+                            <View style={styles.timelineLegendItem}>
+                                <View style={[styles.timelineLegendDot, styles.timelineLegendDotCancelled]} />
+                                <Text style={styles.timelineLegendText}>Cancelada</Text>
+                            </View>
+                            <View style={styles.timelineLegendItem}>
+                                <View style={[styles.timelineLegendDot, styles.timelineLegendDotCompleted]} />
+                                <Text style={styles.timelineLegendText}>Completada</Text>
+                            </View>
+                        </View>
+
                         <ScrollView
                             horizontal
                             showsHorizontalScrollIndicator={false}
@@ -870,7 +980,11 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                 {timelineHourLabels.map((hour, index) => (
                                     <Text
                                         key={`${hour}-${index}`}
-                                        style={[styles.timelineHourLabel, index === timelineHourLabels.length - 1 && styles.timelineLastHourLabel]}
+                                        style={[
+                                            styles.timelineHourLabel,
+                                            { height: index === timelineHourLabels.length - 1 ? 16 : timelineHourLabelHeight },
+                                        ]}
+                                        testID={`reservas-hour-label-${index}`}
                                     >
                                         {hour}
                                     </Text>
@@ -884,12 +998,18 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                 testID="reservas-timeline-horizontal-scroll"
                             >
                                 <View style={[styles.timelineGrid, { height: timelineHeight, width: timelineContentWidth, minWidth: "100%" }]}>
+                                    {currentTimeTop !== null ? (
+                                        <View style={[styles.timelineNowLine, { top: currentTimeTop }]}>
+                                            <View style={styles.timelineNowDot} />
+                                        </View>
+                                    ) : null}
+
                                     {Array.from({ length: CLOSING_HOUR - OPENING_HOUR + 1 }).map((_, index) => (
                                         <View
                                             key={`timeline-line-${index}`}
                                             style={[
                                                 styles.timelineHourLine,
-                                                { top: index * 60 * TIMELINE_PIXELS_PER_MINUTE },
+                                                { top: index * 60 * timelinePixelsPerMinute },
                                             ]}
                                         />
                                     ))}
@@ -911,7 +1031,9 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                     ) : (
                                         timelineEvents.map(({ reserva, top, height, laneIndex }) => {
                                             const recurso = recursoById.get(reserva.id_recurso);
-                                            const isCancelled = `${reserva.estado || ""}`.toLowerCase() === "cancelada";
+                                            const statusKey = getReservaStatusKey(reserva.estado);
+                                            const isCancelled = statusKey === "cancelled";
+                                            const isCompleted = statusKey === "completed";
 
                                             return (
                                                 <TouchableOpacity
@@ -919,6 +1041,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                                     style={[
                                                         styles.timelineEventBlock,
                                                         isCancelled && styles.timelineEventBlockCancelled,
+                                                        isCompleted && styles.timelineEventBlockCompleted,
                                                         {
                                                             top,
                                                             height,
@@ -929,13 +1052,21 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                                     onPress={() => handleOpenReservaDetail(reserva)}
                                                     testID={`reserva-item-${reserva.id_reserva}`}
                                                 >
-                                                    <Text style={styles.timelineEventTime} numberOfLines={1}>
+                                                    <Text style={[styles.timelineEventTime, isCompleted && styles.timelineEventTimeCompleted]} numberOfLines={1}>
                                                         {toTimeDisplay(reserva.fecha_hora_inicio)} - {toTimeDisplay(reserva.fecha_hora_fin)}
                                                     </Text>
-                                                    <Text style={[styles.timelineEventResource, isCancelled && styles.timelineEventResourceCancelled]} numberOfLines={1}>
+                                                    <Text
+                                                        style={[
+                                                            styles.timelineEventResource,
+                                                            isCancelled && styles.timelineEventResourceCancelled,
+                                                            isCompleted && styles.timelineEventResourceCompleted,
+                                                        ]}
+                                                        numberOfLines={1}
+                                                    >
                                                         {recurso?.nombre || `#${reserva.id_recurso}`}
                                                     </Text>
                                                     {isCancelled ? <Text style={styles.timelineEventState}>Cancelada</Text> : null}
+                                                    {isCompleted ? <Text style={styles.timelineEventStateCompleted}>Completada</Text> : null}
                                                 </TouchableOpacity>
                                             );
                                         })
@@ -1101,7 +1232,9 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                         {selectedReservaDetail ? (
                             <View style={styles.detailContent}>
                                 {(() => {
-                                    const isCancelled = `${selectedReservaDetail.estado || ""}`.toLowerCase() === "cancelada";
+                                    const statusKey = getReservaStatusKey(selectedReservaDetail.estado);
+                                    const isCancelled = statusKey === "cancelled";
+                                    const isCompleted = statusKey === "completed";
 
                                     return (
                                         <>
@@ -1125,30 +1258,45 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                 </Text>
                                 <Text style={styles.detailLine}>Estado: {selectedReservaDetail.estado || "pendiente"}</Text>
                                 <TouchableOpacity
-                                    style={styles.editReservaButton}
+                                    style={[styles.detailActionButton, styles.detailActionButtonPrimary]}
                                     onPress={() => {
                                         setDetailModalVisible(false);
                                         navigation.navigate("EditarReserva", { negocio, reserva: selectedReservaDetail });
                                     }}
                                     testID="reserva-detail-edit-button"
                                 >
-                                    <Text style={styles.editReservaButtonText}>Editar reserva</Text>
+                                    <MaterialIcons name="edit" size={18} color="#fff" />
+                                    <Text style={styles.detailActionButtonText}>Editar reserva</Text>
                                 </TouchableOpacity>
-                                {!isCancelled ? (
+
+                                {!isCancelled && !isCompleted ? (
                                     <TouchableOpacity
-                                        style={[styles.editReservaButton, styles.cancelReservaButton]}
+                                        style={[styles.detailActionButton, styles.completeReservaButton]}
+                                        onPress={() => handleOpenConfirmAction("complete", selectedReservaDetail)}
+                                        testID="reserva-detail-complete-button"
+                                    >
+                                        <MaterialIcons name="check-circle" size={18} color="#fff" />
+                                        <Text style={styles.detailActionButtonText}>Marcar como completada</Text>
+                                    </TouchableOpacity>
+                                ) : null}
+
+                                {!isCancelled && !isCompleted ? (
+                                    <TouchableOpacity
+                                        style={[styles.detailActionButton, styles.cancelReservaButton]}
                                         onPress={() => handleOpenConfirmAction("cancel", selectedReservaDetail)}
                                         testID="reserva-detail-cancel-button"
                                     >
-                                        <Text style={styles.editReservaButtonText}>Cancelar reserva</Text>
+                                        <MaterialIcons name="event-busy" size={18} color="#fff" />
+                                        <Text style={styles.detailActionButtonText}>Cancelar reserva</Text>
                                     </TouchableOpacity>
                                 ) : null}
                                 <TouchableOpacity
-                                    style={[styles.editReservaButton, styles.deleteReservaButton]}
+                                    style={[styles.detailActionButton, styles.deleteReservaButton]}
                                     onPress={() => handleOpenConfirmAction("delete", selectedReservaDetail)}
                                     testID="reserva-detail-delete-button"
                                 >
-                                    <Text style={styles.editReservaButtonText}>Borrar reserva</Text>
+                                    <MaterialIcons name="delete" size={18} color="#fff" />
+                                    <Text style={styles.detailActionButtonText}>Borrar reserva</Text>
                                 </TouchableOpacity>
                                         </>
                                     );
@@ -1174,7 +1322,13 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                 <MaterialIcons name="close" size={22} color="#6b7280" />
                             </TouchableOpacity>
                         </View>
-                        <Text style={styles.detailLine}>¿Está seguro?</Text>
+                        <Text style={styles.detailLine}>
+                            {pendingAction === "complete"
+                                ? "¿Marcar esta reserva como completada?"
+                                : pendingAction === "cancel"
+                                    ? "¿Cancelar esta reserva?"
+                                    : "¿Borrar esta reserva?"}
+                        </Text>
                         <View style={styles.confirmActionsRow}>
                             <TouchableOpacity
                                 style={[styles.confirmActionButton, styles.confirmActionCancelButton]}
@@ -1418,6 +1572,24 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 10,
     },
+    selectedDayActions: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+    },
+    todayButton: {
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: "#93c5fd",
+        backgroundColor: "#eff6ff",
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+    },
+    todayButtonText: {
+        color: "#1d4ed8",
+        fontWeight: "700",
+        fontSize: 12,
+    },
     selectedDayLabel: {
         color: "#1d4ed8",
         fontSize: 12,
@@ -1463,23 +1635,44 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         borderRadius: 8,
+        borderWidth: 1,
+        borderColor: "transparent",
+        position: "relative",
+    },
+    dayCellToday: {
+        borderColor: "#93c5fd",
     },
     dayCellSelected: {
         backgroundColor: "#dbeafe",
+        borderColor: "#2563eb",
     },
     dayText: {
         color: "#1f2937",
         fontWeight: "600",
     },
+    dayTextToday: {
+        color: "#1d4ed8",
+        fontWeight: "700",
+    },
     dayTextSelected: {
         color: "#1d4ed8",
     },
-    dayDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
+    dayBadge: {
+        minWidth: 16,
+        height: 16,
+        paddingHorizontal: 3,
+        borderRadius: 8,
         backgroundColor: "#0ea5e9",
-        marginTop: 3,
+        alignItems: "center",
+        justifyContent: "center",
+        position: "absolute",
+        bottom: 2,
+        right: 2,
+    },
+    dayBadgeText: {
+        color: "#fff",
+        fontWeight: "700",
+        fontSize: 10,
     },
     dayListCard: {
         backgroundColor: "#fff",
@@ -1491,6 +1684,36 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         color: "#111827",
         marginBottom: 10,
+    },
+    timelineLegendRow: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 12,
+        marginBottom: 8,
+    },
+    timelineLegendItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+    },
+    timelineLegendDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+    },
+    timelineLegendDotPending: {
+        backgroundColor: "#1d4ed8",
+    },
+    timelineLegendDotCancelled: {
+        backgroundColor: "#9ca3af",
+    },
+    timelineLegendDotCompleted: {
+        backgroundColor: "#16a34a",
+    },
+    timelineLegendText: {
+        color: "#4b5563",
+        fontSize: 12,
+        fontWeight: "600",
     },
     resourceFilterContainer: {
         flexDirection: "row",
@@ -1526,14 +1749,10 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     timelineHourLabel: {
-        height: 60 * TIMELINE_PIXELS_PER_MINUTE,
         color: "#6b7280",
         fontSize: 11,
         textAlign: "right",
         paddingRight: 4,
-    },
-    timelineLastHourLabel: {
-        height: 16,
     },
     timelineGrid: {
         borderRadius: 10,
@@ -1552,6 +1771,23 @@ const styles = StyleSheet.create({
         right: 0,
         height: 1,
         backgroundColor: "#e5e7eb",
+    },
+    timelineNowLine: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        height: 2,
+        backgroundColor: "#ef4444",
+        zIndex: 3,
+    },
+    timelineNowDot: {
+        position: "absolute",
+        left: 0,
+        top: -4,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: "#ef4444",
     },
     timelineLaneDivider: {
         position: "absolute",
@@ -1581,11 +1817,18 @@ const styles = StyleSheet.create({
         backgroundColor: "#f3f4f6",
         borderColor: "#d1d5db",
     },
+    timelineEventBlockCompleted: {
+        backgroundColor: "#ecfdf5",
+        borderColor: "#86efac",
+    },
     timelineEventTime: {
         color: "#1d4ed8",
         fontWeight: "700",
         fontSize: 11,
         textAlign: "center",
+    },
+    timelineEventTimeCompleted: {
+        color: "#166534",
     },
     timelineEventResource: {
         color: "#1e3a8a",
@@ -1597,12 +1840,22 @@ const styles = StyleSheet.create({
     timelineEventResourceCancelled: {
         color: "#6b7280",
     },
+    timelineEventResourceCompleted: {
+        color: "#166534",
+    },
     timelineEventState: {
         textAlign: "center",
         color: "#dc2626",
         fontSize: 10,
         fontWeight: "700",
         marginTop: 2,
+    },
+    timelineEventStateCompleted: {
+        textAlign: "center",
+        color: "#166534",
+        fontSize: 9,
+        fontWeight: "700",
+        marginTop: 1,
     },
     detailContent: {
         gap: 6,
@@ -1611,19 +1864,33 @@ const styles = StyleSheet.create({
         color: "#1f2937",
         fontSize: 14,
     },
-    editReservaButton: {
+    detailActionButton: {
         marginTop: 8,
-        backgroundColor: "#1976D2",
-        borderRadius: 8,
+        borderRadius: 10,
         alignItems: "center",
-        paddingVertical: 10,
+        justifyContent: "center",
+        flexDirection: "row",
+        gap: 8,
+        paddingVertical: 11,
+        shadowColor: "#000",
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 3 },
+        elevation: 2,
     },
-    editReservaButtonText: {
+    detailActionButtonPrimary: {
+        backgroundColor: "#1d4ed8",
+    },
+    detailActionButtonText: {
         color: "#fff",
         fontWeight: "700",
+        fontSize: 14,
+    },
+    completeReservaButton: {
+        backgroundColor: "#16a34a",
     },
     cancelReservaButton: {
-        backgroundColor: "#f59e0b",
+        backgroundColor: "#d97706",
     },
     deleteReservaButton: {
         backgroundColor: "#dc2626",

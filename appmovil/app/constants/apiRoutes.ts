@@ -45,6 +45,7 @@ export const API_ROUTES = {
   reservasByNegocio: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/reservas/${idNegocio}`,
   updateReservaById: (idReserva: number) => `${API_BASE_URL}${API_PREFIX}/reservas/${idReserva}`,
   cancelReservaById: (idReserva: number) => `${API_BASE_URL}${API_PREFIX}/reservas/${idReserva}/cancel`,
+  completeReservaById: (idReserva: number) => `${API_BASE_URL}${API_PREFIX}/reservas/${idReserva}/complete`,
   deleteReservaById: (idReserva: number) => `${API_BASE_URL}${API_PREFIX}/reservas/${idReserva}`,
   proveedores: `${API_BASE_URL}${API_PREFIX}/proveedores`,
   proveedoresByNegocio: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/proveedores/${idNegocio}`,

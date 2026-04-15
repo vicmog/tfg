@@ -4,6 +4,7 @@ export const reservasRoute = API_ROUTES.reservas;
 export const reservasByNegocioRoute = (idNegocio: number) => API_ROUTES.reservasByNegocio(idNegocio);
 export const updateReservaByIdRoute = (idReserva: number) => API_ROUTES.updateReservaById(idReserva);
 export const cancelReservaByIdRoute = (idReserva: number) => API_ROUTES.cancelReservaById(idReserva);
+export const completeReservaByIdRoute = (idReserva: number) => API_ROUTES.completeReservaById(idReserva);
 export const deleteReservaByIdRoute = (idReserva: number) => API_ROUTES.deleteReservaById(idReserva);
 export const clientesByNegocioRoute = (idNegocio: number) => API_ROUTES.clientesByNegocio(idNegocio);
 export const recursosByNegocioRoute = (idNegocio: number) => API_ROUTES.recursosByNegocio(idNegocio);
@@ -18,6 +19,7 @@ export const SAVE_CHANGES_BUTTON_TEXT = "Guardar cambios";
 export const SAVING_CHANGES_BUTTON_TEXT = "Guardando cambios...";
 export const SUCCESS_MESSAGE = "Reserva registrada correctamente";
 export const RESERVA_CANCELADA_MESSAGE = "Reserva cancelada correctamente";
+export const RESERVA_COMPLETADA_MESSAGE = "Reserva completada correctamente";
 export const RESERVA_ELIMINADA_MESSAGE = "Reserva eliminada correctamente";
 
 export const SELECT_CLIENTE_LABEL = "Cliente";
