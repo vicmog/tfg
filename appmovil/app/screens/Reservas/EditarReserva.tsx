@@ -17,6 +17,8 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { Cliente, Recurso, Reserva, Servicio } from "../types";
 import {
     AVAILABLE_SLOTS_EMPTY_MESSAGE,
+    CAPACIDAD_SOLICITADA_LABEL,
+    CAPACIDAD_SOLICITADA_PLACEHOLDER,
     clientesByNegocioRoute,
     CONNECTION_ERROR,
     DEFAULT_CLIENTES_ERROR,
@@ -26,6 +28,7 @@ import {
     DEFAULT_SERVICIOS_ERROR,
     DURACION_LABEL,
     DURACION_PLACEHOLDER,
+    EMPTY_CAPACIDAD_SOLICITADA_ERROR,
     EMPTY_CLIENTE_ERROR,
     EMPTY_CLIENTES_MESSAGE,
     EMPTY_DURACION_ERROR,
@@ -37,7 +40,9 @@ import {
     FECHA_INICIO_LABEL,
     FRANJA_LABEL,
     INVALID_DURACION_ERROR,
+    INVALID_CAPACIDAD_SOLICITADA_ERROR,
     INVALID_FECHA_INICIO_ERROR,
+    NO_SERVICIO_OPTION_LABEL,
     PICK_CLIENTE_PLACEHOLDER,
     PICK_FRANJA_PLACEHOLDER,
     PICK_RECURSO_PLACEHOLDER,
@@ -55,6 +60,7 @@ import {
 import { EditarReservaProps } from "./types";
 
 const INTEGER_REGEX = /^\d+$/;
+const NO_SERVICIO_OPTION_ID = 0;
 const WEEK_LABELS = ["L", "M", "X", "J", "V", "S", "D"];
 const OPENING_HOUR = 8;
 const CLOSING_HOUR = 21;
@@ -140,6 +146,7 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
     const [selectedFecha, setSelectedFecha] = useState<string>(toLocalDateKey(reserva.fecha_hora_inicio));
     const [selectedSlotInicioIso, setSelectedSlotInicioIso] = useState<string | null>(reserva.fecha_hora_inicio);
     const [duracionMinutos, setDuracionMinutos] = useState<string>(getInitialDuration(reserva));
+    const [capacidadSolicitada, setCapacidadSolicitada] = useState<string>("");
 
     const [loadingData, setLoadingData] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -168,6 +175,8 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
         () => servicios.find((servicio) => servicio.id_servicio === selectedServicioId) || null,
         [servicios, selectedServicioId]
     );
+
+    const isNoServicioSelected = selectedServicioId === NO_SERVICIO_OPTION_ID;
 
     const filteredClientes = useMemo(() => {
         const query = normalizeText(clienteSearchQuery.trim());
@@ -290,10 +299,6 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
                     setRecursos(recursosData.recursos || []);
                     setServicios(fetchedServicios);
                     setReservas(reservasData.reservas || []);
-
-                    if (!selectedServicioId && fetchedServicios.length > 0) {
-                        setSelectedServicioId(fetchedServicios[0].id_servicio);
-                    }
                 } catch {
                     setError(CONNECTION_ERROR);
                 } finally {
@@ -302,7 +307,7 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
             };
 
             fetchData();
-        }, [negocio.id_negocio, selectedServicioId])
+        }, [negocio.id_negocio])
     );
 
     const validateForm = () => {
@@ -311,9 +316,21 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
             return false;
         }
 
-        if (!selectedServicioId) {
+        if (selectedServicioId === null) {
             setError(EMPTY_SERVICIO_ERROR);
             return false;
+        }
+
+        if (isNoServicioSelected) {
+            if (!capacidadSolicitada.trim()) {
+                setError(EMPTY_CAPACIDAD_SOLICITADA_ERROR);
+                return false;
+            }
+
+            if (!INTEGER_REGEX.test(capacidadSolicitada.trim()) || Number.parseInt(capacidadSolicitada.trim(), 10) <= 0) {
+                setError(INVALID_CAPACIDAD_SOLICITADA_ERROR);
+                return false;
+            }
         }
 
         if (!selectedRecursoId) {
@@ -356,6 +373,10 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
 
         if (servicio?.duracion) {
             setDuracionMinutos(`${servicio.duracion}`);
+        }
+
+        if (idServicio !== NO_SERVICIO_OPTION_ID) {
+            setCapacidadSolicitada("");
         }
 
         setSelectedSlotInicioIso(null);
@@ -413,9 +434,12 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
                 body: JSON.stringify({
                     id_recurso: selectedRecursoId,
                     id_cliente: selectedClienteId,
-                    id_servicio: selectedServicioId,
+                    id_servicio: isNoServicioSelected ? undefined : selectedServicioId,
                     fecha_hora_inicio: selectedSlotInicioIso,
                     duracion_minutos: duracionMinutos.trim(),
+                    capacidad_solicitada: isNoServicioSelected
+                        ? Number.parseInt(capacidadSolicitada.trim(), 10)
+                        : undefined,
                 }),
             });
 
@@ -479,10 +503,35 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
                         testID="editar-reserva-open-servicios-picker"
                     >
                         <Text style={selectedServicio ? styles.selectorValue : styles.selectorPlaceholder}>
-                            {selectedServicio ? selectedServicio.nombre : PICK_SERVICIO_PLACEHOLDER}
+                            {isNoServicioSelected
+                                ? NO_SERVICIO_OPTION_LABEL
+                                : selectedServicio
+                                    ? selectedServicio.nombre
+                                    : PICK_SERVICIO_PLACEHOLDER}
                         </Text>
                         <MaterialIcons name="expand-more" size={20} color="#6b7280" />
                     </TouchableOpacity>
+
+                    {isNoServicioSelected ? (
+                        <>
+                            <Text style={styles.fieldLabel}>{CAPACIDAD_SOLICITADA_LABEL}</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder={CAPACIDAD_SOLICITADA_PLACEHOLDER}
+                                value={capacidadSolicitada}
+                                onChangeText={(value) => {
+                                    setCapacidadSolicitada(value);
+                                    const parsed = Number.parseInt(value.trim(), 10);
+                                    if (selectedRecurso && Number.isInteger(parsed) && parsed > 0 && (selectedRecurso.capacidad ?? 0) < parsed) {
+                                        setSelectedRecursoId(null);
+                                        setSelectedSlotInicioIso(null);
+                                    }
+                                }}
+                                keyboardType="number-pad"
+                                testID="editar-reserva-capacidad-input"
+                            />
+                        </>
+                    ) : null}
 
                     <Text style={styles.fieldLabel}>{SELECT_RECURSO_LABEL}</Text>
                     <TouchableOpacity
@@ -656,17 +705,33 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
                             ) : filteredRecursos.length === 0 ? (
                                 <Text style={styles.emptyText}>No hay recursos que coincidan</Text>
                             ) : filteredRecursos.map((recurso) => (
-                                <TouchableOpacity
-                                    key={recurso.id_recurso}
-                                    style={styles.optionRow}
-                                    onPress={() => {
-                                        setSelectedRecursoId(recurso.id_recurso);
-                                        setSelectedSlotInicioIso(null);
-                                        setRecursoPickerVisible(false);
-                                    }}
-                                >
-                                    <Text style={styles.optionText}>{recurso.nombre}</Text>
-                                </TouchableOpacity>
+                                (() => {
+                                    const capacidadRequerida = isNoServicioSelected && INTEGER_REGEX.test(capacidadSolicitada.trim())
+                                        ? Number.parseInt(capacidadSolicitada.trim(), 10)
+                                        : null;
+                                    const capacidadInsuficiente = capacidadRequerida !== null
+                                        && (recurso.capacidad ?? 0) < capacidadRequerida;
+
+                                    return (
+                                        <TouchableOpacity
+                                            key={recurso.id_recurso}
+                                            style={[styles.optionRow, capacidadInsuficiente && styles.optionRowDisabled]}
+                                            disabled={capacidadInsuficiente}
+                                            onPress={() => {
+                                                setSelectedRecursoId(recurso.id_recurso);
+                                                setSelectedSlotInicioIso(null);
+                                                setRecursoPickerVisible(false);
+                                            }}
+                                            testID={`editar-reserva-select-recurso-${recurso.id_recurso}`}
+                                        >
+                                            <Text style={[styles.optionText, capacidadInsuficiente && styles.optionTextDisabled]}>{recurso.nombre}</Text>
+                                            <Text style={styles.optionMeta}>Capacidad: {recurso.capacidad ?? 0}</Text>
+                                            {capacidadInsuficiente ? (
+                                                <Text style={styles.optionMetaWarning}>Capacidad insuficiente</Text>
+                                            ) : null}
+                                        </TouchableOpacity>
+                                    );
+                                })()
                             ))}
                         </ScrollView>
                     </View>
@@ -684,6 +749,13 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
                         </View>
                         <TextInput style={styles.searchInput} placeholder="Buscar servicio" value={servicioSearchQuery} onChangeText={setServicioSearchQuery} />
                         <ScrollView>
+                            <TouchableOpacity
+                                style={styles.optionRow}
+                                onPress={() => handleSelectServicio(NO_SERVICIO_OPTION_ID)}
+                                testID="editar-reserva-select-servicio-ninguno"
+                            >
+                                <Text style={styles.optionText}>{NO_SERVICIO_OPTION_LABEL}</Text>
+                            </TouchableOpacity>
                             {servicios.length === 0 ? (
                                 <Text style={styles.emptyText}>{EMPTY_SERVICIOS_MESSAGE}</Text>
                             ) : filteredServicios.length === 0 ? (
@@ -886,12 +958,23 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: "#f3f4f6",
     },
+    optionRowDisabled: {
+        opacity: 0.6,
+    },
     optionText: {
         color: "#1f2937",
+    },
+    optionTextDisabled: {
+        textDecorationLine: "line-through",
     },
     optionMeta: {
         color: "#6b7280",
         marginTop: 2,
+    },
+    optionMetaWarning: {
+        color: "#b45309",
+        marginTop: 2,
+        fontWeight: "600",
     },
     slotsContainer: {
         flexDirection: "row",

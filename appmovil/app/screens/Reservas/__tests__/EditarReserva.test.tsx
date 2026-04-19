@@ -44,6 +44,17 @@ const mockRoute = {
     params: { negocio: mockNegocio, reserva: mockReserva },
 } as any;
 
+const mockRouteSinServicio = {
+    params: {
+        negocio: mockNegocio,
+        reserva: {
+            ...mockReserva,
+            id_servicio: null,
+            servicio_nombre: null,
+        },
+    },
+} as any;
+
 describe("EditarReserva", () => {
     beforeEach(() => {
         jest.clearAllMocks();
@@ -102,5 +113,51 @@ describe("EditarReserva", () => {
         });
 
         expect(mockNavigation.goBack).toHaveBeenCalled();
+    });
+
+    it("actualiza reserva sin servicio cuando se indica capacidad", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    clientes: [{ id_cliente: 5, nombre: "Juan", apellido1: "Perez", id_negocio: 1, bloqueado: false }],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    recursos: [{ id_recurso: 7, id_negocio: 1, nombre: "Sala principal", capacidad: 12 }],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    servicios: [{ id_servicio: 3, id_negocio: 1, nombre: "Corte premium", precio: 20, duracion: 60, descripcion: "x" }],
+                }),
+            })
+            .mockResolvedValueOnce({ ok: true, json: async () => ({ reservas: [] }) })
+            .mockResolvedValueOnce({ ok: true, json: async () => ({ message: "Reserva actualizada correctamente" }) });
+
+        const { getByTestId } = render(<EditarReserva navigation={mockNavigation} route={mockRouteSinServicio} />);
+
+        await waitFor(() => {
+            expect(getByTestId("editar-reserva-open-servicios-picker")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("editar-reserva-open-servicios-picker"));
+        fireEvent.press(getByTestId("editar-reserva-select-servicio-ninguno"));
+        fireEvent.changeText(getByTestId("editar-reserva-capacidad-input"), "6");
+        fireEvent.press(getByTestId("editar-reserva-slot-0800"));
+        fireEvent.press(getByTestId("editar-reserva-save-button"));
+
+        await waitFor(() => {
+            const putCall = (fetch as jest.Mock).mock.calls.find((call) => call[1]?.method === "PUT");
+            expect(putCall).toBeTruthy();
+            expect(putCall?.[0]).toBe(API_ROUTES.updateReservaById(11));
+
+            const payload = JSON.parse(putCall?.[1].body);
+            expect(payload.capacidad_solicitada).toBe(6);
+            expect(payload.id_servicio).toBeUndefined();
+        });
     });
 });
