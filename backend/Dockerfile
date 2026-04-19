@@ -17,4 +17,4 @@ COPY . .
 EXPOSE 3000
 
 # Comando para iniciar la app
-CMD ["npm", "start"]
+CMD sh -c "npm run migrate && npm start"
