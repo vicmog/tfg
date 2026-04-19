@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Modal,
@@ -40,6 +40,9 @@ import {
     EDIT_BUTTON_TEXT,
     EDIT_FORM_TITLE,
     DETAIL_DESCRIPTION_LABEL,
+    DETAIL_REQUIERE_CAPACIDAD_FALSE,
+    DETAIL_REQUIERE_CAPACIDAD_LABEL,
+    DETAIL_REQUIERE_CAPACIDAD_TRUE,
     DETAIL_DURATION_LABEL,
     DETAIL_NAME_LABEL,
     DETAIL_PRICE_LABEL,
@@ -58,6 +61,7 @@ import {
     SUCCESS_MESSAGE,
     UPDATE_SUCCESS_MESSAGE,
     updateServicioByIdRoute,
+    REQUIERE_CAPACIDAD_LABEL,
 } from "./constants";
 import { ServiciosProps } from "./types";
 
@@ -89,15 +93,28 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
     const [precio, setPrecio] = useState("");
     const [duracion, setDuracion] = useState("");
     const [descripcion, setDescripcion] = useState("");
+    const [requiereCapacidad, setRequiereCapacidad] = useState(false);
+    const requiereCapacidadRef = useRef(false);
 
     const normalizedRole = (negocio.rol || "").toLowerCase();
     const canManageServicios = normalizedRole === JEFE_ROLE || normalizedRole === ADMIN_ROLE;
+
+    const setRequiereCapacidadValue = (value: boolean) => {
+        requiereCapacidadRef.current = value;
+        setRequiereCapacidad(value);
+    };
+
+    const toggleRequiereCapacidad = () => {
+        const nextValue = !requiereCapacidadRef.current;
+        setRequiereCapacidadValue(nextValue);
+    };
 
     const resetForm = () => {
         setNombre("");
         setPrecio("");
         setDuracion("");
         setDescripcion("");
+        setRequiereCapacidadValue(false);
         setEditingServicioId(null);
     };
 
@@ -222,6 +239,7 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
         setPrecio(`${servicio.precio}`);
         setDuracion(`${servicio.duracion}`);
         setDescripcion(servicio.descripcion || "");
+        setRequiereCapacidadValue(Boolean(servicio.requiere_capacidad));
         setEditingServicioId(servicio.id_servicio);
         setModalError("");
         setModalVisible(true);
@@ -263,6 +281,7 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
                     precio: precio.trim(),
                     duracion: duracion.trim(),
                     descripcion: descripcion.trim(),
+                    requiere_capacidad: requiereCapacidadRef.current,
                 }),
             });
 
@@ -464,6 +483,15 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
                                     <Text style={styles.detailLabel}>{DETAIL_DESCRIPTION_LABEL}</Text>
                                     <Text style={styles.detailValue}>{selectedServicio.descripcion}</Text>
                                 </View>
+
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.detailLabel}>{DETAIL_REQUIERE_CAPACIDAD_LABEL}</Text>
+                                    <Text style={styles.detailValue} testID="servicio-detail-requiere-capacidad-value">
+                                        {selectedServicio.requiere_capacidad
+                                            ? DETAIL_REQUIERE_CAPACIDAD_TRUE
+                                            : DETAIL_REQUIERE_CAPACIDAD_FALSE}
+                                    </Text>
+                                </View>
                             </>
                         ) : null}
                     </View>
@@ -488,7 +516,11 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
                             ) : null}
                         </View>
 
-                        <ScrollView style={isEditing ? styles.editScroll : undefined} contentContainerStyle={isEditing ? styles.editContent : undefined}>
+                        <ScrollView
+                            style={isEditing ? styles.editScroll : undefined}
+                            contentContainerStyle={isEditing ? styles.editContent : undefined}
+                            keyboardShouldPersistTaps="handled"
+                        >
                             <TextInput
                                 style={styles.input}
                                 placeholder="Nombre"
@@ -522,6 +554,18 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
                                 textAlignVertical="top"
                                 testID="servicio-descripcion-input"
                             />
+                            <TouchableOpacity
+                                style={styles.toggleRow}
+                                onPress={toggleRequiereCapacidad}
+                                testID="servicio-requiere-capacidad-toggle"
+                            >
+                                <Text style={styles.toggleLabel}>{REQUIERE_CAPACIDAD_LABEL}</Text>
+                                <MaterialIcons
+                                    name={requiereCapacidad ? "check-box" : "check-box-outline-blank"}
+                                    size={22}
+                                    color={requiereCapacidad ? "#1d4ed8" : "#6b7280"}
+                                />
+                            </TouchableOpacity>
                         </ScrollView>
 
                         {modalError ? (
@@ -764,6 +808,22 @@ const styles = StyleSheet.create({
     },
     textArea: {
         minHeight: 96,
+    },
+    toggleRow: {
+        borderWidth: 1,
+        borderColor: "#d1d5db",
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        backgroundColor: "#f9fafb",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 10,
+    },
+    toggleLabel: {
+        color: "#111827",
+        fontWeight: "600",
     },
     editScroll: {
         maxHeight: 420,

@@ -150,7 +150,21 @@ describe("ReservaController Unit Tests", () => {
 
             expect(res.status).toHaveBeenCalledWith(400);
             expect(jsonMock).toHaveBeenCalledWith({
-                message: "La capacidad solicitada es obligatoria cuando no se selecciona servicio",
+                message: "La capacidad solicitada es obligatoria cuando no se selecciona servicio o el servicio requiere capacidad",
+            });
+        });
+
+        it("deberia exigir capacidad solicitada cuando el servicio la requiere", async () => {
+            Recurso.findByPk.mockResolvedValue(mockRecurso);
+            Cliente.findByPk.mockResolvedValue(mockCliente);
+            Servicio.findByPk.mockResolvedValue({ ...mockServicio, requiere_capacidad: true });
+
+            const { res, jsonMock } = buildRes();
+            await createReserva(createReservaReq, res);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "La capacidad solicitada es obligatoria cuando no se selecciona servicio o el servicio requiere capacidad",
             });
         });
 
@@ -329,7 +343,28 @@ describe("ReservaController Unit Tests", () => {
 
             expect(res.status).toHaveBeenCalledWith(400);
             expect(jsonMock).toHaveBeenCalledWith({
-                message: "La capacidad solicitada es obligatoria cuando no se selecciona servicio",
+                message: "La capacidad solicitada es obligatoria cuando no se selecciona servicio o el servicio requiere capacidad",
+            });
+        });
+
+        it("deberia exigir capacidad al actualizar cuando el servicio la requiere", async () => {
+            const updateMock = jest.fn().mockResolvedValue({});
+            const reservaInstance = {
+                ...mockReserva,
+                update: updateMock,
+            };
+
+            Reserva.findByPk.mockResolvedValue(reservaInstance);
+            Recurso.findByPk.mockResolvedValue(mockRecurso);
+            Cliente.findByPk.mockResolvedValue(mockCliente);
+            Servicio.findByPk.mockResolvedValue({ ...mockServicio, requiere_capacidad: true });
+
+            const { res, jsonMock } = buildRes();
+            await updateReserva(updateReservaReq, res);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "La capacidad solicitada es obligatoria cuando no se selecciona servicio o el servicio requiere capacidad",
             });
         });
 

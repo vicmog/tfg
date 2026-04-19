@@ -7,6 +7,7 @@ export const SERVICIO_ERRORS = {
     PRECIO_INVALID: "El precio del servicio debe ser mayor que 0",
     DURACION_REQUIRED: "La duración del servicio es obligatoria",
     DURACION_INVALID: "La duración del servicio debe ser un número entero mayor que 0",
+    REQUIERE_CAPACIDAD_INVALID: "El campo requiere capacidad debe ser verdadero o falso",
     DESCRIPCION_REQUIRED: "La descripción del servicio es obligatoria",
     SERVICIO_NOT_FOUND: "Servicio no encontrado",
     NO_ACCESS_TO_NEGOCIO: "No tienes acceso a este negocio",

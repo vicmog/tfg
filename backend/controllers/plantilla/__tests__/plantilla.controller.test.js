@@ -22,7 +22,7 @@ const validBody = {
   nombre: "Plantilla Barberia",
   descripcion: "Plantilla base",
   servicios: [
-    { nombre: "Corte", precio: 12, duracion: 30, descripcion: "Corte clasico" },
+    { nombre: "Corte", precio: 12, duracion: 30, descripcion: "Corte clasico", requiere_capacidad: true },
   ],
   recursos: [
     { nombre: "Sillon", capacidad: 1 },
@@ -56,6 +56,7 @@ describe("PlantillaController Unit Tests", () => {
         precio: 12,
         duracion: 30,
         descripcion: "Corte clasico",
+        requiere_capacidad: true,
       },
     ]);
 
@@ -89,6 +90,7 @@ describe("PlantillaController Unit Tests", () => {
             precio: 12,
             duracion: 30,
             descripcion: "Corte clasico",
+            requiere_capacidad: true,
           },
         ],
         recursos: [
@@ -167,6 +169,7 @@ describe("PlantillaController Unit Tests", () => {
         precio: 10,
         duracion: 30,
         descripcion: "Desc",
+        requiere_capacidad: true,
       },
     ]);
     (RecursoPlantilla.findAll).mockResolvedValue([
@@ -199,6 +202,7 @@ describe("PlantillaController Unit Tests", () => {
               precio: 10,
               duracion: 30,
               descripcion: "Desc",
+              requiere_capacidad: true,
             },
           ],
           recursos: [

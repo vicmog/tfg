@@ -160,4 +160,47 @@ describe("EditarReserva", () => {
             expect(payload.id_servicio).toBeUndefined();
         });
     });
+
+    it("actualiza reserva con servicio que requiere capacidad", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    clientes: [{ id_cliente: 5, nombre: "Juan", apellido1: "Perez", id_negocio: 1, bloqueado: false }],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    recursos: [{ id_recurso: 7, id_negocio: 1, nombre: "Sala principal", capacidad: 12 }],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    servicios: [{ id_servicio: 3, id_negocio: 1, nombre: "Servicio grupal", precio: 20, duracion: 60, descripcion: "x", requiere_capacidad: true }],
+                }),
+            })
+            .mockResolvedValueOnce({ ok: true, json: async () => ({ reservas: [] }) })
+            .mockResolvedValueOnce({ ok: true, json: async () => ({ message: "Reserva actualizada correctamente" }) });
+
+        const { getByTestId } = render(<EditarReserva navigation={mockNavigation} route={mockRoute} />);
+
+        await waitFor(() => {
+            expect(getByTestId("editar-reserva-capacidad-input")).toBeTruthy();
+        });
+
+        fireEvent.changeText(getByTestId("editar-reserva-capacidad-input"), "6");
+        fireEvent.press(getByTestId("editar-reserva-slot-0800"));
+        fireEvent.press(getByTestId("editar-reserva-save-button"));
+
+        await waitFor(() => {
+            const putCall = (fetch as jest.Mock).mock.calls.find((call) => call[1]?.method === "PUT");
+            expect(putCall).toBeTruthy();
+
+            const payload = JSON.parse(putCall?.[1].body);
+            expect(payload.id_servicio).toBe(3);
+            expect(payload.capacidad_solicitada).toBe(6);
+        });
+    });
 });

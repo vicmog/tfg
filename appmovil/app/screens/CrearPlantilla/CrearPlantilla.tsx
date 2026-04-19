@@ -34,6 +34,7 @@ const newServicio = (): ServicioPlantillaInput => ({
   precio: "",
   duracion: "",
   descripcion: "",
+  requiere_capacidad: false,
 });
 
 const newRecurso = (): RecursoPlantillaInput => ({
@@ -64,6 +65,12 @@ const CrearPlantilla: React.FC<CrearPlantillaProps> = ({ navigation }) => {
 
   const updateServicioDescripcion = (index: number, value: string) => {
     setServicios((prev) => prev.map((item, i) => (i === index ? { ...item, descripcion: value } : item)));
+  };
+
+  const toggleServicioRequiereCapacidad = (index: number) => {
+    setServicios((prev) => prev.map((item, i) => (
+      i === index ? { ...item, requiere_capacidad: !item.requiere_capacidad } : item
+    )));
   };
 
   const updateRecursoNombre = (index: number, value: string) => {
@@ -162,6 +169,7 @@ const CrearPlantilla: React.FC<CrearPlantillaProps> = ({ navigation }) => {
           precio: Number(servicio.precio),
           duracion: Number(servicio.duracion),
           descripcion: servicio.descripcion.trim(),
+          requiere_capacidad: Boolean(servicio.requiere_capacidad),
         })),
         recursos: recursos.map((recurso) => ({
           nombre: recurso.nombre.trim(),
@@ -299,6 +307,19 @@ const CrearPlantilla: React.FC<CrearPlantillaProps> = ({ navigation }) => {
                 numberOfLines={2}
                 testID={`servicio-descripcion-${index}`}
               />
+
+              <TouchableOpacity
+                style={styles.toggleRow}
+                onPress={() => toggleServicioRequiereCapacidad(index)}
+                testID={`servicio-requiere-capacidad-${index}`}
+              >
+                <Text style={styles.toggleLabel}>Este servicio requiere capacidad</Text>
+                <MaterialIcons
+                  name={servicio.requiere_capacidad ? "check-box" : "check-box-outline-blank"}
+                  size={22}
+                  color={servicio.requiere_capacidad ? "#1d4ed8" : "#6b7280"}
+                />
+              </TouchableOpacity>
             </View>
           ))}
 
@@ -496,6 +517,25 @@ const styles = StyleSheet.create({
   textArea: {
     minHeight: 76,
     textAlignVertical: "top",
+  },
+  toggleRow: {
+    marginTop: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "#fff",
+  },
+  toggleLabel: {
+    fontSize: 14,
+    color: "#374151",
+    fontWeight: "600",
+    flex: 1,
+    marginRight: 12,
   },
   errorContainer: {
     flexDirection: "row",

@@ -36,6 +36,43 @@ const isPositiveInteger = (value) => {
   return Number.isInteger(parsed) && parsed > 0;
 };
 
+const normalizeBoolean = (value) => {
+  if (value === undefined || value === null || value === "") {
+    return { value: false };
+  }
+
+  if (typeof value === "boolean") {
+    return { value };
+  }
+
+  if (typeof value === "number") {
+    if (value === 1) {
+      return { value: true };
+    }
+
+    if (value === 0) {
+      return { value: false };
+    }
+
+    return { error: true };
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true" || normalized === "1") {
+      return { value: true };
+    }
+
+    if (normalized === "false" || normalized === "0") {
+      return { value: false };
+    }
+
+    return { error: true };
+  }
+
+  return { error: true };
+};
+
 const validateServicios = (servicios) => {
   if (!Array.isArray(servicios) || servicios.length === 0) {
     return { error: PLANTILLA_ERRORS.SERVICIOS_REQUIRED };
@@ -56,14 +93,24 @@ const validateServicios = (servicios) => {
     return { error: PLANTILLA_ERRORS.SERVICIO_DURACION_INVALID };
   }
 
-  return {
-    value: servicios.map((servicio) => ({
+  const normalizedServicios = [];
+
+  for (const servicio of servicios) {
+    const requiereCapacidadResult = normalizeBoolean(servicio?.requiere_capacidad);
+    if (requiereCapacidadResult.error) {
+      return { error: PLANTILLA_ERRORS.SERVICIO_REQUIERE_CAPACIDAD_INVALID };
+    }
+
+    normalizedServicios.push({
       nombre: `${servicio.nombre}`.trim(),
       precio: Number(servicio.precio),
       duracion: Number(servicio.duracion),
       descripcion: typeof servicio.descripcion === "string" ? servicio.descripcion.trim() : "",
-    })),
-  };
+      requiere_capacidad: requiereCapacidadResult.value,
+    });
+  }
+
+  return { value: normalizedServicios };
 };
 
 const validateRecursos = (recursos) => {
@@ -132,6 +179,7 @@ export const getPlantillas = async (req, res) => {
         precio: servicio.precio,
         duracion: servicio.duracion,
         descripcion: servicio.descripcion,
+        requiere_capacidad: Boolean(servicio.requiere_capacidad),
       });
       return acc;
     }, {});
@@ -213,6 +261,7 @@ export const createPlantilla = async (req, res) => {
           precio: servicio.precio,
           duracion: servicio.duracion,
           descripcion: servicio.descripcion,
+          requiere_capacidad: servicio.requiere_capacidad,
         })),
         { transaction }
       );
@@ -241,6 +290,7 @@ export const createPlantilla = async (req, res) => {
           precio: servicio.precio,
           duracion: servicio.duracion,
           descripcion: servicio.descripcion,
+          requiere_capacidad: servicio.requiere_capacidad,
         })),
         recursos: createdData.createdRecursos.map((recurso) => ({
           id_recurso_plantilla: recurso.id_recurso_plantilla,

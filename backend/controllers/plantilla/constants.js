@@ -8,6 +8,7 @@ export const PLANTILLA_ERRORS = {
   SERVICIO_NOMBRE_REQUIRED: "Todos los servicios deben tener nombre",
   SERVICIO_PRECIO_INVALID: "Todos los servicios deben tener un precio mayor que 0",
   SERVICIO_DURACION_INVALID: "Todos los servicios deben tener una duracion entera mayor que 0",
+  SERVICIO_REQUIERE_CAPACIDAD_INVALID: "El campo requiere_capacidad de cada servicio debe ser booleano",
   RECURSO_NOMBRE_REQUIRED: "Todos los recursos deben tener nombre",
   RECURSO_CAPACIDAD_INVALID: "Todos los recursos deben tener una capacidad entera mayor que 0",
   NOMBRE_ALREADY_EXISTS: "Ya existe una plantilla con ese nombre",

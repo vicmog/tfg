@@ -65,6 +65,11 @@ const WEEK_LABELS = ["L", "M", "X", "J", "V", "S", "D"];
 const OPENING_HOUR = 8;
 const CLOSING_HOUR = 21;
 
+const toNumericId = (value: unknown): number | null => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+};
+
 const toLocalDateKey = (value: string | Date) => {
     const date = new Date(value);
     const year = date.getFullYear();
@@ -172,11 +177,19 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
     );
 
     const selectedServicio = useMemo(
-        () => servicios.find((servicio) => servicio.id_servicio === selectedServicioId) || null,
+        () => {
+            const selectedId = toNumericId(selectedServicioId);
+            if (selectedId === null) {
+                return null;
+            }
+
+            return servicios.find((servicio) => toNumericId(servicio.id_servicio) === selectedId) || null;
+        },
         [servicios, selectedServicioId]
     );
 
-    const isNoServicioSelected = selectedServicioId === NO_SERVICIO_OPTION_ID;
+    const isNoServicioSelected = toNumericId(selectedServicioId) === NO_SERVICIO_OPTION_ID;
+    const requiresCapacity = isNoServicioSelected || Boolean(selectedServicio?.requiere_capacidad);
 
     const filteredClientes = useMemo(() => {
         const query = normalizeText(clienteSearchQuery.trim());
@@ -321,7 +334,7 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
             return false;
         }
 
-        if (isNoServicioSelected) {
+        if (requiresCapacity) {
             if (!capacidadSolicitada.trim()) {
                 setError(EMPTY_CAPACIDAD_SOLICITADA_ERROR);
                 return false;
@@ -368,14 +381,22 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
     };
 
     const handleSelectServicio = (idServicio: number) => {
-        setSelectedServicioId(idServicio);
-        const servicio = servicios.find((item) => item.id_servicio === idServicio);
+        const normalizedServiceId = toNumericId(idServicio);
+        if (normalizedServiceId === null) {
+            return;
+        }
+
+        setSelectedServicioId(normalizedServiceId);
+        const servicio = servicios.find((item) => toNumericId(item.id_servicio) === normalizedServiceId);
 
         if (servicio?.duracion) {
             setDuracionMinutos(`${servicio.duracion}`);
         }
 
-        if (idServicio !== NO_SERVICIO_OPTION_ID) {
+        const servicioRequiereCapacidad = normalizedServiceId === NO_SERVICIO_OPTION_ID
+            || Boolean(servicio?.requiere_capacidad);
+
+        if (!servicioRequiereCapacidad) {
             setCapacidadSolicitada("");
         }
 
@@ -437,7 +458,7 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
                     id_servicio: isNoServicioSelected ? undefined : selectedServicioId,
                     fecha_hora_inicio: selectedSlotInicioIso,
                     duracion_minutos: duracionMinutos.trim(),
-                    capacidad_solicitada: isNoServicioSelected
+                    capacidad_solicitada: requiresCapacity
                         ? Number.parseInt(capacidadSolicitada.trim(), 10)
                         : undefined,
                 }),
@@ -512,7 +533,7 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
                         <MaterialIcons name="expand-more" size={20} color="#6b7280" />
                     </TouchableOpacity>
 
-                    {isNoServicioSelected ? (
+                    {requiresCapacity ? (
                         <>
                             <Text style={styles.fieldLabel}>{CAPACIDAD_SOLICITADA_LABEL}</Text>
                             <TextInput
@@ -706,7 +727,7 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
                                 <Text style={styles.emptyText}>No hay recursos que coincidan</Text>
                             ) : filteredRecursos.map((recurso) => (
                                 (() => {
-                                    const capacidadRequerida = isNoServicioSelected && INTEGER_REGEX.test(capacidadSolicitada.trim())
+                                    const capacidadRequerida = requiresCapacity && INTEGER_REGEX.test(capacidadSolicitada.trim())
                                         ? Number.parseInt(capacidadSolicitada.trim(), 10)
                                         : null;
                                     const capacidadInsuficiente = capacidadRequerida !== null

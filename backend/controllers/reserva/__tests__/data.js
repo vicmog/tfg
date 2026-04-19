@@ -12,6 +12,7 @@ export const mockServicio = {
     id_negocio: 10,
     nombre: "Corte premium",
     duracion: 45,
+    requiere_capacidad: false,
 };
 
 export const mockCliente = {

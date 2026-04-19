@@ -17,6 +17,7 @@ const serializeServicio = (servicio) => ({
     precio: servicio.precio,
     duracion: servicio.duracion,
     descripcion: servicio.descripcion,
+    requiere_capacidad: Boolean(servicio.requiere_capacidad),
 });
 
 const normalizePrecio = (precio) => {
@@ -59,7 +60,45 @@ const normalizeDuracion = (duracion) => {
     return { value: parsedDuracion };
 };
 
-const validateServicioFields = ({ nombre, precio, duracion, descripcion }) => {
+const normalizeRequiereCapacidad = (requiereCapacidad) => {
+    if (requiereCapacidad === undefined || requiereCapacidad === null || requiereCapacidad === "") {
+        return { value: false };
+    }
+
+    if (typeof requiereCapacidad === "boolean") {
+        return { value: requiereCapacidad };
+    }
+
+    if (typeof requiereCapacidad === "number") {
+        if (requiereCapacidad === 1) {
+            return { value: true };
+        }
+
+        if (requiereCapacidad === 0) {
+            return { value: false };
+        }
+
+        return { error: SERVICIO_ERRORS.REQUIERE_CAPACIDAD_INVALID };
+    }
+
+    if (typeof requiereCapacidad === "string") {
+        const normalized = requiereCapacidad.trim().toLowerCase();
+
+        if (normalized === "true" || normalized === "1") {
+            return { value: true };
+        }
+
+        if (normalized === "false" || normalized === "0") {
+            return { value: false };
+        }
+
+        return { error: SERVICIO_ERRORS.REQUIERE_CAPACIDAD_INVALID };
+    }
+
+    return { error: SERVICIO_ERRORS.REQUIERE_CAPACIDAD_INVALID };
+};
+
+const validateServicioFields = ({ nombre, precio, duracion, descripcion, requiere_capacidad }) => {
     if (!nombre || !nombre.trim()) {
         return { error: SERVICIO_ERRORS.NOMBRE_REQUIRED };
     }
@@ -80,12 +119,19 @@ const validateServicioFields = ({ nombre, precio, duracion, descripcion }) => {
         return { error: duracionResult.error };
     }
 
+    const requiereCapacidadResult = normalizeRequiereCapacidad(requiere_capacidad);
+
+    if (requiereCapacidadResult.error) {
+        return { error: requiereCapacidadResult.error };
+    }
+
     return {
         value: {
             nombre: nombre.trim(),
             precio: precioResult.value,
             duracion: duracionResult.value,
             descripcion: descripcion.trim(),
+            requiere_capacidad: requiereCapacidadResult.value,
         },
     };
 };
@@ -97,6 +143,7 @@ export const createServicio = async (req, res) => {
         precio,
         duracion,
         descripcion,
+        requiere_capacidad,
     } = req.body;
     const id_usuario = req.user?.id_usuario;
 
@@ -113,6 +160,7 @@ export const createServicio = async (req, res) => {
         precio,
         duracion,
         descripcion,
+        requiere_capacidad,
     });
 
     if (servicioFieldsResult.error) {
@@ -185,6 +233,7 @@ export const updateServicio = async (req, res) => {
         precio,
         duracion,
         descripcion,
+        requiere_capacidad,
     } = req.body;
     const id_usuario = req.user?.id_usuario;
 
@@ -220,6 +269,7 @@ export const updateServicio = async (req, res) => {
             precio,
             duracion,
             descripcion,
+            requiere_capacidad: requiere_capacidad ?? servicio.requiere_capacidad,
         });
 
         if (servicioFieldsResult.error) {

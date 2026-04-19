@@ -205,7 +205,9 @@ export const createReserva = async (req, res) => {
             return res.status(400).json({ message: RESERVA_ERRORS.SERVICIO_NEGOCIO_MISMATCH });
         }
 
-        if (!servicio) {
+        const requiereCapacidad = !servicio || Boolean(servicio.requiere_capacidad);
+
+        if (requiereCapacidad) {
             const capacidadSolicitada = parsePositiveInteger(capacidad_solicitada);
 
             if (!capacidadSolicitada) {
@@ -448,7 +450,9 @@ export const updateReserva = async (req, res) => {
             return res.status(400).json({ message: RESERVA_ERRORS.SERVICIO_NEGOCIO_MISMATCH });
         }
 
-        if (!servicio) {
+        const requiereCapacidad = !servicio || Boolean(servicio.requiere_capacidad);
+
+        if (requiereCapacidad) {
             const capacidadSolicitada = parsePositiveInteger(capacidad_solicitada);
 
             if (!capacidadSolicitada) {

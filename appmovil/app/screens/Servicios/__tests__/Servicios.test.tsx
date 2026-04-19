@@ -143,6 +143,72 @@ describe("Servicios", () => {
         });
     });
 
+    it("crea servicio con requiere_capacidad activado", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ servicios: [] }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    message: "Servicio creado correctamente",
+                    servicio: {
+                        id_servicio: 8,
+                        id_negocio: 1,
+                        nombre: "Servicio grupal",
+                        precio: 40,
+                        duracion: 60,
+                        descripcion: "Servicio para grupos",
+                        requiere_capacidad: true,
+                    },
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    servicios: [
+                        {
+                            id_servicio: 8,
+                            id_negocio: 1,
+                            nombre: "Servicio grupal",
+                            precio: 40,
+                            duracion: 60,
+                            descripcion: "Servicio para grupos",
+                            requiere_capacidad: true,
+                        },
+                    ],
+                }),
+            });
+
+        const { getByTestId } = render(<Servicios navigation={mockNavigation} route={mockRoute} />);
+
+        fireEvent.press(getByTestId("toggle-servicio-form-button"));
+        fireEvent.changeText(getByTestId("servicio-nombre-input"), "Servicio grupal");
+        fireEvent.changeText(getByTestId("servicio-precio-input"), "40");
+        fireEvent.changeText(getByTestId("servicio-duracion-input"), "60");
+        fireEvent.changeText(getByTestId("servicio-descripcion-input"), "Servicio para grupos");
+        fireEvent.press(getByTestId("servicio-requiere-capacidad-toggle"));
+        fireEvent.press(getByTestId("servicio-save-button"));
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.servicios,
+                expect.objectContaining({
+                    method: "POST",
+                    body: JSON.stringify({
+                        id_negocio: 1,
+                        nombre: "Servicio grupal",
+                        precio: "40",
+                        duracion: "60",
+                        descripcion: "Servicio para grupos",
+                        requiere_capacidad: true,
+                    }),
+                })
+            );
+        });
+    });
+
     it("edita servicio y guarda cambios", async () => {
         (fetch as jest.Mock)
             .mockResolvedValueOnce({
@@ -224,6 +290,7 @@ describe("Servicios", () => {
                         precio: "30",
                         duracion: "50",
                         descripcion: "Corte con tratamiento",
+                        requiere_capacidad: false,
                     }),
                 })
             );
@@ -369,7 +436,7 @@ describe("Servicios", () => {
         });
     });
 
-    it("abre popup de detalle y muestra precio y duración", async () => {
+    it("abre popup de detalle y muestra precio, duración y requiere capacidad", async () => {
         (fetch as jest.Mock)
             .mockResolvedValueOnce({
                 ok: true,
@@ -396,6 +463,7 @@ describe("Servicios", () => {
                         precio: 25.5,
                         duracion: 45,
                         descripcion: "Corte con lavado y peinado",
+                        requiere_capacidad: true,
                     },
                 }),
             });
@@ -424,6 +492,8 @@ describe("Servicios", () => {
             expect(getByText("Detalles del servicio")).toBeTruthy();
             expect(getAllByText("25.50 EUR").length).toBeGreaterThan(0);
             expect(getAllByText("45 min").length).toBeGreaterThan(0);
+            expect(getByText("Requiere capacidad")).toBeTruthy();
+            expect(getByTestId("servicio-detail-requiere-capacidad-value").props.children).toBe("Sí");
         });
     });
 

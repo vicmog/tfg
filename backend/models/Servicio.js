@@ -15,6 +15,7 @@ export const Servicio = sequelize.define(
         precio: { type: DataTypes.FLOAT, allowNull: false },
         duracion: { type: DataTypes.INTEGER, allowNull: false },
         descripcion: { type: DataTypes.TEXT, allowNull: false, defaultValue: "" },
+        requiere_capacidad: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     },
     {
         tableName: "Servicio",

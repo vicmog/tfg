@@ -8,6 +8,7 @@ export type ServicioPlantillaInput = {
   precio: string;
   duracion: string;
   descripcion: string;
+  requiere_capacidad: boolean;
 };
 
 export type RecursoPlantillaInput = {

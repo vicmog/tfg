@@ -50,6 +50,7 @@ export type Servicio = {
     precio: number;
     duracion: number;
     descripcion: string;
+    requiere_capacidad?: boolean;
     createdAt?: string;
     updatedAt?: string;
 };
@@ -70,6 +71,7 @@ export type ServicioPlantilla = {
     precio: number;
     duracion: number;
     descripcion: string;
+    requiere_capacidad?: boolean;
 };
 
 export type RecursoPlantilla = {
