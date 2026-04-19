@@ -13,6 +13,7 @@ const Negocios: React.FC<NegociosScreenProps> = ({ navigation }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [hasAdminAccess, setHasAdminAccess] = useState(false);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -37,6 +38,7 @@ const Negocios: React.FC<NegociosScreenProps> = ({ navigation }) => {
           if (response.ok) {
             const data = await response.json();
             setNegocios(data.negocios);
+            setHasAdminAccess((prev) => prev || data.negocios.some((negocio: Negocio) => negocio.rol === "admin"));
           }
         } finally {
           setIsLoading(false);
@@ -67,6 +69,20 @@ const Negocios: React.FC<NegociosScreenProps> = ({ navigation }) => {
           <Text style={styles.addButtonText}>Añadir negocio</Text>
         </TouchableOpacity>
       </View>
+
+      {hasAdminAccess ? (
+        <View style={styles.adminActionContainer}>
+          <TouchableOpacity
+            style={styles.adminTemplateButton}
+            onPress={() => navigation.navigate("CrearPlantilla")}
+            testID="create-template-button"
+          >
+            <MaterialIcons name="dashboard-customize" size={18} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={styles.adminTemplateButtonText}>Crear plantilla personalizada</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
       <View style={styles.searchContainer}>
         <MaterialIcons name="search" size={20} color="#6b7280" style={styles.searchIcon} />
         <TextInput
@@ -137,6 +153,25 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderWidth: 1,
     borderColor: "#e5e7eb",
+  },
+  adminActionContainer: {
+    paddingHorizontal: 10,
+    marginBottom: 14,
+  },
+  adminTemplateButton: {
+    backgroundColor: "#0f766e",
+    borderRadius: 10,
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  adminTemplateButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 14,
   },
   searchIcon: {
     marginRight: 8,
