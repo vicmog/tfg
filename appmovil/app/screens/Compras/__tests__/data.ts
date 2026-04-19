@@ -9,7 +9,7 @@ export const mockNegocioJefe = {
     id_negocio: 1,
     nombre: "Mi Negocio",
     CIF: "B12345678",
-    plantilla: 2,
+    id_plantilla: 2,
     rol: "jefe",
 };
 

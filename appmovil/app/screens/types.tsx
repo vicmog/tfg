@@ -11,7 +11,7 @@ export type Negocio = {
     id_negocio: number;
     nombre: string;
     CIF: string;
-    plantilla: number;
+    id_plantilla?: number | null;
     rol: string;
 };
 

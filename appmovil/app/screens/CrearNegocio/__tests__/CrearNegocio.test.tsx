@@ -75,7 +75,7 @@ describe("CrearNegocio", () => {
       ok: true,
       json: async () => ({
         message: "Negocio creado correctamente",
-        negocio: { id_negocio: 1, nombre: "Mi Negocio", CIF: "B12345678", plantilla: 0 },
+        negocio: { id_negocio: 1, nombre: "Mi Negocio", CIF: "B12345678", id_plantilla: 0 },
       }),
     });
 
