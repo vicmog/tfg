@@ -38,4 +38,3 @@ export const NEGOCIO_ROLES = {
 };
 
 export const DEFAULT_ADMIN_USER_ID = 1;
-export const DEFAULT_PLANTILLA = 0;

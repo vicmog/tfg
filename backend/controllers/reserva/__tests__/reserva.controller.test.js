@@ -11,6 +11,7 @@ import {
     createReservaReq,
     createReservaReqDuracionInvalida,
     createReservaReqRecurrente,
+    createReservaReqSinServicio,
     createReservaReqSinInicio,
     cancelReservaReq,
     deleteReservaReq,
@@ -22,6 +23,7 @@ import {
     mockUsuarioNegocio,
     updateReservaReq,
     updateReservaReqNotFound,
+    updateReservaReqSinServicio,
 } from "./data.js";
 
 jest.mock("../../../models/Recurso.js");
@@ -113,6 +115,57 @@ describe("ReservaController Unit Tests", () => {
             expect(jsonMock).toHaveBeenCalledWith(expect.objectContaining({
                 message: "Ya existe una reserva para ese recurso en el rango indicado",
             }));
+        });
+
+        it("deberia crear una reserva sin servicio", async () => {
+            Recurso.findByPk.mockResolvedValue(mockRecurso);
+            Cliente.findByPk.mockResolvedValue(mockCliente);
+            UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioNegocio);
+            Reserva.findOne.mockResolvedValue(null);
+            Reserva.create.mockResolvedValue(mockReserva);
+
+            const { res, jsonMock } = buildRes();
+            await createReserva(createReservaReqSinServicio, res);
+
+            expect(Servicio.findByPk).not.toHaveBeenCalled();
+            expect(ServicioReserva.create).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(201);
+            expect(jsonMock).toHaveBeenCalledWith(expect.objectContaining({
+                reserva: expect.objectContaining({ id_servicio: null, servicio_nombre: null }),
+            }));
+        });
+
+        it("deberia exigir capacidad solicitada sin servicio", async () => {
+            Recurso.findByPk.mockResolvedValue(mockRecurso);
+            Cliente.findByPk.mockResolvedValue(mockCliente);
+
+            const { res, jsonMock } = buildRes();
+            await createReserva({
+                ...createReservaReqSinServicio,
+                body: {
+                    ...createReservaReqSinServicio.body,
+                    capacidad_solicitada: undefined,
+                },
+            }, res);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "La capacidad solicitada es obligatoria cuando no se selecciona servicio o el servicio requiere capacidad",
+            });
+        });
+
+        it("deberia exigir capacidad solicitada cuando el servicio la requiere", async () => {
+            Recurso.findByPk.mockResolvedValue(mockRecurso);
+            Cliente.findByPk.mockResolvedValue(mockCliente);
+            Servicio.findByPk.mockResolvedValue({ ...mockServicio, requiere_capacidad: true });
+
+            const { res, jsonMock } = buildRes();
+            await createReserva(createReservaReq, res);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "La capacidad solicitada es obligatoria cuando no se selecciona servicio o el servicio requiere capacidad",
+            });
         });
 
         it("deberia crear una recurrencia y devolver todas las reservas", async () => {
@@ -239,6 +292,99 @@ describe("ReservaController Unit Tests", () => {
             expect(jsonMock).toHaveBeenCalledWith({
                 message: "Reserva actualizada correctamente",
                 reserva: expect.objectContaining({ id_reserva: 11 }),
+            });
+        });
+
+        it("deberia actualizar una reserva sin servicio", async () => {
+            const updateMock = jest.fn().mockResolvedValue({});
+            const reservaInstance = {
+                ...mockReserva,
+                update: updateMock,
+            };
+
+            Reserva.findByPk.mockResolvedValue(reservaInstance);
+            Recurso.findByPk.mockResolvedValue(mockRecurso);
+            Cliente.findByPk.mockResolvedValue(mockCliente);
+            UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioNegocio);
+            Reserva.findOne.mockResolvedValue(null);
+            ServicioReserva.destroy.mockResolvedValue(1);
+
+            const { res, jsonMock } = buildRes();
+            await updateReserva(updateReservaReqSinServicio, res);
+
+            expect(Servicio.findByPk).not.toHaveBeenCalled();
+            expect(ServicioReserva.destroy).toHaveBeenCalledWith({ where: { id_reserva: 11 } });
+            expect(ServicioReserva.create).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith(expect.objectContaining({
+                reserva: expect.objectContaining({ id_servicio: null, servicio_nombre: null }),
+            }));
+        });
+
+        it("deberia exigir capacidad solicitada al actualizar sin servicio", async () => {
+            const updateMock = jest.fn().mockResolvedValue({});
+            const reservaInstance = {
+                ...mockReserva,
+                update: updateMock,
+            };
+
+            Reserva.findByPk.mockResolvedValue(reservaInstance);
+            Recurso.findByPk.mockResolvedValue(mockRecurso);
+            Cliente.findByPk.mockResolvedValue(mockCliente);
+
+            const { res, jsonMock } = buildRes();
+            await updateReserva({
+                ...updateReservaReqSinServicio,
+                body: {
+                    ...updateReservaReqSinServicio.body,
+                    capacidad_solicitada: undefined,
+                },
+            }, res);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "La capacidad solicitada es obligatoria cuando no se selecciona servicio o el servicio requiere capacidad",
+            });
+        });
+
+        it("deberia exigir capacidad al actualizar cuando el servicio la requiere", async () => {
+            const updateMock = jest.fn().mockResolvedValue({});
+            const reservaInstance = {
+                ...mockReserva,
+                update: updateMock,
+            };
+
+            Reserva.findByPk.mockResolvedValue(reservaInstance);
+            Recurso.findByPk.mockResolvedValue(mockRecurso);
+            Cliente.findByPk.mockResolvedValue(mockCliente);
+            Servicio.findByPk.mockResolvedValue({ ...mockServicio, requiere_capacidad: true });
+
+            const { res, jsonMock } = buildRes();
+            await updateReserva(updateReservaReq, res);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "La capacidad solicitada es obligatoria cuando no se selecciona servicio o el servicio requiere capacidad",
+            });
+        });
+
+        it("deberia rechazar capacidad insuficiente al actualizar sin servicio", async () => {
+            const updateMock = jest.fn().mockResolvedValue({});
+            const reservaInstance = {
+                ...mockReserva,
+                update: updateMock,
+            };
+
+            Reserva.findByPk.mockResolvedValue(reservaInstance);
+            Recurso.findByPk.mockResolvedValue({ ...mockRecurso, capacidad: 4 });
+            Cliente.findByPk.mockResolvedValue(mockCliente);
+
+            const { res, jsonMock } = buildRes();
+            await updateReserva(updateReservaReqSinServicio, res);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "El recurso no tiene capacidad suficiente",
             });
         });
 

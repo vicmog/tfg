@@ -8,6 +8,7 @@ export const API_ROUTES = {
   authValidateCode: `${API_BASE_URL}${API_PREFIX}/auth/validate-code`,
   authResetPassword: `${API_BASE_URL}${API_PREFIX}/auth/reset-password`,
   negocios: `${API_BASE_URL}${API_PREFIX}/negocios`,
+  plantillas: `${API_BASE_URL}${API_PREFIX}/plantillas`,
   negocioById: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/negocios/${idNegocio}`,
   negocioUsersById: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/negocios/users/${idNegocio}`,
   putNegocioUserRoleById: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/negocios/users/${idNegocio}`,

@@ -47,6 +47,35 @@ const parseDateValue = (value) => {
     return parsedDate;
 };
 
+const parsePositiveInteger = (value) => {
+    const raw = `${value ?? ""}`.trim();
+
+    if (!raw) {
+        return null;
+    }
+
+    if (!INTEGER_REGEX.test(raw)) {
+        return null;
+    }
+
+    const parsed = Number.parseInt(raw, 10);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+        return null;
+    }
+
+    return parsed;
+};
+
+const parseOptionalServicioId = (value) => {
+    const raw = `${value ?? ""}`.trim();
+
+    if (!raw || raw === "0") {
+        return null;
+    }
+
+    return parsePositiveInteger(raw);
+};
+
 const formatDateForEmail = (value) => {
     const date = new Date(value);
 
@@ -95,6 +124,7 @@ export const createReserva = async (req, res) => {
         id_servicio,
         fecha_hora_inicio,
         duracion_minutos,
+        capacidad_solicitada,
         recurrencia,
     } = req.body;
     const id_usuario = req.user?.id_usuario;
@@ -111,12 +141,14 @@ export const createReserva = async (req, res) => {
         return res.status(400).json({ message: RESERVA_ERRORS.CLIENTE_ID_REQUIRED });
     }
 
-    if (!id_servicio) {
-        return res.status(400).json({ message: RESERVA_ERRORS.SERVICIO_ID_REQUIRED });
-    }
-
     if (!fecha_hora_inicio) {
         return res.status(400).json({ message: RESERVA_ERRORS.FECHA_INICIO_REQUIRED });
+    }
+
+    const idServicioInt = parseOptionalServicioId(id_servicio);
+    const servicioFueEnviado = `${id_servicio ?? ""}`.trim() !== "";
+    if (servicioFueEnviado && idServicioInt === null && `${id_servicio}`.trim() !== "0") {
+        return res.status(400).json({ message: RESERVA_ERRORS.SERVICIO_ID_REQUIRED });
     }
 
     const inicioDate = parseDateValue(fecha_hora_inicio);
@@ -156,8 +188,8 @@ export const createReserva = async (req, res) => {
             return res.status(404).json({ message: RESERVA_ERRORS.CLIENTE_NOT_FOUND });
         }
 
-        const servicio = await Servicio.findByPk(id_servicio);
-        if (!servicio) {
+        const servicio = idServicioInt ? await Servicio.findByPk(idServicioInt) : null;
+        if (idServicioInt && !servicio) {
             return res.status(404).json({ message: RESERVA_ERRORS.SERVICIO_NOT_FOUND });
         }
 
@@ -169,11 +201,30 @@ export const createReserva = async (req, res) => {
             return res.status(400).json({ message: RESERVA_ERRORS.RESOURCE_CLIENT_NEGOCIO_MISMATCH });
         }
 
-        if (servicio.id_negocio !== recurso.id_negocio) {
+        if (servicio && servicio.id_negocio !== recurso.id_negocio) {
             return res.status(400).json({ message: RESERVA_ERRORS.SERVICIO_NEGOCIO_MISMATCH });
         }
 
-        const durationInputValue = `${duracion_minutos ?? servicio.duracion}`.trim();
+        const requiereCapacidad = !servicio || Boolean(servicio.requiere_capacidad);
+
+        if (requiereCapacidad) {
+            const capacidadSolicitada = parsePositiveInteger(capacidad_solicitada);
+
+            if (!capacidadSolicitada) {
+                const rawCapacidad = `${capacidad_solicitada ?? ""}`.trim();
+                return res.status(400).json({
+                    message: rawCapacidad
+                        ? RESERVA_ERRORS.CAPACIDAD_SOLICITADA_INVALID
+                        : RESERVA_ERRORS.CAPACIDAD_SOLICITADA_REQUIRED,
+                });
+            }
+
+            if ((recurso.capacidad ?? 0) < capacidadSolicitada) {
+                return res.status(400).json({ message: RESERVA_ERRORS.RECURSO_CAPACIDAD_INSUFFICIENT });
+            }
+        }
+
+        const durationInputValue = `${duracion_minutos ?? servicio?.duracion ?? ""}`.trim();
 
         if (!durationInputValue) {
             return res.status(400).json({ message: RESERVA_ERRORS.DURACION_REQUIRED });
@@ -259,10 +310,12 @@ export const createReserva = async (req, res) => {
                     fecha_hora_fin: ocurrencia.fin,
                 }, { transaction });
 
-                await ServicioReserva.create({
-                    id_servicio,
-                    id_reserva: reserva.id_reserva,
-                }, { transaction });
+                if (idServicioInt) {
+                    await ServicioReserva.create({
+                        id_servicio: idServicioInt,
+                        id_reserva: reserva.id_reserva,
+                    }, { transaction });
+                }
 
                 reservasCreadas.push(reserva);
             }
@@ -285,7 +338,7 @@ export const createReserva = async (req, res) => {
                     ? `Tus ${ocurrencias.length} reservas recurrentes han sido registradas correctamente.`
                     : "Tu reserva ha sido registrada correctamente.",
                 `Recurso: ${recurso.nombre}`,
-                `Servicio: ${servicio.nombre}`,
+                servicio ? `Servicio: ${servicio.nombre}` : "Servicio: Sin servicio",
                 `Duracion: ${durationMinutes} min`,
                 `Inicio: ${formatDateForEmail(primeraOcurrencia.inicio)}`,
                 `Fin: ${formatDateForEmail(primeraOcurrencia.fin)}`,
@@ -299,8 +352,8 @@ export const createReserva = async (req, res) => {
 
         const reservasSerializadas = reservasCreadas.map((reserva) => serializeReserva({
             ...toPlain(reserva),
-            id_servicio,
-            servicio_nombre: servicio.nombre,
+            id_servicio: idServicioInt,
+            servicio_nombre: servicio?.nombre || null,
             duracion_minutos: durationMinutes,
         }));
 
@@ -324,6 +377,7 @@ export const updateReserva = async (req, res) => {
         id_servicio,
         fecha_hora_inicio,
         duracion_minutos,
+        capacidad_solicitada,
     } = req.body;
     const id_usuario = req.user?.id_usuario;
 
@@ -343,12 +397,14 @@ export const updateReserva = async (req, res) => {
         return res.status(400).json({ message: RESERVA_ERRORS.CLIENTE_ID_REQUIRED });
     }
 
-    if (!id_servicio) {
-        return res.status(400).json({ message: RESERVA_ERRORS.SERVICIO_ID_REQUIRED });
-    }
-
     if (!fecha_hora_inicio) {
         return res.status(400).json({ message: RESERVA_ERRORS.FECHA_INICIO_REQUIRED });
+    }
+
+    const idServicioInt = parseOptionalServicioId(id_servicio);
+    const servicioFueEnviado = `${id_servicio ?? ""}`.trim() !== "";
+    if (servicioFueEnviado && idServicioInt === null && `${id_servicio}`.trim() !== "0") {
+        return res.status(400).json({ message: RESERVA_ERRORS.SERVICIO_ID_REQUIRED });
     }
 
     const inicioDate = parseDateValue(fecha_hora_inicio);
@@ -377,8 +433,8 @@ export const updateReserva = async (req, res) => {
             return res.status(404).json({ message: RESERVA_ERRORS.CLIENTE_NOT_FOUND });
         }
 
-        const servicio = await Servicio.findByPk(id_servicio);
-        if (!servicio) {
+        const servicio = idServicioInt ? await Servicio.findByPk(idServicioInt) : null;
+        if (idServicioInt && !servicio) {
             return res.status(404).json({ message: RESERVA_ERRORS.SERVICIO_NOT_FOUND });
         }
 
@@ -390,11 +446,30 @@ export const updateReserva = async (req, res) => {
             return res.status(400).json({ message: RESERVA_ERRORS.RESOURCE_CLIENT_NEGOCIO_MISMATCH });
         }
 
-        if (servicio.id_negocio !== recurso.id_negocio) {
+        if (servicio && servicio.id_negocio !== recurso.id_negocio) {
             return res.status(400).json({ message: RESERVA_ERRORS.SERVICIO_NEGOCIO_MISMATCH });
         }
 
-        const durationInputValue = `${duracion_minutos ?? servicio.duracion}`.trim();
+        const requiereCapacidad = !servicio || Boolean(servicio.requiere_capacidad);
+
+        if (requiereCapacidad) {
+            const capacidadSolicitada = parsePositiveInteger(capacidad_solicitada);
+
+            if (!capacidadSolicitada) {
+                const rawCapacidad = `${capacidad_solicitada ?? ""}`.trim();
+                return res.status(400).json({
+                    message: rawCapacidad
+                        ? RESERVA_ERRORS.CAPACIDAD_SOLICITADA_INVALID
+                        : RESERVA_ERRORS.CAPACIDAD_SOLICITADA_REQUIRED,
+                });
+            }
+
+            if ((recurso.capacidad ?? 0) < capacidadSolicitada) {
+                return res.status(400).json({ message: RESERVA_ERRORS.RECURSO_CAPACIDAD_INSUFFICIENT });
+            }
+        }
+
+        const durationInputValue = `${duracion_minutos ?? servicio?.duracion ?? ""}`.trim();
 
         if (!durationInputValue) {
             return res.status(400).json({ message: RESERVA_ERRORS.DURACION_REQUIRED });
@@ -450,17 +525,19 @@ export const updateReserva = async (req, res) => {
         });
 
         await ServicioReserva.destroy({ where: { id_reserva: idReservaInt } });
-        await ServicioReserva.create({
-            id_servicio,
-            id_reserva: idReservaInt,
-        });
+        if (idServicioInt) {
+            await ServicioReserva.create({
+                id_servicio: idServicioInt,
+                id_reserva: idReservaInt,
+            });
+        }
 
         return res.status(200).json({
             message: RESERVA_MESSAGES.RESERVA_UPDATED,
             reserva: serializeReserva({
                 ...toPlain(reserva),
-                id_servicio,
-                servicio_nombre: servicio.nombre,
+                id_servicio: idServicioInt,
+                servicio_nombre: servicio?.nombre || null,
                 duracion_minutos: durationMinutes,
             }),
         });

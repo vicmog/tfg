@@ -4,6 +4,7 @@ export const mockRecurso = {
     id_recurso: 7,
     id_negocio: 10,
     nombre: "Sala principal",
+    capacidad: 10,
 };
 
 export const mockServicio = {
@@ -11,6 +12,7 @@ export const mockServicio = {
     id_negocio: 10,
     nombre: "Corte premium",
     duracion: 45,
+    requiere_capacidad: false,
 };
 
 export const mockCliente = {
@@ -79,6 +81,17 @@ export const createReservaReqDuracionInvalida = {
     user: { id_usuario: 1 },
 };
 
+export const createReservaReqSinServicio = {
+    body: {
+        id_recurso: 7,
+        id_cliente: 5,
+        fecha_hora_inicio: "2026-04-12T09:00:00.000Z",
+        duracion_minutos: 60,
+        capacidad_solicitada: 6,
+    },
+    user: { id_usuario: 1 },
+};
+
 export const getReservasReq = {
     params: { id_negocio: "10" },
     user: { id_usuario: 1 },
@@ -104,6 +117,18 @@ export const updateReservaReqNotFound = {
         id_servicio: 3,
         fecha_hora_inicio: "2026-04-12T11:00:00.000Z",
         duracion_minutos: 60,
+    },
+    user: { id_usuario: 1 },
+};
+
+export const updateReservaReqSinServicio = {
+    params: { id_reserva: "11" },
+    body: {
+        id_recurso: 7,
+        id_cliente: 5,
+        fecha_hora_inicio: "2026-04-12T11:00:00.000Z",
+        duracion_minutos: 60,
+        capacidad_solicitada: 6,
     },
     user: { id_usuario: 1 },
 };

@@ -21,7 +21,7 @@ describe("NegocioController Unit Tests", () => {
         id_negocio: 1,
         nombre: "Mi Negocio",
         CIF: "B12345678",
-        plantilla: 0,
+        id_plantilla: 0,
       });
       (UsuarioNegocio.create).mockResolvedValue({});
 
@@ -44,13 +44,13 @@ describe("NegocioController Unit Tests", () => {
           id_negocio: 1,
           nombre: "Mi Negocio",
           CIF: "B12345678",
-          plantilla: 0,
+          id_plantilla: 0,
         },
       });
       expect(Negocio.create).toHaveBeenCalledWith({
         nombre: "Mi Negocio",
         CIF: "B12345678",
-        plantilla: 0,
+        id_plantilla: null,
       });
       expect(UsuarioNegocio.create).toHaveBeenCalledTimes(2);
       expect(UsuarioNegocio.create).toHaveBeenCalledWith({
@@ -71,7 +71,7 @@ describe("NegocioController Unit Tests", () => {
         id_negocio: 1,
         nombre: "Mi Negocio",
         CIF: "B12345678",
-        plantilla: 0,
+        id_plantilla: 0,
       });
       (UsuarioNegocio.create).mockResolvedValue({});
 
@@ -190,8 +190,8 @@ describe("NegocioController Unit Tests", () => {
         { id_usuario: 1, id_negocio: 2, rol: "trabajador" },
       ]);
       (Negocio.findAll).mockResolvedValue([
-        { id_negocio: 1, nombre: "Negocio 1", CIF: "A11111111", plantilla: 0 },
-        { id_negocio: 2, nombre: "Negocio 2", CIF: "B22222222", plantilla: 0 },
+        { id_negocio: 1, nombre: "Negocio 1", CIF: "A11111111", id_plantilla: 0 },
+        { id_negocio: 2, nombre: "Negocio 2", CIF: "B22222222", id_plantilla: 0 },
       ]);
 
       const req = {
@@ -205,8 +205,8 @@ describe("NegocioController Unit Tests", () => {
       expect(res.status).toHaveBeenCalledWith(200);
       expect(jsonMock).toHaveBeenCalledWith({
         negocios: [
-          { id_negocio: 1, nombre: "Negocio 1", CIF: "A11111111", plantilla: 0, rol: "jefe" },
-          { id_negocio: 2, nombre: "Negocio 2", CIF: "B22222222", plantilla: 0, rol: "trabajador" },
+          { id_negocio: 1, nombre: "Negocio 1", CIF: "A11111111", id_plantilla: 0, rol: "jefe" },
+          { id_negocio: 2, nombre: "Negocio 2", CIF: "B22222222", id_plantilla: 0, rol: "trabajador" },
         ],
       });
     });
@@ -217,7 +217,7 @@ describe("NegocioController Unit Tests", () => {
         { id_usuario: 1, id_negocio: 2, rol: "trabajador" },
       ]);
       (Negocio.findAll).mockResolvedValue([
-        { id_negocio: 2, nombre: "Negocio 2", CIF: "B22222222", plantilla: 0 },
+        { id_negocio: 2, nombre: "Negocio 2", CIF: "B22222222", id_plantilla: 0 },
       ]);
 
       const req = {
@@ -235,7 +235,7 @@ describe("NegocioController Unit Tests", () => {
       expect(res.status).toHaveBeenCalledWith(200);
       expect(jsonMock).toHaveBeenCalledWith({
         negocios: [
-          { id_negocio: 2, nombre: "Negocio 2", CIF: "B22222222", plantilla: 0, rol: "trabajador" },
+          { id_negocio: 2, nombre: "Negocio 2", CIF: "B22222222", id_plantilla: 0, rol: "trabajador" },
         ],
       });
     });
@@ -297,7 +297,7 @@ describe("NegocioController Unit Tests", () => {
         id_negocio: 1,
         nombre: "Mi Negocio",
         CIF: "B12345678",
-        plantilla: 0,
+        id_plantilla: 0,
       });
 
       const req = {
@@ -315,7 +315,7 @@ describe("NegocioController Unit Tests", () => {
           id_negocio: 1,
           nombre: "Mi Negocio",
           CIF: "B12345678",
-          plantilla: 0,
+          id_plantilla: 0,
           rol: "jefe",
         },
       });
@@ -402,7 +402,7 @@ describe("NegocioController Unit Tests", () => {
         id_negocio: 1,
         nombre: "Negocio Actualizado",
         CIF: "B12345678",
-        plantilla: 0,
+        id_plantilla: 0,
         update: jest.fn().mockResolvedValue(true),
       };
       (Negocio.findByPk).mockResolvedValue(mockNegocio);
@@ -425,7 +425,7 @@ describe("NegocioController Unit Tests", () => {
           id_negocio: 1,
           nombre: "Negocio Actualizado",
           CIF: "B12345678",
-          plantilla: 0,
+          id_plantilla: 0,
         },
       });
     });
@@ -436,7 +436,7 @@ describe("NegocioController Unit Tests", () => {
         id_negocio: 1,
         nombre: "Negocio Admin",
         CIF: "B12345678",
-        plantilla: 0,
+        id_plantilla: 0,
         update: jest.fn().mockResolvedValue(true),
       };
       (Negocio.findByPk).mockResolvedValue(mockNegocio);

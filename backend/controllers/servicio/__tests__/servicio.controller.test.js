@@ -54,6 +54,7 @@ describe("ServicioController Unit Tests", () => {
                 precio: 25.5,
                 duracion: 45,
                 descripcion: "Corte con lavado y peinado",
+                requiere_capacidad: false,
             });
             expect(res.status).toHaveBeenCalledWith(201);
             expect(jsonMock).toHaveBeenCalledWith({
@@ -83,6 +84,7 @@ describe("ServicioController Unit Tests", () => {
                 precio: 60,
                 duracion: 90,
                 descripcion: "Aplicación de color con secado",
+                requiere_capacidad: false,
             });
         });
 
@@ -210,6 +212,7 @@ describe("ServicioController Unit Tests", () => {
                 precio: 30,
                 duracion: 50,
                 descripcion: "Corte con lavado, peinado y tratamiento",
+                requiere_capacidad: false,
             });
             expect(res.status).toHaveBeenCalledWith(200);
             expect(jsonMock).toHaveBeenCalledWith({
@@ -219,6 +222,7 @@ describe("ServicioController Unit Tests", () => {
                     precio: 30,
                     duracion: 50,
                     descripcion: "Corte con lavado, peinado y tratamiento",
+                    requiere_capacidad: false,
                     id_servicio: 5,
                     id_negocio: 10,
                 },
@@ -238,6 +242,7 @@ describe("ServicioController Unit Tests", () => {
                 precio: 70,
                 duracion: 95,
                 descripcion: "Aplicacion de color con secado y peinado",
+                requiere_capacidad: false,
             });
             expect(res.status).toHaveBeenCalledWith(200);
         });

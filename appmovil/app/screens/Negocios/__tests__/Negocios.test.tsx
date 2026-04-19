@@ -42,7 +42,7 @@ describe("Negocios", () => {
       ok: true,
       json: async () => ({
         negocios: [
-          { id_negocio: 1, nombre: "Negocio 1", CIF: "A11111111", plantilla: 0, rol: "jefe" },
+          { id_negocio: 1, nombre: "Negocio 1", CIF: "A11111111", id_plantilla: 0, rol: "jefe" },
         ],
       }),
     });

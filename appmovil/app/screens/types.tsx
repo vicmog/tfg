@@ -11,7 +11,7 @@ export type Negocio = {
     id_negocio: number;
     nombre: string;
     CIF: string;
-    plantilla: number;
+    id_plantilla?: number | null;
     rol: string;
 };
 
@@ -50,6 +50,7 @@ export type Servicio = {
     precio: number;
     duracion: number;
     descripcion: string;
+    requiere_capacidad?: boolean;
     createdAt?: string;
     updatedAt?: string;
 };
@@ -61,6 +62,31 @@ export type Recurso = {
     capacidad: number;
     createdAt?: string;
     updatedAt?: string;
+};
+
+export type ServicioPlantilla = {
+    id_servicio_plantilla: number;
+    id_plantilla: number;
+    nombre: string;
+    precio: number;
+    duracion: number;
+    descripcion: string;
+    requiere_capacidad?: boolean;
+};
+
+export type RecursoPlantilla = {
+    id_recurso_plantilla: number;
+    id_plantilla: number;
+    nombre: string;
+    capacidad: number;
+};
+
+export type Plantilla = {
+    id_plantilla: number;
+    nombre: string;
+    descripcion: string;
+    servicios: ServicioPlantilla[];
+    recursos: RecursoPlantilla[];
 };
 
 export type Reserva = {

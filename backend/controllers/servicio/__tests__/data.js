@@ -176,6 +176,7 @@ export const mockServicioData = {
     precio: 25.5,
     duracion: 45,
     descripcion: "Corte con lavado y peinado",
+    requiere_capacidad: false,
 };
 
 export const mockServicios = [
@@ -187,6 +188,7 @@ export const mockServicios = [
         precio: 60,
         duracion: 90,
         descripcion: "Aplicación de color con secado",
+        requiere_capacidad: false,
     },
 ];
 

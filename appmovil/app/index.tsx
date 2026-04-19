@@ -25,6 +25,8 @@ import EditarProducto from "./screens/Productos/EditarProducto";
 import Descuentos from "./screens/Descuentos/Descuentos";
 import Compras from "./screens/Compras/Compras";
 import CrearCompra from "./screens/Compras/CrearCompra";
+import CrearPlantilla from "./screens/CrearPlantilla/CrearPlantilla";
+import GestionPlantillas from "./screens/GestionPlantillas/GestionPlantillas";
 import { Negocio, Producto, Reserva } from "./screens/types";
 
 export type NavigationScreenList = {
@@ -53,6 +55,8 @@ export type NavigationScreenList = {
   Descuentos: { negocio: Negocio };
   Compras: { negocio: Negocio };
   CrearCompra: { negocio: Negocio };
+  GestionPlantillas: undefined;
+  CrearPlantilla: undefined;
 };
 
 const Stack = createNativeStackNavigator<NavigationScreenList>();
@@ -97,6 +101,8 @@ const App: React.FC = () => {
           <Stack.Screen name="Descuentos" component={Descuentos} />
           <Stack.Screen name="Compras" component={Compras} />
           <Stack.Screen name="CrearCompra" component={CrearCompra} />
+          <Stack.Screen name="GestionPlantillas" component={GestionPlantillas} />
+          <Stack.Screen name="CrearPlantilla" component={CrearPlantilla} />
         </>
       ) : (
         <>

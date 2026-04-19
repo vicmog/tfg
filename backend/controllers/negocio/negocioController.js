@@ -4,7 +4,6 @@ import { Usuario } from "../../models/Usuario.js";
 import { Op, fn, col, where } from "sequelize";
 import {
     DEFAULT_ADMIN_USER_ID,
-    DEFAULT_PLANTILLA,
     NEGOCIO_ERRORS,
     NEGOCIO_MESSAGES,
     NEGOCIO_ROLES,
@@ -35,7 +34,7 @@ export const createNegocio = async (req, res) => {
         const negocio = await Negocio.create({
             nombre: nombre.trim(),
             CIF: CIF.trim(),
-            plantilla: DEFAULT_PLANTILLA
+            id_plantilla: null
         });
 
         await UsuarioNegocio.create({
@@ -58,7 +57,7 @@ export const createNegocio = async (req, res) => {
                 id_negocio: negocio.id_negocio,
                 nombre: negocio.nombre,
                 CIF: negocio.CIF,
-                plantilla: negocio.plantilla
+                id_plantilla: negocio.id_plantilla
             }
         });
 
@@ -109,7 +108,7 @@ export const getNegocios = async (req, res) => {
                 id_negocio: negocio.id_negocio,
                 nombre: negocio.nombre,
                 CIF: negocio.CIF,
-                plantilla: negocio.plantilla,
+                id_plantilla: negocio.id_plantilla,
                 rol: usuarioNegocio?.rol || NEGOCIO_ROLES.TRABAJADOR
             };
         });
@@ -157,7 +156,7 @@ export const updateNegocio = async (req, res) => {
                 id_negocio: negocio.id_negocio,
                 nombre: negocio.nombre,
                 CIF: negocio.CIF,
-                plantilla: negocio.plantilla
+                id_plantilla: negocio.id_plantilla
             }
         });
 
@@ -230,7 +229,7 @@ export const getNegocioById = async (req, res) => {
                 id_negocio: negocio.id_negocio,
                 nombre: negocio.nombre,
                 CIF: negocio.CIF,
-                plantilla: negocio.plantilla,
+                id_plantilla: negocio.id_plantilla,
                 rol: usuarioNegocio.rol
             }
         });

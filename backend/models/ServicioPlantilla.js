@@ -1,13 +1,13 @@
 import { DataTypes } from "sequelize";
 import { sequelize } from "./db.js";
 
-export const Servicio = sequelize.define(
-    "Servicio",
+export const ServicioPlantilla = sequelize.define(
+    "ServicioPlantilla",
     {
-        id_servicio: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-        id_negocio: {
+        id_servicio_plantilla: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        id_plantilla: {
             type: DataTypes.INTEGER,
-            references: { model: "Negocio", key: "id_negocio" },
+            references: { model: "Plantilla", key: "id_plantilla" },
             onDelete: "CASCADE",
             allowNull: false,
         },
@@ -18,7 +18,7 @@ export const Servicio = sequelize.define(
         requiere_capacidad: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     },
     {
-        tableName: "Servicio",
+        tableName: "ServicioPlantilla",
         timestamps: true,
     }
 );
