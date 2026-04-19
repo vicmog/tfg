@@ -74,11 +74,11 @@ const Negocios: React.FC<NegociosScreenProps> = ({ navigation }) => {
         <View style={styles.adminActionContainer}>
           <TouchableOpacity
             style={styles.adminTemplateButton}
-            onPress={() => navigation.navigate("CrearPlantilla")}
-            testID="create-template-button"
+            onPress={() => navigation.navigate("GestionPlantillas")}
+            testID="manage-templates-button"
           >
             <MaterialIcons name="dashboard-customize" size={18} color="#fff" style={{ marginRight: 8 }} />
-            <Text style={styles.adminTemplateButtonText}>Crear plantilla personalizada</Text>
+            <Text style={styles.adminTemplateButtonText}>Gestion de plantillas</Text>
           </TouchableOpacity>
         </View>
       ) : null}

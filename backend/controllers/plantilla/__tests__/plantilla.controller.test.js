@@ -1,4 +1,4 @@
-import { createPlantilla } from "../plantillaController.js";
+import { createPlantilla, getPlantillas } from "../plantillaController.js";
 import { Plantilla } from "../../../models/Plantilla.js";
 import { ServicioPlantilla } from "../../../models/ServicioPlantilla.js";
 import { RecursoPlantilla } from "../../../models/RecursoPlantilla.js";
@@ -125,6 +125,8 @@ describe("PlantillaController Unit Tests", () => {
   });
 
   it("deberia fallar si falta el nombre", async () => {
+    (UsuarioNegocio.findOne).mockResolvedValue({ id_usuario: 1, rol: "admin" });
+
     const req = {
       user: { id_usuario: 1 },
       body: { ...validBody, nombre: " " },
@@ -138,6 +140,8 @@ describe("PlantillaController Unit Tests", () => {
   });
 
   it("deberia fallar si servicios esta vacio", async () => {
+    (UsuarioNegocio.findOne).mockResolvedValue({ id_usuario: 1, rol: "admin" });
+
     const req = {
       user: { id_usuario: 1 },
       body: { ...validBody, servicios: [] },
@@ -148,5 +152,65 @@ describe("PlantillaController Unit Tests", () => {
 
     expect(res.status).toHaveBeenCalledWith(400);
     expect(jsonMock).toHaveBeenCalledWith({ message: "Debes enviar al menos un servicio" });
+  });
+
+  it("deberia devolver plantillas para admin", async () => {
+    (UsuarioNegocio.findOne).mockResolvedValue({ id_usuario: 1, rol: "admin" });
+    (Plantilla.findAll).mockResolvedValue([
+      { id_plantilla: 1, nombre: "Plantilla A", descripcion: "Desc A" },
+    ]);
+    (ServicioPlantilla.findAll).mockResolvedValue([
+      {
+        id_servicio_plantilla: 11,
+        id_plantilla: 1,
+        nombre: "Corte",
+        precio: 10,
+        duracion: 30,
+        descripcion: "Desc",
+      },
+    ]);
+    (RecursoPlantilla.findAll).mockResolvedValue([
+      {
+        id_recurso_plantilla: 21,
+        id_plantilla: 1,
+        nombre: "Silla",
+        capacidad: 1,
+      },
+    ]);
+
+    const req = { user: { id_usuario: 1 } };
+    const { res, jsonMock } = buildRes();
+
+    await getPlantillas(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(jsonMock).toHaveBeenCalledWith({
+      message: "Plantillas obtenidas correctamente",
+      plantillas: [
+        {
+          id_plantilla: 1,
+          nombre: "Plantilla A",
+          descripcion: "Desc A",
+          servicios: [
+            {
+              id_servicio_plantilla: 11,
+              id_plantilla: 1,
+              nombre: "Corte",
+              precio: 10,
+              duracion: 30,
+              descripcion: "Desc",
+            },
+          ],
+          recursos: [
+            {
+              id_recurso_plantilla: 21,
+              id_plantilla: 1,
+              nombre: "Silla",
+              capacidad: 1,
+            },
+          ],
+        },
+      ],
+    });
   });
 });

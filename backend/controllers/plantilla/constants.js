@@ -1,6 +1,7 @@
 export const PLANTILLA_ERRORS = {
   USER_NOT_AUTHENTICATED: "Usuario no autenticado",
   NO_CREATE_PERMISSION: "No tienes permisos para crear plantillas",
+  NO_VIEW_PERMISSION: "No tienes permisos para ver plantillas",
   NOMBRE_REQUIRED: "El nombre de la plantilla es obligatorio",
   SERVICIOS_REQUIRED: "Debes enviar al menos un servicio",
   RECURSOS_REQUIRED: "Debes enviar al menos un recurso",
@@ -15,6 +16,7 @@ export const PLANTILLA_ERRORS = {
 
 export const PLANTILLA_MESSAGES = {
   PLANTILLA_CREATED: "Plantilla creada correctamente",
+  PLANTILLAS_RETRIEVED: "Plantillas obtenidas correctamente",
 };
 
 export const PLANTILLA_ROLES = {

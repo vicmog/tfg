@@ -7,6 +7,25 @@ import { PLANTILLA_ERRORS, PLANTILLA_MESSAGES, PLANTILLA_ROLES } from "./constan
 
 const canCreatePlantillas = (rol) => `${rol ?? ""}`.toLowerCase() === PLANTILLA_ROLES.ADMIN;
 
+const ensureAdminAccess = async (id_usuario) => {
+  if (!id_usuario) {
+    return { status: 401, message: PLANTILLA_ERRORS.USER_NOT_AUTHENTICATED };
+  }
+
+  const usuarioAdmin = await UsuarioNegocio.findOne({
+    where: {
+      id_usuario,
+      rol: PLANTILLA_ROLES.ADMIN,
+    },
+  });
+
+  if (!usuarioAdmin || !canCreatePlantillas(usuarioAdmin.rol)) {
+    return { status: 403, message: PLANTILLA_ERRORS.NO_VIEW_PERMISSION };
+  }
+
+  return { status: null };
+};
+
 const isPositiveNumber = (value) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0;
@@ -70,12 +89,90 @@ const validateRecursos = (recursos) => {
   };
 };
 
+export const getPlantillas = async (req, res) => {
+  const id_usuario = req.user?.id_usuario;
+
+  try {
+    const accessResult = await ensureAdminAccess(id_usuario);
+    if (accessResult.status) {
+      return res.status(accessResult.status).json({ message: accessResult.message });
+    }
+
+    const plantillas = await Plantilla.findAll({
+      order: [["createdAt", "DESC"]],
+    });
+
+    if (plantillas.length === 0) {
+      return res.status(200).json({
+        message: PLANTILLA_MESSAGES.PLANTILLAS_RETRIEVED,
+        plantillas: [],
+      });
+    }
+
+    const plantillaIds = plantillas.map((plantilla) => plantilla.id_plantilla);
+
+    const servicios = await ServicioPlantilla.findAll({
+      where: { id_plantilla: plantillaIds },
+      order: [["createdAt", "DESC"]],
+    });
+
+    const recursos = await RecursoPlantilla.findAll({
+      where: { id_plantilla: plantillaIds },
+      order: [["createdAt", "DESC"]],
+    });
+
+    const serviciosByPlantilla = servicios.reduce((acc, servicio) => {
+      if (!acc[servicio.id_plantilla]) {
+        acc[servicio.id_plantilla] = [];
+      }
+      acc[servicio.id_plantilla].push({
+        id_servicio_plantilla: servicio.id_servicio_plantilla,
+        id_plantilla: servicio.id_plantilla,
+        nombre: servicio.nombre,
+        precio: servicio.precio,
+        duracion: servicio.duracion,
+        descripcion: servicio.descripcion,
+      });
+      return acc;
+    }, {});
+
+    const recursosByPlantilla = recursos.reduce((acc, recurso) => {
+      if (!acc[recurso.id_plantilla]) {
+        acc[recurso.id_plantilla] = [];
+      }
+      acc[recurso.id_plantilla].push({
+        id_recurso_plantilla: recurso.id_recurso_plantilla,
+        id_plantilla: recurso.id_plantilla,
+        nombre: recurso.nombre,
+        capacidad: recurso.capacidad,
+      });
+      return acc;
+    }, {});
+
+    return res.status(200).json({
+      message: PLANTILLA_MESSAGES.PLANTILLAS_RETRIEVED,
+      plantillas: plantillas.map((plantilla) => ({
+        id_plantilla: plantilla.id_plantilla,
+        nombre: plantilla.nombre,
+        descripcion: plantilla.descripcion,
+        servicios: serviciosByPlantilla[plantilla.id_plantilla] || [],
+        recursos: recursosByPlantilla[plantilla.id_plantilla] || [],
+      })),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: PLANTILLA_ERRORS.SERVER_ERROR });
+  }
+};
+
 export const createPlantilla = async (req, res) => {
   const { nombre, descripcion, servicios, recursos } = req.body;
   const id_usuario = req.user?.id_usuario;
 
-  if (!id_usuario) {
-    return res.status(401).json({ message: PLANTILLA_ERRORS.USER_NOT_AUTHENTICATED });
+  const accessResult = await ensureAdminAccess(id_usuario);
+  if (accessResult.status) {
+    return res.status(accessResult.status).json({
+      message: accessResult.status === 403 ? PLANTILLA_ERRORS.NO_CREATE_PERMISSION : accessResult.message,
+    });
   }
 
   if (!nombre || !`${nombre}`.trim()) {
@@ -93,17 +190,6 @@ export const createPlantilla = async (req, res) => {
   }
 
   try {
-    const usuarioAdmin = await UsuarioNegocio.findOne({
-      where: {
-        id_usuario,
-        rol: PLANTILLA_ROLES.ADMIN,
-      },
-    });
-
-    if (!usuarioAdmin || !canCreatePlantillas(usuarioAdmin.rol)) {
-      return res.status(403).json({ message: PLANTILLA_ERRORS.NO_CREATE_PERMISSION });
-    }
-
     const nombreTrim = `${nombre}`.trim();
     const existingPlantilla = await Plantilla.findOne({ where: { nombre: nombreTrim } });
 
