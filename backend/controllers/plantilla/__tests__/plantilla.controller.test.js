@@ -1,4 +1,4 @@
-import { createPlantilla, getPlantillas } from "../plantillaController.js";
+import { createPlantilla, getPlantillas, updatePlantilla } from "../plantillaController.js";
 import { Plantilla } from "../../../models/Plantilla.js";
 import { ServicioPlantilla } from "../../../models/ServicioPlantilla.js";
 import { RecursoPlantilla } from "../../../models/RecursoPlantilla.js";
@@ -216,5 +216,115 @@ describe("PlantillaController Unit Tests", () => {
         },
       ],
     });
+  });
+
+  it("deberia actualizar una plantilla correctamente", async () => {
+    (UsuarioNegocio.findOne).mockResolvedValue({ id_usuario: 1, rol: "admin" });
+
+    const plantillaMock = {
+      id_plantilla: 10,
+      nombre: "Plantilla Antigua",
+      descripcion: "Descripcion antigua",
+      update: jest.fn().mockImplementation(async (payload) => {
+        plantillaMock.nombre = payload.nombre;
+        plantillaMock.descripcion = payload.descripcion;
+      }),
+    };
+
+    (Plantilla.findByPk).mockResolvedValue(plantillaMock);
+    (Plantilla.findOne).mockResolvedValue({ id_plantilla: 10, nombre: "Plantilla Barberia" });
+
+    (ServicioPlantilla.destroy).mockResolvedValue(1);
+    (RecursoPlantilla.destroy).mockResolvedValue(1);
+
+    (ServicioPlantilla.bulkCreate).mockResolvedValue([
+      {
+        id_servicio_plantilla: 21,
+        nombre: "Corte Premium",
+        precio: 18,
+        duracion: 45,
+        descripcion: "Incluye lavado",
+        requiere_capacidad: true,
+      },
+    ]);
+
+    (RecursoPlantilla.bulkCreate).mockResolvedValue([
+      {
+        id_recurso_plantilla: 31,
+        nombre: "Sillon Reclinable",
+        capacidad: 1,
+      },
+    ]);
+
+    const req = {
+      user: { id_usuario: 1 },
+      params: { id_plantilla: "10" },
+      body: {
+        nombre: "Plantilla Barberia",
+        descripcion: "Plantilla actualizada",
+        servicios: [
+          {
+            nombre: "Corte Premium",
+            precio: 18,
+            duracion: 45,
+            descripcion: "Incluye lavado",
+            requiere_capacidad: true,
+          },
+        ],
+        recursos: [
+          {
+            nombre: "Sillon Reclinable",
+            capacidad: 1,
+          },
+        ],
+      },
+    };
+    const { res, jsonMock } = buildRes();
+
+    await updatePlantilla(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(jsonMock).toHaveBeenCalledWith({
+      message: "Plantilla actualizada correctamente",
+      plantilla: {
+        id_plantilla: 10,
+        nombre: "Plantilla Barberia",
+        descripcion: "Plantilla actualizada",
+        servicios: [
+          {
+            id_servicio_plantilla: 21,
+            nombre: "Corte Premium",
+            precio: 18,
+            duracion: 45,
+            descripcion: "Incluye lavado",
+            requiere_capacidad: true,
+          },
+        ],
+        recursos: [
+          {
+            id_recurso_plantilla: 31,
+            nombre: "Sillon Reclinable",
+            capacidad: 1,
+          },
+        ],
+      },
+    });
+  });
+
+  it("deberia fallar al actualizar si la plantilla no existe", async () => {
+    (UsuarioNegocio.findOne).mockResolvedValue({ id_usuario: 1, rol: "admin" });
+    (Plantilla.findByPk).mockResolvedValue(null);
+
+    const req = {
+      user: { id_usuario: 1 },
+      params: { id_plantilla: "999" },
+      body: validBody,
+    };
+    const { res, jsonMock } = buildRes();
+
+    await updatePlantilla(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(jsonMock).toHaveBeenCalledWith({ message: "Plantilla no encontrada" });
   });
 });

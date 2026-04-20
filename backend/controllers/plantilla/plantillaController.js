@@ -307,3 +307,121 @@ export const createPlantilla = async (req, res) => {
     return res.status(500).json({ message: PLANTILLA_ERRORS.SERVER_ERROR });
   }
 };
+
+export const updatePlantilla = async (req, res) => {
+  const { id_plantilla } = req.params;
+  const { nombre, descripcion, servicios, recursos } = req.body;
+  const id_usuario = req.user?.id_usuario;
+
+  const accessResult = await ensureAdminAccess(id_usuario);
+  if (accessResult.status) {
+    return res.status(accessResult.status).json({
+      message: accessResult.status === 403 ? PLANTILLA_ERRORS.NO_UPDATE_PERMISSION : accessResult.message,
+    });
+  }
+
+  if (!isPositiveInteger(id_plantilla)) {
+    return res.status(400).json({ message: PLANTILLA_ERRORS.PLANTILLA_ID_INVALID });
+  }
+
+  if (!nombre || !`${nombre}`.trim()) {
+    return res.status(400).json({ message: PLANTILLA_ERRORS.NOMBRE_REQUIRED });
+  }
+
+  const serviciosResult = validateServicios(servicios);
+  if (serviciosResult.error) {
+    return res.status(400).json({ message: serviciosResult.error });
+  }
+
+  const recursosResult = validateRecursos(recursos);
+  if (recursosResult.error) {
+    return res.status(400).json({ message: recursosResult.error });
+  }
+
+  try {
+    const plantillaId = Number(id_plantilla);
+    const plantilla = await Plantilla.findByPk(plantillaId);
+
+    if (!plantilla) {
+      return res.status(404).json({ message: PLANTILLA_ERRORS.PLANTILLA_NOT_FOUND });
+    }
+
+    const nombreTrim = `${nombre}`.trim();
+    const existingPlantilla = await Plantilla.findOne({ where: { nombre: nombreTrim } });
+
+    if (existingPlantilla && existingPlantilla.id_plantilla !== plantillaId) {
+      return res.status(400).json({ message: PLANTILLA_ERRORS.NOMBRE_ALREADY_EXISTS });
+    }
+
+    const updatedData = await sequelize.transaction(async (transaction) => {
+      await plantilla.update(
+        {
+          nombre: nombreTrim,
+          descripcion: typeof descripcion === "string" ? descripcion.trim() : "",
+        },
+        { transaction }
+      );
+
+      await ServicioPlantilla.destroy({
+        where: { id_plantilla: plantillaId },
+        transaction,
+      });
+
+      await RecursoPlantilla.destroy({
+        where: { id_plantilla: plantillaId },
+        transaction,
+      });
+
+      const updatedServicios = await ServicioPlantilla.bulkCreate(
+        serviciosResult.value.map((servicio) => ({
+          id_plantilla: plantillaId,
+          nombre: servicio.nombre,
+          precio: servicio.precio,
+          duracion: servicio.duracion,
+          descripcion: servicio.descripcion,
+          requiere_capacidad: servicio.requiere_capacidad,
+        })),
+        { transaction }
+      );
+
+      const updatedRecursos = await RecursoPlantilla.bulkCreate(
+        recursosResult.value.map((recurso) => ({
+          id_plantilla: plantillaId,
+          nombre: recurso.nombre,
+          capacidad: recurso.capacidad,
+        })),
+        { transaction }
+      );
+
+      return { plantilla, updatedServicios, updatedRecursos };
+    });
+
+    return res.status(200).json({
+      message: PLANTILLA_MESSAGES.PLANTILLA_UPDATED,
+      plantilla: {
+        id_plantilla: updatedData.plantilla.id_plantilla,
+        nombre: updatedData.plantilla.nombre,
+        descripcion: updatedData.plantilla.descripcion,
+        servicios: updatedData.updatedServicios.map((servicio) => ({
+          id_servicio_plantilla: servicio.id_servicio_plantilla,
+          nombre: servicio.nombre,
+          precio: servicio.precio,
+          duracion: servicio.duracion,
+          descripcion: servicio.descripcion,
+          requiere_capacidad: servicio.requiere_capacidad,
+        })),
+        recursos: updatedData.updatedRecursos.map((recurso) => ({
+          id_recurso_plantilla: recurso.id_recurso_plantilla,
+          nombre: recurso.nombre,
+          capacidad: recurso.capacidad,
+        })),
+      },
+    });
+  } catch (error) {
+    if (error?.name === "SequelizeUniqueConstraintError") {
+      return res.status(400).json({ message: PLANTILLA_ERRORS.NOMBRE_ALREADY_EXISTS });
+    }
+
+    return res.status(500).json({ message: PLANTILLA_ERRORS.SERVER_ERROR });
+  }
+};
