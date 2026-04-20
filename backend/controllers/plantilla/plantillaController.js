@@ -425,3 +425,30 @@ export const updatePlantilla = async (req, res) => {
     return res.status(500).json({ message: PLANTILLA_ERRORS.SERVER_ERROR });
   }
 };
+
+export const deletePlantilla = async (req, res) => {
+  const { id_plantilla } = req.params;
+  const id_usuario = req.user?.id_usuario;
+
+  if (!id_usuario) {
+    return res.status(401).json({ message: PLANTILLA_ERRORS.USER_NOT_AUTHENTICATED });
+  }
+
+  try {
+    const plantilla = await Plantilla.findByPk(id_plantilla);
+    if (!plantilla) {
+      return res.status(404).json({ message: PLANTILLA_ERRORS.PLANTILLA_NOT_FOUND });
+    }
+
+    const accessResult = await ensureAdminAccess(id_usuario);
+    if (accessResult.status) {
+      return res.status(accessResult.status).json({ message: accessResult.message });
+    }
+
+    await plantilla.destroy();
+
+    return res.status(200).json({ message: PLANTILLA_MESSAGES.PLANTILLA_DELETED });
+  } catch (error) {
+    return res.status(500).json({ message: PLANTILLA_ERRORS.SERVER_ERROR });
+  }
+};
