@@ -157,7 +157,6 @@ describe("PlantillaController Unit Tests", () => {
   });
 
   it("deberia devolver plantillas para admin", async () => {
-    (UsuarioNegocio.findOne).mockResolvedValue({ id_usuario: 1, rol: "admin" });
     (Plantilla.findAll).mockResolvedValue([
       { id_plantilla: 1, nombre: "Plantilla A", descripcion: "Desc A" },
     ]);
@@ -216,6 +215,16 @@ describe("PlantillaController Unit Tests", () => {
         },
       ],
     });
+  });
+
+  it("deberia fallar al listar si no hay usuario autenticado", async () => {
+    const req = { user: null };
+    const { res, jsonMock } = buildRes();
+
+    await getPlantillas(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(jsonMock).toHaveBeenCalledWith({ message: "Usuario no autenticado" });
   });
 
   it("deberia actualizar una plantilla correctamente", async () => {

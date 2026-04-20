@@ -1,18 +1,19 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
     View,
     Text,
     TextInput,
     StyleSheet,
     TouchableOpacity,
-    Alert,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
+    Modal,
+    ActivityIndicator,
 } from "react-native";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 import {
     CIF_REGEX,
     CONNECTION_ERROR,
@@ -21,10 +22,16 @@ import {
     DEFAULT_CREATE_ERROR,
     EMPTY_CIF_ERROR,
     EMPTY_NOMBRE_ERROR,
+    GET_PLANTILLAS_ROUTE,
     INVALID_CIF_ERROR,
     NO_TOKEN_ERROR,
+    TEMPLATE_LIST_ERROR,
+    TEMPLATE_LOADING,
+    TEMPLATE_OPTION_NONE,
+    TEMPLATE_PLACEHOLDER,
 } from "./constants";
 import { CrearNegocioProps } from "./types";
+import { Plantilla } from "../types";
 
 const CrearNegocio: React.FC<CrearNegocioProps> = ({ navigation }) => {
     const [nombre, setNombre] = useState("");
@@ -32,6 +39,51 @@ const CrearNegocio: React.FC<CrearNegocioProps> = ({ navigation }) => {
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
+    const [plantillas, setPlantillas] = useState<Plantilla[]>([]);
+    const [loadingPlantillas, setLoadingPlantillas] = useState(false);
+    const [plantillasError, setPlantillasError] = useState("");
+    const [selectorVisible, setSelectorVisible] = useState(false);
+    const [selectedPlantillaId, setSelectedPlantillaId] = useState<number | null>(null);
+
+    const selectedPlantilla = plantillas.find((plantilla) => plantilla.id_plantilla === selectedPlantillaId) || null;
+
+    useFocusEffect(
+        useCallback(() => {
+            const fetchPlantillas = async () => {
+                setLoadingPlantillas(true);
+                setPlantillasError("");
+
+                try {
+                    const token = await AsyncStorage.getItem("token");
+
+                    if (!token) {
+                        setPlantillasError(NO_TOKEN_ERROR);
+                        return;
+                    }
+
+                    const response = await fetch(GET_PLANTILLAS_ROUTE, {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        setPlantillas(data.plantillas || []);
+                    } else {
+                        setPlantillasError(data.message || TEMPLATE_LIST_ERROR);
+                    }
+                } catch {
+                    setPlantillasError(TEMPLATE_LIST_ERROR);
+                } finally {
+                    setLoadingPlantillas(false);
+                }
+            };
+
+            fetchPlantillas();
+        }, [])
+    );
 
     const validateForm = (): boolean => {
         setErrorMessage("");
@@ -79,6 +131,7 @@ const CrearNegocio: React.FC<CrearNegocioProps> = ({ navigation }) => {
                 body: JSON.stringify({
                     nombre: nombre.trim(),
                     CIF: cif.trim().toUpperCase(),
+                    id_plantilla: selectedPlantillaId,
                 }),
             });
 
@@ -88,6 +141,7 @@ const CrearNegocio: React.FC<CrearNegocioProps> = ({ navigation }) => {
                 setSuccessMessage(CREATE_SUCCESS_MESSAGE);
                 setNombre("");
                 setCif("");
+                setSelectedPlantillaId(null);
 
                 setTimeout(() => {
                     navigation.goBack();
@@ -148,15 +202,32 @@ const CrearNegocio: React.FC<CrearNegocioProps> = ({ navigation }) => {
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Plantilla</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Disponible próximamente"
-                            value={""}
-                            onChangeText={() => { }}
-                            testID="plantilla-input"
-                            autoCapitalize="characters"
-                            editable={false}
-                        />
+                        <TouchableOpacity
+                            style={styles.selectorButton}
+                            onPress={() => setSelectorVisible(true)}
+                            testID="plantilla-selector-button"
+                        >
+                            <View style={styles.selectorContent}>
+                                <Text style={[styles.selectorText, !selectedPlantilla && styles.selectorPlaceholder]}>
+                                    {selectedPlantilla ? selectedPlantilla.nombre : TEMPLATE_PLACEHOLDER}
+                                </Text>
+                                {selectedPlantilla ? (
+                                    <Text style={styles.selectorHintText}>Se copiaran servicios y recursos</Text>
+                                ) : null}
+                            </View>
+                            <MaterialIcons name="keyboard-arrow-down" size={24} color="#6b7280" />
+                        </TouchableOpacity>
+
+                        {loadingPlantillas ? (
+                            <View style={styles.templateFeedbackRow}>
+                                <ActivityIndicator size="small" color="#1976D2" />
+                                <Text style={styles.templateLoadingText}>{TEMPLATE_LOADING}</Text>
+                            </View>
+                        ) : null}
+
+                        {plantillasError ? (
+                            <Text style={styles.templateErrorText}>{plantillasError}</Text>
+                        ) : null}
                     </View>
 
                     {errorMessage ? (
@@ -186,6 +257,65 @@ const CrearNegocio: React.FC<CrearNegocioProps> = ({ navigation }) => {
                     </TouchableOpacity>
                 </View>
             </ScrollView>
+
+            <Modal
+                visible={selectorVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setSelectorVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalCard}>
+                        <Text style={styles.modalTitle}>Selecciona una plantilla</Text>
+
+                        <ScrollView style={styles.modalList}>
+                            <TouchableOpacity
+                                style={styles.modalItem}
+                                onPress={() => {
+                                    setSelectedPlantillaId(null);
+                                    setSelectorVisible(false);
+                                }}
+                                testID="plantilla-option-none"
+                            >
+                                <Text style={styles.modalItemTitle}>{TEMPLATE_OPTION_NONE}</Text>
+                                {selectedPlantillaId === null ? (
+                                    <MaterialIcons name="check-circle" size={18} color="#16a34a" />
+                                ) : null}
+                            </TouchableOpacity>
+
+                            {plantillas.map((plantilla) => (
+                                <TouchableOpacity
+                                    key={plantilla.id_plantilla}
+                                    style={styles.modalItem}
+                                    onPress={() => {
+                                        setSelectedPlantillaId(plantilla.id_plantilla);
+                                        setSelectorVisible(false);
+                                    }}
+                                    testID={`plantilla-option-${plantilla.id_plantilla}`}
+                                >
+                                    <View style={styles.modalItemMain}>
+                                        <Text style={styles.modalItemTitle}>{plantilla.nombre}</Text>
+                                        <Text style={styles.modalItemMeta}>
+                                            {plantilla.servicios.length} servicios · {plantilla.recursos.length} recursos
+                                        </Text>
+                                    </View>
+                                    {selectedPlantillaId === plantilla.id_plantilla ? (
+                                        <MaterialIcons name="check-circle" size={18} color="#16a34a" />
+                                    ) : null}
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+
+                        <TouchableOpacity
+                            style={styles.modalCloseButton}
+                            onPress={() => setSelectorVisible(false)}
+                            testID="plantilla-selector-close"
+                        >
+                            <Text style={styles.modalCloseButtonText}>Cerrar</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </KeyboardAvoidingView>
     );
 };
@@ -245,6 +375,50 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: "#111827",
     },
+    selectorButton: {
+        backgroundColor: "#f9fafb",
+        borderWidth: 1,
+        borderColor: "#d1d5db",
+        borderRadius: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    selectorContent: {
+        flex: 1,
+        marginRight: 8,
+    },
+    selectorText: {
+        fontSize: 15,
+        color: "#111827",
+        fontWeight: "600",
+    },
+    selectorPlaceholder: {
+        color: "#6b7280",
+        fontWeight: "500",
+    },
+    selectorHintText: {
+        marginTop: 4,
+        fontSize: 12,
+        color: "#475569",
+    },
+    templateFeedbackRow: {
+        marginTop: 8,
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    templateLoadingText: {
+        marginLeft: 8,
+        color: "#475569",
+        fontSize: 12,
+    },
+    templateErrorText: {
+        marginTop: 8,
+        color: "#dc2626",
+        fontSize: 12,
+    },
     errorContainer: {
         flexDirection: "row",
         alignItems: "center",
@@ -289,5 +463,62 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontSize: 16,
         fontWeight: "bold",
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(15, 23, 42, 0.45)",
+        justifyContent: "center",
+        paddingHorizontal: 20,
+    },
+    modalCard: {
+        backgroundColor: "#fff",
+        borderRadius: 12,
+        maxHeight: "70%",
+        padding: 16,
+    },
+    modalTitle: {
+        fontSize: 17,
+        fontWeight: "700",
+        color: "#0f172a",
+        marginBottom: 10,
+    },
+    modalList: {
+        maxHeight: 320,
+    },
+    modalItem: {
+        borderWidth: 1,
+        borderColor: "#e2e8f0",
+        borderRadius: 10,
+        padding: 12,
+        marginBottom: 8,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    modalItemMain: {
+        flex: 1,
+        marginRight: 8,
+    },
+    modalItemTitle: {
+        fontSize: 14,
+        fontWeight: "700",
+        color: "#1f2937",
+    },
+    modalItemMeta: {
+        marginTop: 3,
+        fontSize: 12,
+        color: "#64748b",
+    },
+    modalCloseButton: {
+        marginTop: 8,
+        backgroundColor: "#e2e8f0",
+        borderRadius: 8,
+        alignItems: "center",
+        paddingVertical: 10,
+    },
+    modalCloseButtonText: {
+        color: "#0f172a",
+        fontWeight: "700",
+        fontSize: 13,
     },
 });

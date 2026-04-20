@@ -139,12 +139,11 @@ const validateRecursos = (recursos) => {
 export const getPlantillas = async (req, res) => {
   const id_usuario = req.user?.id_usuario;
 
-  try {
-    const accessResult = await ensureAdminAccess(id_usuario);
-    if (accessResult.status) {
-      return res.status(accessResult.status).json({ message: accessResult.message });
-    }
+  if (!id_usuario) {
+    return res.status(401).json({ message: PLANTILLA_ERRORS.USER_NOT_AUTHENTICATED });
+  }
 
+  try {
     const plantillas = await Plantilla.findAll({
       order: [["createdAt", "DESC"]],
     });

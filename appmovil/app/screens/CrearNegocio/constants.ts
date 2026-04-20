@@ -1,6 +1,7 @@
 import { API_ROUTES } from "@/app/constants/apiRoutes";
 
 export const CREATE_NEGOCIO_ROUTE = API_ROUTES.negocios;
+export const GET_PLANTILLAS_ROUTE = API_ROUTES.plantillas;
 export const CIF_REGEX = /^[A-Za-z]\d{8}$|^\d{8}[A-Za-z]$/;
 
 export const EMPTY_NOMBRE_ERROR = "El nombre del negocio es obligatorio";
@@ -10,3 +11,7 @@ export const NO_TOKEN_ERROR = "No estás autenticado. Por favor, inicia sesión 
 export const CREATE_SUCCESS_MESSAGE = "¡Negocio creado correctamente!";
 export const DEFAULT_CREATE_ERROR = "Error al crear el negocio";
 export const CONNECTION_ERROR = "Error de conexión. Inténtalo de nuevo.";
+export const TEMPLATE_OPTION_NONE = "Sin plantilla";
+export const TEMPLATE_PLACEHOLDER = "Seleccionar plantilla opcional";
+export const TEMPLATE_LOADING = "Cargando plantillas...";
+export const TEMPLATE_LIST_ERROR = "No se pudieron cargar las plantillas";
