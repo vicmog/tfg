@@ -46,7 +46,7 @@ const GestionPlantillas: React.FC<GestionPlantillasProps> = ({ navigation }) => 
           } else {
             setErrorMessage(data.message || ERROR_DEFAULT);
           }
-        } catch (error) {
+        } catch {
           setErrorMessage(ERROR_DEFAULT);
         } finally {
           setLoading(false);
@@ -92,7 +92,17 @@ const GestionPlantillas: React.FC<GestionPlantillasProps> = ({ navigation }) => 
           <ScrollView contentContainerStyle={styles.listContainer}>
             {plantillas.map((plantilla) => (
               <View key={plantilla.id_plantilla} style={styles.plantillaCard}>
-                <Text style={styles.plantillaName}>{plantilla.nombre}</Text>
+                <View style={styles.cardHeaderRow}>
+                  <Text style={styles.plantillaName}>{plantilla.nombre}</Text>
+                  <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={() => navigation.navigate("EditarPlantilla", { plantilla })}
+                    testID={`editar-plantilla-${plantilla.id_plantilla}`}
+                  >
+                    <MaterialIcons name="edit" size={15} color="#1d4ed8" />
+                    <Text style={styles.editButtonText}>Editar</Text>
+                  </TouchableOpacity>
+                </View>
                 <Text style={styles.plantillaDescription}>
                   {plantilla.descripcion || "Sin descripcion"}
                 </Text>
@@ -169,11 +179,34 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 12,
   },
+  cardHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
   plantillaName: {
     fontSize: 16,
     fontWeight: "700",
     color: "#1f2937",
-    marginBottom: 6,
+    flex: 1,
+    marginRight: 8,
+  },
+  editButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+    backgroundColor: "#eff6ff",
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+  },
+  editButtonText: {
+    color: "#1d4ed8",
+    fontSize: 12,
+    fontWeight: "700",
+    marginLeft: 4,
   },
   plantillaDescription: {
     fontSize: 13,
