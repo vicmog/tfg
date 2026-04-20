@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
+  TextInput,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -24,8 +25,11 @@ import {
   EMPTY_MESSAGE,
   ERROR_DEFAULT,
   LOADING_MESSAGE,
+  NO_RESULTS_DESCRIPTION,
+  NO_RESULTS_MESSAGE,
   PLANTILLAS_ROUTE,
   RETRY_TEXT,
+  SEARCH_PLACEHOLDER,
   SCREEN_SUBTITLE,
   deletePlantillaByIdRoute,
   SCREEN_TITLE,
@@ -40,6 +44,7 @@ const GestionPlantillas: React.FC<GestionPlantillasProps> = ({ navigation }) => 
   const [listSuccess, setListSuccess] = useState("");
   const [deletingPlantillaId, setDeletingPlantillaId] = useState<number | null>(null);
   const [confirmDeletePlantillaId, setConfirmDeletePlantillaId] = useState<number | null>(null);
+  const [searchText, setSearchText] = useState("");
 
   const fetchPlantillas = useCallback(async (showLoader = true) => {
     if (showLoader) {
@@ -124,18 +129,45 @@ const GestionPlantillas: React.FC<GestionPlantillasProps> = ({ navigation }) => 
     }, [fetchPlantillas])
   );
 
+  const normalizedSearch = searchText.trim().toLowerCase();
+
+  const filteredPlantillas = (() => {
+    if (!normalizedSearch) {
+      return plantillas;
+    }
+
+    return plantillas.filter((plantilla) =>
+      `${plantilla.nombre ?? ""}`.toLowerCase().includes(normalizedSearch)
+    );
+  })();
+
   const renderEmptyState = () => (
     <View style={styles.emptyStateWrap}>
-      <MaterialIcons name="inventory-2" size={34} color="#64748b" />
-      <Text style={styles.emptyStateTitle}>{EMPTY_MESSAGE}</Text>
-      <Text style={styles.emptyStateDescription}>{EMPTY_DESCRIPTION}</Text>
-      <TouchableOpacity
-        style={styles.emptyStateButton}
-        onPress={() => navigation.navigate("CrearPlantilla")}
-        testID="empty-create-plantilla-button"
-      >
-        <Text style={styles.emptyStateButtonText}>{EMPTY_ACTION_TEXT}</Text>
-      </TouchableOpacity>
+      <MaterialIcons
+        name={normalizedSearch ? "search-off" : "inventory-2"}
+        size={34}
+        color="#64748b"
+      />
+      <Text style={styles.emptyStateTitle}>
+        {normalizedSearch ? NO_RESULTS_MESSAGE : EMPTY_MESSAGE}
+      </Text>
+      <Text style={styles.emptyStateDescription}>
+        {normalizedSearch ? NO_RESULTS_DESCRIPTION : EMPTY_DESCRIPTION}
+      </Text>
+
+      {normalizedSearch ? (
+        <TouchableOpacity style={styles.emptyStateButton} onPress={() => setSearchText("")}>
+          <Text style={styles.emptyStateButtonText}>Reestablecer busqueda</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={styles.emptyStateButton}
+          onPress={() => navigation.navigate("CrearPlantilla")}
+          testID="empty-create-plantilla-button"
+        >
+          <Text style={styles.emptyStateButtonText}>{EMPTY_ACTION_TEXT}</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -208,7 +240,7 @@ const GestionPlantillas: React.FC<GestionPlantillasProps> = ({ navigation }) => 
     </View>
   );
 
-  const hasPlantillas = plantillas.length > 0;
+  const hasPlantillas = filteredPlantillas.length > 0;
 
   return (
     <View style={styles.container}>
@@ -230,6 +262,23 @@ const GestionPlantillas: React.FC<GestionPlantillasProps> = ({ navigation }) => 
         <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 8 }} />
         <Text style={styles.createButtonText}>Crear nueva plantilla</Text>
       </TouchableOpacity>
+
+      <View style={styles.searchBox}>
+        <MaterialIcons name="search" size={18} color="#64748b" />
+        <TextInput
+          style={styles.searchInput}
+          placeholder={SEARCH_PLACEHOLDER}
+          placeholderTextColor="#94a3b8"
+          value={searchText}
+          onChangeText={setSearchText}
+          testID="plantillas-search-input"
+        />
+        {searchText ? (
+          <TouchableOpacity onPress={() => setSearchText("")} style={styles.searchClearButton}>
+            <MaterialIcons name="close" size={16} color="#64748b" />
+          </TouchableOpacity>
+        ) : null}
+      </View>
 
       {loading && !hasPlantillas ? (
         <View style={styles.centerState}>
@@ -258,7 +307,7 @@ const GestionPlantillas: React.FC<GestionPlantillasProps> = ({ navigation }) => 
 
       {!loading || hasPlantillas ? (
         <FlatList
-          data={plantillas}
+          data={filteredPlantillas}
           keyExtractor={(item) => `${item.id_plantilla}`}
           renderItem={renderPlantillaItem}
           contentContainerStyle={styles.listContainer}
@@ -320,17 +369,48 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 14,
   },
+  searchBox: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#dbeafe",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    color: "#0f172a",
+    fontSize: 14,
+    paddingVertical: 2,
+  },
+  searchClearButton: {
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+    backgroundColor: "#f1f5f9",
+  },
   listContainer: {
     paddingBottom: 24,
     flexGrow: 1,
   },
   plantillaCard: {
     backgroundColor: "#fff",
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: "#e2e8f0",
     padding: 14,
     marginBottom: 12,
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   cardHeaderRow: {
     flexDirection: "row",
@@ -353,15 +433,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#bfdbfe",
-    backgroundColor: "#eff6ff",
+    borderColor: "#cbd5e1",
+    backgroundColor: "#f8fafc",
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 8,
     marginLeft: 6,
   },
   editButtonText: {
-    color: "#1d4ed8",
+    color: "#0f172a",
     fontSize: 12,
     fontWeight: "700",
     marginLeft: 4,
@@ -370,7 +450,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 30,
     borderRadius: 8,
-    backgroundColor: "#dc2626",
+    backgroundColor: "#b91c1c",
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 6,
@@ -434,14 +514,14 @@ const styles = StyleSheet.create({
   badge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#eff6ff",
+    backgroundColor: "#f1f5f9",
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 8,
     marginRight: 8,
   },
   badgeText: {
-    color: "#1e3a8a",
+    color: "#334155",
     marginLeft: 4,
     fontSize: 12,
     fontWeight: "600",
@@ -510,11 +590,11 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   emptyStateWrap: {
-    marginTop: 22,
+    marginTop: 8,
     alignItems: "center",
     backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: "#e2e8f0",
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 20,
