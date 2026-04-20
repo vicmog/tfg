@@ -21,6 +21,7 @@ export const PLANTILLA_ERRORS = {
 export const PLANTILLA_MESSAGES = {
   PLANTILLA_CREATED: "Plantilla creada correctamente",
   PLANTILLA_UPDATED: "Plantilla actualizada correctamente",
+  PLANTILLA_DELETED: "Plantilla eliminada correctamente",
   PLANTILLAS_RETRIEVED: "Plantillas obtenidas correctamente",
 };
 

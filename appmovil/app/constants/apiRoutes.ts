@@ -10,6 +10,7 @@ export const API_ROUTES = {
   negocios: `${API_BASE_URL}${API_PREFIX}/negocios`,
   plantillas: `${API_BASE_URL}${API_PREFIX}/plantillas`,
   updatePlantillaById: (idPlantilla: number) => `${API_BASE_URL}${API_PREFIX}/plantillas/${idPlantilla}`,
+  deletePlantillaById: (idPlantilla: number) => `${API_BASE_URL}${API_PREFIX}/plantillas/${idPlantilla}`,
   negocioById: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/negocios/${idNegocio}`,
   negocioUsersById: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/negocios/users/${idNegocio}`,
   putNegocioUserRoleById: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/negocios/users/${idNegocio}`,

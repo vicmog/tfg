@@ -1,4 +1,4 @@
-import { createPlantilla, getPlantillas, updatePlantilla } from "../plantillaController.js";
+import { createPlantilla, deletePlantilla, getPlantillas, updatePlantilla } from "../plantillaController.js";
 import { Plantilla } from "../../../models/Plantilla.js";
 import { ServicioPlantilla } from "../../../models/ServicioPlantilla.js";
 import { RecursoPlantilla } from "../../../models/RecursoPlantilla.js";
@@ -323,6 +323,44 @@ describe("PlantillaController Unit Tests", () => {
     const { res, jsonMock } = buildRes();
 
     await updatePlantilla(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(jsonMock).toHaveBeenCalledWith({ message: "Plantilla no encontrada" });
+  });
+
+  it("deberia borrar una plantilla correctamente", async () => {
+    (UsuarioNegocio.findOne).mockResolvedValue({ id_usuario: 1, rol: "admin" });
+
+    const plantillaMock = {
+      id_plantilla: 10,
+      destroy: jest.fn().mockResolvedValue(undefined),
+    };
+
+    (Plantilla.findByPk).mockResolvedValue(plantillaMock);
+
+    const req = {
+      user: { id_usuario: 1 },
+      params: { id_plantilla: "10" },
+    };
+    const { res, jsonMock } = buildRes();
+
+    await deletePlantilla(req, res);
+
+    expect(plantillaMock.destroy).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(jsonMock).toHaveBeenCalledWith({ message: "Plantilla eliminada correctamente" });
+  });
+
+  it("deberia fallar al borrar si la plantilla no existe", async () => {
+    (Plantilla.findByPk).mockResolvedValue(null);
+
+    const req = {
+      user: { id_usuario: 1 },
+      params: { id_plantilla: "999" },
+    };
+    const { res, jsonMock } = buildRes();
+
+    await deletePlantilla(req, res);
 
     expect(res.status).toHaveBeenCalledWith(404);
     expect(jsonMock).toHaveBeenCalledWith({ message: "Plantilla no encontrada" });
