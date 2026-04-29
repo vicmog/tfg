@@ -1039,7 +1039,7 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
                                 onPress={handleClearFilters}
                                 testID="compras-clear-filters-button"
                             >
-                                <Text style={styles.secondaryButtonText}>Limpiar</Text>
+                                <Text style={styles.secondaryButtonText}>Reestablecer filtro</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
