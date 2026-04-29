@@ -65,6 +65,7 @@ export const DEFAULT_FETCH_COMPRAS_ERROR = "No se pudieron obtener las compras";
 export const DEFAULT_FETCH_COMPRA_DETAIL_ERROR = "No se pudo obtener el detalle de la compra";
 export const NO_PROVIDER_MESSAGE = "Sin proveedor";
 export const COMPLETED_STATUS_TEXT = "Completada";
+export const GREEN_BUTTON_INFO = "El boton verde completa la compra automaticamente";
 export const DATE_FILTER_INVALID_ERROR = "La fecha del filtro debe tener formato YYYY-MM-DD";
 export const SORT_BY_DATE = "fecha" as const;
 export const SORT_ORDER_DESC = "desc" as const;
