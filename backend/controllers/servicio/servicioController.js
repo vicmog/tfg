@@ -1,4 +1,5 @@
 import { Servicio } from "../../models/Servicio.js";
+import { Recurso } from "../../models/Recurso.js";
 import { UsuarioNegocio } from "../../models/UsuarioNegocio.js";
 import {
     SERVICIO_ERRORS,
@@ -13,6 +14,7 @@ const INTEGER_REGEX = /^\d+$/;
 const serializeServicio = (servicio) => ({
     id_servicio: servicio.id_servicio,
     id_negocio: servicio.id_negocio,
+    id_recurso_favorito: servicio.id_recurso_favorito ?? null,
     nombre: servicio.nombre,
     precio: servicio.precio,
     duracion: servicio.duracion,
@@ -98,7 +100,27 @@ const normalizeRequiereCapacidad = (requiereCapacidad) => {
     return { error: SERVICIO_ERRORS.REQUIERE_CAPACIDAD_INVALID };
 };
 
-const validateServicioFields = ({ nombre, precio, duracion, descripcion, requiere_capacidad }) => {
+const normalizeIdRecursoFavorito = (idRecursoFavorito) => {
+    if (idRecursoFavorito === undefined || idRecursoFavorito === null || idRecursoFavorito === "") {
+        return { value: null };
+    }
+
+    const idRecursoFavoritoValue = `${idRecursoFavorito}`.trim();
+
+    if (!INTEGER_REGEX.test(idRecursoFavoritoValue)) {
+        return { error: SERVICIO_ERRORS.RECURSO_FAVORITO_INVALID };
+    }
+
+    const parsedIdRecursoFavorito = Number.parseInt(idRecursoFavoritoValue, 10);
+
+    if (!Number.isInteger(parsedIdRecursoFavorito) || parsedIdRecursoFavorito <= 0) {
+        return { error: SERVICIO_ERRORS.RECURSO_FAVORITO_INVALID };
+    }
+
+    return { value: parsedIdRecursoFavorito };
+};
+
+const validateServicioFields = ({ nombre, precio, duracion, descripcion, requiere_capacidad, id_recurso_favorito }) => {
     if (!nombre || !nombre.trim()) {
         return { error: SERVICIO_ERRORS.NOMBRE_REQUIRED };
     }
@@ -125,6 +147,12 @@ const validateServicioFields = ({ nombre, precio, duracion, descripcion, requier
         return { error: requiereCapacidadResult.error };
     }
 
+    const recursoFavoritoResult = normalizeIdRecursoFavorito(id_recurso_favorito);
+
+    if (recursoFavoritoResult.error) {
+        return { error: recursoFavoritoResult.error };
+    }
+
     return {
         value: {
             nombre: nombre.trim(),
@@ -132,6 +160,7 @@ const validateServicioFields = ({ nombre, precio, duracion, descripcion, requier
             duracion: duracionResult.value,
             descripcion: descripcion.trim(),
             requiere_capacidad: requiereCapacidadResult.value,
+            id_recurso_favorito: recursoFavoritoResult.value,
         },
     };
 };
@@ -144,6 +173,7 @@ export const createServicio = async (req, res) => {
         duracion,
         descripcion,
         requiere_capacidad,
+        id_recurso_favorito,
     } = req.body;
     const id_usuario = req.user?.id_usuario;
 
@@ -161,6 +191,7 @@ export const createServicio = async (req, res) => {
         duracion,
         descripcion,
         requiere_capacidad,
+        id_recurso_favorito,
     });
 
     if (servicioFieldsResult.error) {
@@ -178,6 +209,19 @@ export const createServicio = async (req, res) => {
 
         if (!canManageServicios(usuarioNegocio.rol)) {
             return res.status(403).json({ message: SERVICIO_ERRORS.NO_MANAGE_PERMISSION });
+        }
+
+        if (servicioFieldsResult.value.id_recurso_favorito !== null) {
+            const recursoFavorito = await Recurso.findOne({
+                where: {
+                    id_recurso: servicioFieldsResult.value.id_recurso_favorito,
+                    id_negocio,
+                },
+            });
+
+            if (!recursoFavorito) {
+                return res.status(400).json({ message: SERVICIO_ERRORS.RECURSO_FAVORITO_NOT_FOUND });
+            }
         }
 
         const servicio = await Servicio.create({
@@ -234,6 +278,7 @@ export const updateServicio = async (req, res) => {
         duracion,
         descripcion,
         requiere_capacidad,
+        id_recurso_favorito,
     } = req.body;
     const id_usuario = req.user?.id_usuario;
 
@@ -270,10 +315,24 @@ export const updateServicio = async (req, res) => {
             duracion,
             descripcion,
             requiere_capacidad: requiere_capacidad ?? servicio.requiere_capacidad,
+            id_recurso_favorito: id_recurso_favorito ?? servicio.id_recurso_favorito,
         });
 
         if (servicioFieldsResult.error) {
             return res.status(400).json({ message: servicioFieldsResult.error });
+        }
+
+        if (servicioFieldsResult.value.id_recurso_favorito !== null) {
+            const recursoFavorito = await Recurso.findOne({
+                where: {
+                    id_recurso: servicioFieldsResult.value.id_recurso_favorito,
+                    id_negocio: servicio.id_negocio,
+                },
+            });
+
+            if (!recursoFavorito) {
+                return res.status(400).json({ message: SERVICIO_ERRORS.RECURSO_FAVORITO_NOT_FOUND });
+            }
         }
 
         await servicio.update(servicioFieldsResult.value);

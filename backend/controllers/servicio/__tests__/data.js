@@ -20,8 +20,21 @@ export const createServicioReqAdmin = {
         precio: "60",
         duracion: "90",
         descripcion: "Aplicación de color con secado",
+        id_recurso_favorito: 8,
     },
     user: { id_usuario: 3 },
+};
+
+export const createServicioReqRecursoFavoritoInvalido = {
+    body: {
+        id_negocio: 10,
+        nombre: "Corte premium",
+        precio: 25.5,
+        duracion: 45,
+        descripcion: "Corte con lavado y peinado",
+        id_recurso_favorito: "abc",
+    },
+    user: { id_usuario: 1 },
 };
 
 export const createServicioReqSinNombre = {
@@ -112,6 +125,7 @@ export const updateServicioReqAdmin = {
         precio: 70,
         duracion: 95,
         descripcion: "Aplicacion de color con secado y peinado",
+        id_recurso_favorito: 8,
     },
     user: { id_usuario: 3 },
 };
@@ -172,6 +186,7 @@ export const deleteServicioReqSinPermiso = {
 export const mockServicioData = {
     id_servicio: 5,
     id_negocio: 10,
+    id_recurso_favorito: null,
     nombre: "Corte premium",
     precio: 25.5,
     duracion: 45,
@@ -184,6 +199,7 @@ export const mockServicios = [
     {
         id_servicio: 6,
         id_negocio: 10,
+        id_recurso_favorito: 8,
         nombre: "Color completo",
         precio: 60,
         duracion: 90,

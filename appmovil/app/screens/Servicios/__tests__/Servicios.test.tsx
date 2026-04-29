@@ -203,6 +203,7 @@ describe("Servicios", () => {
                         duracion: "60",
                         descripcion: "Servicio para grupos",
                         requiere_capacidad: true,
+                        id_recurso_favorito: null,
                     }),
                 })
             );
@@ -291,6 +292,7 @@ describe("Servicios", () => {
                         duracion: "50",
                         descripcion: "Corte con tratamiento",
                         requiere_capacidad: false,
+                        id_recurso_favorito: null,
                     }),
                 })
             );

@@ -11,6 +11,12 @@ export const Servicio = sequelize.define(
             onDelete: "CASCADE",
             allowNull: false,
         },
+        id_recurso_favorito: {
+            type: DataTypes.INTEGER,
+            references: { model: "Recurso", key: "id_recurso" },
+            onDelete: "SET NULL",
+            allowNull: true,
+        },
         nombre: { type: DataTypes.STRING, allowNull: false },
         precio: { type: DataTypes.FLOAT, allowNull: false },
         duracion: { type: DataTypes.INTEGER, allowNull: false },

@@ -1,5 +1,6 @@
 import { createServicio, deleteServicio, getServiciosByNegocio, updateServicio, getServicioById, searchServicios } from "../servicioController.js";
 import { Servicio } from "../../../models/Servicio.js";
+import { Recurso } from "../../../models/Recurso.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
 import {
     buildRes,
@@ -7,6 +8,7 @@ import {
     createServicioReqAdmin,
     createServicioReqDuracionInvalida,
     createServicioReqPrecioInvalido,
+    createServicioReqRecursoFavoritoInvalido,
     createServicioReqSinDescripcion,
     createServicioReqSinNombre,
     createServicioReqSinPermiso,
@@ -32,6 +34,7 @@ import {
 } from "./data.js";
 
 jest.mock("../../../models/Servicio.js");
+jest.mock("../../../models/Recurso.js");
 jest.mock("../../../models/UsuarioNegocio.js");
 
 describe("ServicioController Unit Tests", () => {
@@ -55,6 +58,7 @@ describe("ServicioController Unit Tests", () => {
                 duracion: 45,
                 descripcion: "Corte con lavado y peinado",
                 requiere_capacidad: false,
+                id_recurso_favorito: null,
             });
             expect(res.status).toHaveBeenCalledWith(201);
             expect(jsonMock).toHaveBeenCalledWith({
@@ -65,9 +69,11 @@ describe("ServicioController Unit Tests", () => {
 
         it("debería crear servicio correctamente para admin con strings numéricos", async () => {
             (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioAdmin);
+            (Recurso.findOne).mockResolvedValue({ id_recurso: 8, id_negocio: 10, nombre: "Sala A" });
             (Servicio.create).mockResolvedValue({
                 id_servicio: 6,
                 id_negocio: 10,
+                id_recurso_favorito: 8,
                 nombre: "Color completo",
                 precio: 60,
                 duracion: 90,
@@ -85,6 +91,19 @@ describe("ServicioController Unit Tests", () => {
                 duracion: 90,
                 descripcion: "Aplicación de color con secado",
                 requiere_capacidad: false,
+                id_recurso_favorito: 8,
+            });
+        });
+
+        it("debería fallar si id_recurso_favorito no es válido", async () => {
+            const { res, jsonMock } = buildRes();
+
+            await createServicio(createServicioReqRecursoFavoritoInvalido, res);
+
+            expect(UsuarioNegocio.findOne).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({
+                message: "El recurso favorito debe ser un número entero mayor que 0 o nulo",
             });
         });
 
@@ -213,6 +232,7 @@ describe("ServicioController Unit Tests", () => {
                 duracion: 50,
                 descripcion: "Corte con lavado, peinado y tratamiento",
                 requiere_capacidad: false,
+                id_recurso_favorito: null,
             });
             expect(res.status).toHaveBeenCalledWith(200);
             expect(jsonMock).toHaveBeenCalledWith({
@@ -223,6 +243,7 @@ describe("ServicioController Unit Tests", () => {
                     duracion: 50,
                     descripcion: "Corte con lavado, peinado y tratamiento",
                     requiere_capacidad: false,
+                    id_recurso_favorito: null,
                     id_servicio: 5,
                     id_negocio: 10,
                 },
@@ -232,6 +253,7 @@ describe("ServicioController Unit Tests", () => {
         it("debería actualizar servicio correctamente para admin", async () => {
             (Servicio.findByPk).mockResolvedValue(mockServicioConUpdate);
             (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioAdmin);
+            (Recurso.findOne).mockResolvedValue({ id_recurso: 8, id_negocio: 10, nombre: "Sala A" });
 
             const { res } = buildRes();
 
@@ -243,6 +265,7 @@ describe("ServicioController Unit Tests", () => {
                 duracion: 95,
                 descripcion: "Aplicacion de color con secado y peinado",
                 requiere_capacidad: false,
+                id_recurso_favorito: 8,
             });
             expect(res.status).toHaveBeenCalledWith(200);
         });
