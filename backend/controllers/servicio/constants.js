@@ -8,6 +8,8 @@ export const SERVICIO_ERRORS = {
     DURACION_REQUIRED: "La duración del servicio es obligatoria",
     DURACION_INVALID: "La duración del servicio debe ser un número entero mayor que 0",
     REQUIERE_CAPACIDAD_INVALID: "El campo requiere capacidad debe ser verdadero o falso",
+    RECURSO_FAVORITO_INVALID: "El recurso favorito debe ser un número entero mayor que 0 o nulo",
+    RECURSO_FAVORITO_NOT_FOUND: "El recurso favorito no existe en este negocio",
     DESCRIPCION_REQUIRED: "La descripción del servicio es obligatoria",
     SERVICIO_NOT_FOUND: "Servicio no encontrado",
     NO_ACCESS_TO_NEGOCIO: "No tienes acceso a este negocio",

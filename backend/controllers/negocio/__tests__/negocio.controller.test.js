@@ -2,12 +2,22 @@ import { createNegocio, getNegocios, getNegocioById, updateNegocio, deleteNegoci
 import { Negocio } from "../../../models/Negocio.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
 import { Usuario } from "../../../models/Usuario.js";
+import { Plantilla } from "../../../models/Plantilla.js";
+import { ServicioPlantilla } from "../../../models/ServicioPlantilla.js";
+import { RecursoPlantilla } from "../../../models/RecursoPlantilla.js";
+import { Servicio } from "../../../models/Servicio.js";
+import { Recurso } from "../../../models/Recurso.js";
 import { Op } from "sequelize";
 import { buildRes } from "./data.js";
 
 jest.mock("../../../models/Negocio.js");
 jest.mock("../../../models/UsuarioNegocio.js");
 jest.mock("../../../models/Usuario.js");
+jest.mock("../../../models/Plantilla.js");
+jest.mock("../../../models/ServicioPlantilla.js");
+jest.mock("../../../models/RecursoPlantilla.js");
+jest.mock("../../../models/Servicio.js");
+jest.mock("../../../models/Recurso.js");
 
 describe("NegocioController Unit Tests", () => {
   beforeEach(() => {
@@ -93,6 +103,77 @@ describe("NegocioController Unit Tests", () => {
         id_usuario: 1,
         id_negocio: 1,
         rol: "jefe",
+      });
+    });
+
+    it("debería crear negocio con plantilla y copiar servicios y recursos", async () => {
+      (Negocio.findOne).mockResolvedValue(null);
+      (Plantilla.findByPk).mockResolvedValue({ id_plantilla: 5, nombre: "Plantilla Base" });
+      (Negocio.create).mockResolvedValue({
+        id_negocio: 10,
+        nombre: "Negocio Plantilla",
+        CIF: "B12345678",
+        id_plantilla: 5,
+      });
+      (UsuarioNegocio.create).mockResolvedValue({});
+      (ServicioPlantilla.findAll).mockResolvedValue([
+        {
+          nombre: "Corte",
+          precio: 12,
+          duracion: 30,
+          descripcion: "Desc",
+          requiere_capacidad: true,
+        },
+      ]);
+      (RecursoPlantilla.findAll).mockResolvedValue([
+        {
+          nombre: "Silla",
+          capacidad: 1,
+        },
+      ]);
+      (Servicio.bulkCreate).mockResolvedValue([]);
+      (Recurso.bulkCreate).mockResolvedValue([]);
+
+      const req = {
+        body: {
+          nombre: "Negocio Plantilla",
+          CIF: "B12345678",
+          id_plantilla: 5,
+        },
+        user: { id_usuario: 2 },
+      };
+
+      const { res, jsonMock } = buildRes();
+
+      await createNegocio(req, res);
+
+      expect(Plantilla.findByPk).toHaveBeenCalledWith(5);
+      expect(Servicio.bulkCreate).toHaveBeenCalledWith([
+        {
+          id_negocio: 10,
+          nombre: "Corte",
+          precio: 12,
+          duracion: 30,
+          descripcion: "Desc",
+          requiere_capacidad: true,
+        },
+      ]);
+      expect(Recurso.bulkCreate).toHaveBeenCalledWith([
+        {
+          id_negocio: 10,
+          nombre: "Silla",
+          capacidad: 1,
+        },
+      ]);
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Negocio creado correctamente",
+        negocio: {
+          id_negocio: 10,
+          nombre: "Negocio Plantilla",
+          CIF: "B12345678",
+          id_plantilla: 5,
+        },
       });
     });
 

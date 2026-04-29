@@ -663,7 +663,9 @@ export const updateCompra = async (req, res) => {
         const cantidadMap = new Map(
             productosResult.value.map((producto) => [producto.id_producto, producto])
         );
+        const estadoAnterior = compra.estado;
         const estado = resolveCompraEstado(productosResult.value);
+        const esCompraCompletada = estadoAnterior !== "completada" && estado === "completada";
 
         const importeTotal = productos.reduce((acc, producto) => {
             const productoCompra = cantidadMap.get(producto.id_producto);
@@ -697,6 +699,19 @@ export const updateCompra = async (req, res) => {
                 })),
                 { transaction }
             );
+
+            // Actualizar stock de productos si la compra se completó
+            if (esCompraCompletada) {
+                for (const productoData of productosResult.value) {
+                    const producto = productos.find((p) => p.id_producto === productoData.id_producto);
+                    if (producto) {
+                        await producto.increment("stock", {
+                            by: productoData.cantidad_llegada,
+                            transaction,
+                        });
+                    }
+                }
+            }
         });
 
         const productosSerialized = productos.map((producto) => {

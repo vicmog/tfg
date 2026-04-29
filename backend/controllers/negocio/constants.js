@@ -9,6 +9,8 @@ export const NEGOCIO_ERRORS = {
   NO_VIEW_USERS_PERMISSION: "No tienes permisos para ver los usuarios de este negocio",
   USER_ID_REQUIRED: "Falta el id del usuario",
   INVALID_ROLE: "Rol inválido",
+  PLANTILLA_ID_INVALID: "El id de la plantilla es inválido",
+  PLANTILLA_NOT_FOUND: "Plantilla no encontrada",
   NO_ASSIGN_PERMISSION: "No tienes permisos para asignar usuarios",
   NO_REMOVE_USER_PERMISSION: "No tienes permisos para eliminar usuarios",
   NO_EDIT_USER_ROLE_PERMISSION: "No tienes permisos para editar roles de usuarios",

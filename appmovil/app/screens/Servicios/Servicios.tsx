@@ -12,7 +12,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
-import { Servicio } from "../types";
+import { Recurso, Servicio } from "../types";
 import {
     ADD_SERVICE_BUTTON,
     ADMIN_ROLE,
@@ -22,6 +22,8 @@ import {
     CONFIRM_DELETE_MESSAGE,
     CONFIRM_DELETE_TITLE,
     createServicioRoute,
+    DETAIL_RECURSO_FAVORITO_LABEL,
+    DETAIL_RECURSO_FAVORITO_NONE,
     servicioByIdRoute,
     DEFAULT_CREATE_ERROR,
     DEFAULT_DELETE_ERROR,
@@ -62,6 +64,12 @@ import {
     UPDATE_SUCCESS_MESSAGE,
     updateServicioByIdRoute,
     REQUIERE_CAPACIDAD_LABEL,
+    RECURSO_FAVORITO_EMPTY,
+    RECURSO_FAVORITO_LABEL,
+    RECURSO_FAVORITO_LOADING,
+    RECURSO_FAVORITO_NONE_OPTION,
+    RECURSO_FAVORITO_SELECT_PLACEHOLDER,
+    recursosByNegocioRoute,
 } from "./constants";
 import { ServiciosProps } from "./types";
 
@@ -86,6 +94,9 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
     const [modalVisible, setModalVisible] = useState(false);
     const [editingServicioId, setEditingServicioId] = useState<number | null>(null);
     const [selectedServicio, setSelectedServicio] = useState<Servicio | null>(null);
+    const [recursos, setRecursos] = useState<Recurso[]>([]);
+    const [loadingRecursos, setLoadingRecursos] = useState(false);
+    const [recursoSelectorExpanded, setRecursoSelectorExpanded] = useState(false);
     const [detailVisible, setDetailVisible] = useState(false);
     const [detailLoading, setDetailLoading] = useState(false);
     const [detailError, setDetailError] = useState("");
@@ -94,6 +105,7 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
     const [duracion, setDuracion] = useState("");
     const [descripcion, setDescripcion] = useState("");
     const [requiereCapacidad, setRequiereCapacidad] = useState(false);
+    const [idRecursoFavorito, setIdRecursoFavorito] = useState<number | null>(null);
     const requiereCapacidadRef = useRef(false);
 
     const normalizedRole = (negocio.rol || "").toLowerCase();
@@ -115,8 +127,13 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
         setDuracion("");
         setDescripcion("");
         setRequiereCapacidadValue(false);
+        setIdRecursoFavorito(null);
+        setRecursoSelectorExpanded(false);
         setEditingServicioId(null);
     };
+
+    const selectedRecursoFavorito = recursos.find((recurso) => recurso.id_recurso === idRecursoFavorito);
+    const selectedRecursoFavoritoName = selectedRecursoFavorito?.nombre || RECURSO_FAVORITO_SELECT_PLACEHOLDER;
 
     const filterServicios = (serviciosToFilter: Servicio[], query: string) => {
         if (!query.trim()) {
@@ -240,9 +257,50 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
         setDuracion(`${servicio.duracion}`);
         setDescripcion(servicio.descripcion || "");
         setRequiereCapacidadValue(Boolean(servicio.requiere_capacidad));
+        setIdRecursoFavorito(servicio.id_recurso_favorito ?? null);
         setEditingServicioId(servicio.id_servicio);
         setModalError("");
         setModalVisible(true);
+    };
+
+    const fetchRecursosForSelector = async () => {
+        setLoadingRecursos(true);
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(recursosByNegocioRoute(negocio.id_negocio), {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                setRecursos([]);
+                return;
+            }
+
+            const data = await response.json();
+            setRecursos(data.recursos || []);
+        } catch (error) {
+            setRecursos([]);
+        } finally {
+            setLoadingRecursos(false);
+        }
+    };
+
+    const handleToggleRecursoSelector = async () => {
+        const nextExpanded = !recursoSelectorExpanded;
+
+        if (nextExpanded && recursos.length === 0 && !loadingRecursos) {
+            await fetchRecursosForSelector();
+        }
+
+        setRecursoSelectorExpanded(nextExpanded);
+    };
+
+    const handleSelectRecursoFavorito = (nextIdRecursoFavorito: number | null) => {
+        setIdRecursoFavorito(nextIdRecursoFavorito);
+        setRecursoSelectorExpanded(false);
     };
 
     const handleToggleModal = () => {
@@ -282,6 +340,7 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
                     duracion: duracion.trim(),
                     descripcion: descripcion.trim(),
                     requiere_capacidad: requiereCapacidadRef.current,
+                    id_recurso_favorito: idRecursoFavorito,
                 }),
             });
 
@@ -492,6 +551,15 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
                                             : DETAIL_REQUIERE_CAPACIDAD_FALSE}
                                     </Text>
                                 </View>
+
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.detailLabel}>{DETAIL_RECURSO_FAVORITO_LABEL}</Text>
+                                    <Text style={styles.detailValue} testID="servicio-detail-recurso-favorito-value">
+                                        {selectedServicio.id_recurso_favorito
+                                            ? `#${selectedServicio.id_recurso_favorito}`
+                                            : DETAIL_RECURSO_FAVORITO_NONE}
+                                    </Text>
+                                </View>
                             </>
                         ) : null}
                     </View>
@@ -566,6 +634,59 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
                                     color={requiereCapacidad ? "#1d4ed8" : "#6b7280"}
                                 />
                             </TouchableOpacity>
+
+                            <Text style={styles.selectorLabel}>{RECURSO_FAVORITO_LABEL}</Text>
+                            <TouchableOpacity
+                                style={styles.selectorInput}
+                                onPress={() => void handleToggleRecursoSelector()}
+                                testID="servicio-recurso-favorito-selector"
+                            >
+                                <Text style={styles.selectorInputText}>{selectedRecursoFavoritoName}</Text>
+                                <MaterialIcons
+                                    name={recursoSelectorExpanded ? "expand-less" : "expand-more"}
+                                    size={20}
+                                    color="#6b7280"
+                                />
+                            </TouchableOpacity>
+
+                            {recursoSelectorExpanded ? (
+                                <View style={styles.selectorInlineContainer} testID="servicio-recurso-selector-inline">
+                                    {loadingRecursos ? <Text style={styles.selectorHint}>{RECURSO_FAVORITO_LOADING}</Text> : null}
+
+                                    {!loadingRecursos && recursos.length === 0 ? (
+                                        <Text style={styles.selectorHint}>{RECURSO_FAVORITO_EMPTY}</Text>
+                                    ) : null}
+
+                                    {!loadingRecursos ? (
+                                        <ScrollView style={styles.selectorList} nestedScrollEnabled>
+                                            <TouchableOpacity
+                                                style={[
+                                                    styles.selectorOption,
+                                                    idRecursoFavorito === null && styles.selectorOptionActive,
+                                                ]}
+                                                onPress={() => handleSelectRecursoFavorito(null)}
+                                                testID="servicio-recurso-option-none"
+                                            >
+                                                <Text style={styles.selectorOptionText}>{RECURSO_FAVORITO_NONE_OPTION}</Text>
+                                            </TouchableOpacity>
+
+                                            {recursos.map((recurso) => (
+                                                <TouchableOpacity
+                                                    key={recurso.id_recurso}
+                                                    style={[
+                                                        styles.selectorOption,
+                                                        idRecursoFavorito === recurso.id_recurso && styles.selectorOptionActive,
+                                                    ]}
+                                                    onPress={() => handleSelectRecursoFavorito(recurso.id_recurso)}
+                                                    testID={`servicio-recurso-option-${recurso.id_recurso}`}
+                                                >
+                                                    <Text style={styles.selectorOptionText}>{recurso.nombre}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </ScrollView>
+                                    ) : null}
+                                </View>
+                            ) : null}
                         </ScrollView>
 
                         {modalError ? (
@@ -822,6 +943,59 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     toggleLabel: {
+        color: "#111827",
+        fontWeight: "600",
+    },
+    selectorLabel: {
+        color: "#374151",
+        fontWeight: "600",
+        marginBottom: 6,
+    },
+    selectorInput: {
+        borderWidth: 1,
+        borderColor: "#d1d5db",
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        backgroundColor: "#f9fafb",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 10,
+    },
+    selectorInputText: {
+        color: "#111827",
+        flex: 1,
+        marginRight: 8,
+    },
+    selectorInlineContainer: {
+        borderWidth: 1,
+        borderColor: "#d1d5db",
+        borderRadius: 10,
+        backgroundColor: "#f9fafb",
+        padding: 10,
+        marginBottom: 10,
+    },
+    selectorHint: {
+        color: "#6b7280",
+        marginBottom: 10,
+    },
+    selectorList: {
+        maxHeight: 320,
+    },
+    selectorOption: {
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        marginBottom: 8,
+    },
+    selectorOptionActive: {
+        borderColor: "#1976D2",
+        backgroundColor: "#eff6ff",
+    },
+    selectorOptionText: {
         color: "#111827",
         fontWeight: "600",
     },

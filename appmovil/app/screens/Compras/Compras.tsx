@@ -50,6 +50,7 @@ import {
     FILTER_DATE_PLACEHOLDER,
     DUPLICATED_PRODUCT_ERROR,
     EMPTY_PRODUCT_ID_ERROR,
+    GREEN_BUTTON_INFO,
     LIST_SCREEN_TITLE,
     LOADING_MORE_TEXT,
     NO_PROVIDER_MESSAGE,
@@ -809,6 +810,11 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
                 </View>
             </View>
 
+            <View style={styles.infoMessageContainer} testID="compras-green-button-info">
+                <MaterialIcons name="info" size={18} color="#059669" />
+                <Text style={styles.infoMessage}>{GREEN_BUTTON_INFO}</Text>
+            </View>
+
             {listError ? (
                 <Text style={styles.errorText} testID="compras-list-error-message">{listError}</Text>
             ) : null}
@@ -1039,7 +1045,7 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
                                 onPress={handleClearFilters}
                                 testID="compras-clear-filters-button"
                             >
-                                <Text style={styles.secondaryButtonText}>Limpiar</Text>
+                                <Text style={styles.secondaryButtonText}>Reestablecer filtro</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
@@ -1498,6 +1504,25 @@ const styles = StyleSheet.create({
     secondaryButtonText: {
         color: "#1f2937",
         fontWeight: "700",
+    },
+    infoMessageContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#f0fdf4",
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: "#86efac",
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        marginHorizontal: 16,
+        marginVertical: 8,
+        gap: 8,
+    },
+    infoMessage: {
+        flex: 1,
+        color: "#166534",
+        fontSize: 13,
+        fontWeight: "500",
     },
     loadingContainer: {
         marginTop: 30,

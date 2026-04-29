@@ -46,6 +46,7 @@ export type Empleado = {
 export type Servicio = {
     id_servicio: number;
     id_negocio: number;
+    id_recurso_favorito?: number | null;
     nombre: string;
     precio: number;
     duracion: number;

@@ -393,6 +393,13 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
             setDuracionMinutos(`${servicio.duracion}`);
         }
 
+        // Auto-seleccionar el recurso favorito del servicio
+        if (servicio?.id_recurso_favorito) {
+            setSelectedRecursoId(servicio.id_recurso_favorito);
+        } else {
+            setSelectedRecursoId(null);
+        }
+
         const servicioRequiereCapacidad = normalizedServiceId === NO_SERVICIO_OPTION_ID
             || Boolean(servicio?.requiere_capacidad);
 

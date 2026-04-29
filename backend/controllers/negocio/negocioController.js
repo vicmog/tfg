@@ -1,6 +1,11 @@
 import { Negocio } from "../../models/Negocio.js";
 import { UsuarioNegocio } from "../../models/UsuarioNegocio.js";
 import { Usuario } from "../../models/Usuario.js";
+import { Plantilla } from "../../models/Plantilla.js";
+import { ServicioPlantilla } from "../../models/ServicioPlantilla.js";
+import { RecursoPlantilla } from "../../models/RecursoPlantilla.js";
+import { Servicio } from "../../models/Servicio.js";
+import { Recurso } from "../../models/Recurso.js";
 import { Op, fn, col, where } from "sequelize";
 import {
     DEFAULT_ADMIN_USER_ID,
@@ -10,7 +15,7 @@ import {
 } from "./constants.js";
 
 export const createNegocio = async (req, res) => {
-    const { nombre, CIF } = req.body;
+    const { nombre, CIF, id_plantilla } = req.body;
     const id_usuario = req.user?.id_usuario;
 
     if (!nombre || !nombre.trim()) {
@@ -25,16 +30,30 @@ export const createNegocio = async (req, res) => {
         return res.status(401).json({ message: NEGOCIO_ERRORS.USER_NOT_AUTHENTICATED });
     }
 
+    const plantillaId = id_plantilla === null || id_plantilla === undefined ? null : Number(id_plantilla);
+
+    if (plantillaId !== null && (!Number.isInteger(plantillaId) || plantillaId <= 0)) {
+        return res.status(400).json({ message: NEGOCIO_ERRORS.PLANTILLA_ID_INVALID });
+    }
+
     try {
         const existingNegocio = await Negocio.findOne({ where: { CIF: CIF.trim() } });
         if (existingNegocio) {
             return res.status(400).json({ message: NEGOCIO_ERRORS.CIF_ALREADY_EXISTS });
         }
 
+        let plantilla = null;
+        if (plantillaId !== null) {
+            plantilla = await Plantilla.findByPk(plantillaId);
+            if (!plantilla) {
+                return res.status(404).json({ message: NEGOCIO_ERRORS.PLANTILLA_NOT_FOUND });
+            }
+        }
+
         const negocio = await Negocio.create({
             nombre: nombre.trim(),
             CIF: CIF.trim(),
-            id_plantilla: null
+            id_plantilla: plantillaId
         });
 
         await UsuarioNegocio.create({
@@ -49,6 +68,36 @@ export const createNegocio = async (req, res) => {
                 id_negocio: negocio.id_negocio,
                 rol: NEGOCIO_ROLES.ADMIN
             });
+        }
+
+        if (plantilla) {
+            const [serviciosPlantilla, recursosPlantilla] = await Promise.all([
+                ServicioPlantilla.findAll({ where: { id_plantilla: plantilla.id_plantilla } }),
+                RecursoPlantilla.findAll({ where: { id_plantilla: plantilla.id_plantilla } }),
+            ]);
+
+            if (serviciosPlantilla.length > 0) {
+                await Servicio.bulkCreate(
+                    serviciosPlantilla.map((servicioPlantilla) => ({
+                        id_negocio: negocio.id_negocio,
+                        nombre: servicioPlantilla.nombre,
+                        precio: servicioPlantilla.precio,
+                        duracion: servicioPlantilla.duracion,
+                        descripcion: servicioPlantilla.descripcion,
+                        requiere_capacidad: Boolean(servicioPlantilla.requiere_capacidad),
+                    }))
+                );
+            }
+
+            if (recursosPlantilla.length > 0) {
+                await Recurso.bulkCreate(
+                    recursosPlantilla.map((recursoPlantilla) => ({
+                        id_negocio: negocio.id_negocio,
+                        nombre: recursoPlantilla.nombre,
+                        capacidad: recursoPlantilla.capacidad,
+                    }))
+                );
+            }
         }
 
         return res.status(201).json({
