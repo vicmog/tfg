@@ -13,6 +13,8 @@ import proveedorRoutes from "./routes/proveedor.js";
 import productoRoutes from "./routes/producto.js";
 import descuentoRoutes from "./routes/descuento.js";
 import compraRoutes from "./routes/compra.js";
+import tipoGastoRoutes from "./routes/tipogasto.js";
+import gastoRoutes from "./routes/gasto.js";
 import plantillaRoutes from "./routes/plantilla.js";
 
 
@@ -35,6 +37,8 @@ app.use("/v1/api/proveedores", proveedorRoutes);
 app.use("/v1/api/productos", productoRoutes);
 app.use("/v1/api/descuentos", descuentoRoutes);
 app.use("/v1/api/compras", compraRoutes);
+app.use("/v1/api/tipogastos", tipoGastoRoutes);
+app.use("/v1/api/gastos", gastoRoutes);
 app.use("/v1/api/plantillas", plantillaRoutes);
 
 export default app;
