@@ -101,12 +101,6 @@ describe("TipoGastoDetail", () => {
 
         expect(queryByText("No debe salir")).toBeNull();
 
-        fireEvent.press(getByTestId("open-gasto-modal-button"));
-
-        await waitFor(() => {
-            expect(getByTestId("gasto-form-modal")).toBeTruthy();
-        });
-
         fireEvent.changeText(getByPlaceholderText("Nombre del gasto"), "Nueva factura");
         fireEvent.changeText(getByPlaceholderText("Importe"), "15");
         fireEvent.press(getByText("Registrar gasto"));

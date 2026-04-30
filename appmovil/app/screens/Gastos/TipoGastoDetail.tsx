@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
@@ -39,12 +39,6 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
     const [gastoNombre, setGastoNombre] = useState("");
     const [gastoFecha, setGastoFecha] = useState(todayKey());
     const [gastoImporte, setGastoImporte] = useState("");
-    const [modalVisible, setModalVisible] = useState(false);
-
-    const totalGastos = useMemo(
-        () => gastos.reduce((accumulator, gasto) => accumulator + Number(gasto.importe || 0), 0),
-        [gastos]
-    );
 
     const loadData = useCallback(async () => {
         setLoading(true);
@@ -80,21 +74,6 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
             loadData();
         }, [loadData])
     );
-
-    const handleOpenModal = () => {
-        setError("");
-        setSuccess("");
-        setModalVisible(true);
-    };
-
-    const handleCloseModal = () => {
-        setModalVisible(false);
-        setError("");
-        setSuccess("");
-        setGastoNombre("");
-        setGastoImporte("");
-        setGastoFecha(todayKey());
-    };
 
     const handleCreateGasto = async () => {
         const nombre = gastoNombre.trim();
@@ -147,7 +126,6 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
             setGastoNombre("");
             setGastoImporte("");
             setGastoFecha(todayKey());
-            setModalVisible(false);
             await loadData();
         } catch (createError) {
             setError("Error de conexion. Intentalo de nuevo.");
@@ -172,16 +150,33 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
             {success ? <Text style={styles.successText}>{success}</Text> : null}
 
             <ScrollView contentContainerStyle={styles.content}>
-                <View style={styles.summaryCard}>
-                    <Text style={styles.summaryLabel}>Total registrado</Text>
-                    <Text style={styles.summaryValue}>{formatAmount(totalGastos)}</Text>
-                    <Text style={styles.summaryMeta}>{gastos.length} gasto(s)</Text>
-                </View>
-
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Añadir gasto en {tipoGasto.nombre_tipo}</Text>
-                    <TouchableOpacity style={styles.primaryButton} onPress={handleOpenModal} testID="open-gasto-modal-button">
-                        <Text style={styles.primaryButtonText}>Añadir gasto</Text>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Nombre del gasto"
+                        value={gastoNombre}
+                        onChangeText={setGastoNombre}
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Fecha (YYYY-MM-DD)"
+                        value={gastoFecha}
+                        onChangeText={setGastoFecha}
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Importe"
+                        keyboardType="decimal-pad"
+                        value={gastoImporte}
+                        onChangeText={setGastoImporte}
+                    />
+                    <TouchableOpacity style={styles.primaryButton} onPress={handleCreateGasto} disabled={savingGasto}>
+                        {savingGasto ? (
+                            <ActivityIndicator color="#fff" />
+                        ) : (
+                            <Text style={styles.primaryButtonText}>Registrar gasto</Text>
+                        )}
                     </TouchableOpacity>
                 </View>
 
@@ -203,52 +198,6 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
                     ))
                 )}
             </ScrollView>
-
-            <Modal
-                visible={modalVisible}
-                transparent
-                animationType="fade"
-                onRequestClose={handleCloseModal}
-                testID="gasto-form-modal"
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalCard}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Añadir gasto</Text>
-                            <TouchableOpacity onPress={handleCloseModal} testID="close-gasto-modal-button">
-                                <MaterialIcons name="close" size={22} color="#6b7280" />
-                            </TouchableOpacity>
-                        </View>
-
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Nombre del gasto"
-                            value={gastoNombre}
-                            onChangeText={setGastoNombre}
-                            testID="gasto-nombre-input"
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Fecha (YYYY-MM-DD)"
-                            value={gastoFecha}
-                            onChangeText={setGastoFecha}
-                            testID="gasto-fecha-input"
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Importe"
-                            keyboardType="decimal-pad"
-                            value={gastoImporte}
-                            onChangeText={setGastoImporte}
-                            testID="gasto-importe-input"
-                        />
-
-                        <TouchableOpacity style={styles.primaryButton} onPress={handleCreateGasto} disabled={savingGasto} testID="save-gasto-button">
-                            {savingGasto ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Registrar gasto</Text>}
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
         </View>
     );
 };
@@ -293,24 +242,6 @@ const styles = StyleSheet.create({
         padding: 16,
         gap: 12,
         paddingBottom: 28,
-    },
-    summaryCard: {
-        backgroundColor: "#0D47A1",
-        borderRadius: 16,
-        padding: 16,
-        gap: 6,
-    },
-    summaryLabel: {
-        color: "rgba(255,255,255,0.8)",
-        fontSize: 13,
-    },
-    summaryValue: {
-        color: "#fff",
-        fontSize: 24,
-        fontWeight: "800",
-    },
-    summaryMeta: {
-        color: "rgba(255,255,255,0.85)",
     },
     card: {
         backgroundColor: "#fff",
