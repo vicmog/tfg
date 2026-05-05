@@ -114,6 +114,30 @@ export type Proveedor = {
     direccion?: string | null;
 };
 
+export type TipoGasto = {
+    id_tipo_gasto: number;
+    id_negocio: number;
+    nombre_tipo: string;
+    createdAt?: string;
+    updatedAt?: string;
+};
+
+export type TipoGastoDetailRoute = {
+    negocio: Negocio;
+    tipoGasto: TipoGasto;
+};
+
+export type Gasto = {
+    id_gasto: number;
+    id_tipo_gasto: number;
+    tipo_gasto_nombre?: string | null;
+    nombre: string;
+    fecha: string;
+    importe: number;
+    createdAt?: string;
+    updatedAt?: string;
+};
+
 export type Producto = {
     id_producto: number;
     id_proveedor: number;
