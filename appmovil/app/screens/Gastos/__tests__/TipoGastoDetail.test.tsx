@@ -25,6 +25,19 @@ jest.mock("@react-navigation/native", () => ({
     },
 }));
 
+jest.mock("@react-native-community/datetimepicker", () => {
+    const React = require("react");
+    const { TouchableOpacity, Text } = require("react-native");
+    return ({ onChange, testID }: { onChange: (event: { type: string }, date: Date) => void; testID?: string }) => (
+        <TouchableOpacity
+            testID={testID || "mock-datetimepicker"}
+            onPress={() => onChange({ type: "set" }, new Date(2026, 3, 5))}
+        >
+            <Text>Mock Date Picker</Text>
+        </TouchableOpacity>
+    );
+});
+
 global.fetch = jest.fn();
 
 describe("TipoGastoDetail", () => {
@@ -91,7 +104,7 @@ describe("TipoGastoDetail", () => {
                 }),
             });
 
-        const { getByText, getByPlaceholderText, getByTestId, queryByText } = render(
+        const { getByText, getByTestId, queryByText, queryByTestId } = render(
             <TipoGastoDetail navigation={mockNavigation} route={mockDetailRoute} />
         );
 
@@ -101,9 +114,16 @@ describe("TipoGastoDetail", () => {
 
         expect(queryByText("No debe salir")).toBeNull();
 
-        fireEvent.changeText(getByPlaceholderText("Nombre del gasto"), "Nueva factura");
-        fireEvent.changeText(getByPlaceholderText("Importe"), "15");
-        fireEvent.press(getByText("Registrar gasto"));
+        fireEvent.press(getByTestId("toggle-gasto-form-button"));
+        fireEvent.changeText(getByTestId("gasto-nombre-input"), "Nueva factura");
+        fireEvent.press(getByTestId("gasto-fecha-input"));
+        if (queryByTestId("gasto-fecha-date-picker")) {
+            fireEvent.press(getByTestId("gasto-fecha-date-picker"));
+        } else {
+            fireEvent.press(getByTestId("gasto-fecha-calendar-day-5"));
+        }
+        fireEvent.changeText(getByTestId("gasto-importe-input"), "15");
+        fireEvent.press(getByTestId("gasto-save-button"));
 
         await waitFor(() => {
             expect(fetch).toHaveBeenCalledWith(

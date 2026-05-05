@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -15,6 +15,8 @@ const Gastos: React.FC<GastosProps> = ({ route, navigation }) => {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [newTipoNombre, setNewTipoNombre] = useState("");
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalError, setModalError] = useState("");
 
     const loadData = useCallback(async () => {
         setLoading(true);
@@ -51,12 +53,12 @@ const Gastos: React.FC<GastosProps> = ({ route, navigation }) => {
         const nombre = newTipoNombre.trim();
 
         if (!nombre) {
-            setError("El nombre del tipo de gasto es obligatorio");
+            setModalError("El nombre del tipo de gasto es obligatorio");
             return;
         }
 
         setSavingTipo(true);
-        setError("");
+        setModalError("");
         setSuccess("");
 
         try {
@@ -82,12 +84,25 @@ const Gastos: React.FC<GastosProps> = ({ route, navigation }) => {
 
             setSuccess(data.message || "Tipo de gasto creado correctamente");
             setNewTipoNombre("");
+            setModalVisible(false);
             await loadData();
         } catch {
-            setError("Error de conexion. Intentalo de nuevo.");
+            setModalError("Error de conexion. Intentalo de nuevo.");
         } finally {
             setSavingTipo(false);
         }
+    };
+
+    const handleOpenModal = () => {
+        setModalError("");
+        setNewTipoNombre("");
+        setModalVisible(true);
+    };
+
+    const handleCloseModal = () => {
+        setModalVisible(false);
+        setModalError("");
+        setNewTipoNombre("");
     };
 
     return (
@@ -97,25 +112,49 @@ const Gastos: React.FC<GastosProps> = ({ route, navigation }) => {
                     <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
                 </TouchableOpacity>
                 <Text style={styles.title}>Gastos</Text>
+                <TouchableOpacity style={styles.addButton} onPress={handleOpenModal} testID="toggle-tipo-gasto-form-button">
+                    <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 6 }} />
+                    <Text style={styles.addButtonText}>Añadir tipo</Text>
+                </TouchableOpacity>
             </View>
 
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
             {success ? <Text style={styles.successText}>{success}</Text> : null}
 
-            <ScrollView contentContainerStyle={styles.content}>
-                <View style={styles.card}>
-                    <Text style={styles.cardTitle}>Crear tipo de gasto</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Agua, luz, internet..."
-                        value={newTipoNombre}
-                        onChangeText={setNewTipoNombre}
-                    />
-                    <TouchableOpacity style={styles.primaryButton} onPress={handleCreateTipoGasto} disabled={savingTipo}>
-                        {savingTipo ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Crear tipo</Text>}
-                    </TouchableOpacity>
-                </View>
+            <Modal
+                visible={modalVisible}
+                transparent
+                animationType="slide"
+                onRequestClose={handleCloseModal}
+                testID="tipo-gasto-form-modal"
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalCard}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Crear tipo de gasto</Text>
+                            <TouchableOpacity onPress={handleCloseModal} testID="close-tipo-gasto-form-button">
+                                <MaterialIcons name="close" size={22} color="#6b7280" />
+                            </TouchableOpacity>
+                        </View>
 
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Agua, luz, internet..."
+                            value={newTipoNombre}
+                            onChangeText={setNewTipoNombre}
+                            testID="tipo-gasto-nombre-input"
+                        />
+
+                        {modalError ? <Text style={styles.modalErrorText} testID="tipo-gasto-error-message">{modalError}</Text> : null}
+
+                        <TouchableOpacity style={styles.primaryButton} onPress={handleCreateTipoGasto} disabled={savingTipo} testID="tipo-gasto-save-button">
+                            {savingTipo ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Crear tipo</Text>}
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            <ScrollView contentContainerStyle={styles.content}>
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Tipos de gasto</Text>
                 </View>
@@ -172,24 +211,25 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: "700",
         color: "#0D47A1",
+        flex: 1,
+    },
+    addButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#1976D2",
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderRadius: 10,
+    },
+    addButtonText: {
+        color: "#fff",
+        fontWeight: "700",
+        fontSize: 13,
     },
     content: {
         padding: 16,
         gap: 12,
         paddingBottom: 28,
-    },
-    card: {
-        backgroundColor: "#fff",
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: "#e5e7eb",
-        padding: 14,
-        gap: 10,
-    },
-    cardTitle: {
-        fontSize: 16,
-        fontWeight: "700",
-        color: "#111827",
     },
     input: {
         backgroundColor: "#fff",
@@ -253,6 +293,93 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         marginHorizontal: 16,
         marginTop: 8,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(17,24,39,0.45)",
+        justifyContent: "center",
+        padding: 20,
+    },
+    modalCard: {
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        padding: 16,
+        gap: 12,
+    },
+    modalHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    modalTitle: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: "#111827",
+    },
+    modalErrorText: {
+        color: "#b91c1c",
+        backgroundColor: "#fef2f2",
+        borderRadius: 10,
+        padding: 10,
+    },
+    webCalendarCard: {
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        borderRadius: 10,
+        backgroundColor: "#fff",
+        padding: 10,
+    },
+    webCalendarHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 8,
+    },
+    webCalendarNavButton: {
+        padding: 6,
+        borderRadius: 8,
+        backgroundColor: "#f3f4f6",
+    },
+    webCalendarTitle: {
+        color: "#111827",
+        fontWeight: "700",
+        textTransform: "capitalize",
+    },
+    webWeekdaysRow: {
+        flexDirection: "row",
+        marginBottom: 6,
+    },
+    webWeekdayLabel: {
+        flex: 1,
+        textAlign: "center",
+        color: "#6b7280",
+        fontSize: 12,
+        fontWeight: "700",
+    },
+    webCalendarGrid: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+    },
+    webCalendarDayEmpty: {
+        width: "14.2857%",
+        height: 34,
+    },
+    webCalendarDayButton: {
+        width: "14.2857%",
+        height: 34,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 8,
+    },
+    webCalendarDayButtonSelected: {
+        backgroundColor: "#1976D2",
+    },
+    webCalendarDayText: {
+        color: "#1f2937",
+        fontWeight: "600",
+    },
+    webCalendarDayTextSelected: {
+        color: "#fff",
     },
     emptyText: {
         color: "#6b7280",

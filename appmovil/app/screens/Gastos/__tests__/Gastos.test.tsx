@@ -60,4 +60,49 @@ describe("Gastos", () => {
             })
         );
     });
+
+    it("abre el modal para crear tipo de gasto y registra uno nuevo", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    tipos_gasto: [],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    message: "Tipo de gasto creado correctamente",
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    tipos_gasto: [mockTipoGasto],
+                }),
+            });
+
+        const { getByTestId, getByText } = render(<Gastos navigation={mockNavigation} route={mockGastosRoute} />);
+
+        await waitFor(() => {
+            expect(getByText("Aun no hay tipos de gasto creados")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("toggle-tipo-gasto-form-button"));
+        fireEvent.changeText(getByTestId("tipo-gasto-nombre-input"), "Luz");
+        fireEvent.press(getByTestId("tipo-gasto-save-button"));
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.tipogastos,
+                expect.objectContaining({
+                    method: "POST",
+                    headers: expect.objectContaining({
+                        "Content-Type": "application/json",
+                        Authorization: "Bearer mock-token",
+                    }),
+                })
+            );
+        });
+    });
 });
