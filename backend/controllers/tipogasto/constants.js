@@ -11,6 +11,7 @@ export const TIPOGASTO_ERRORS = {
 
 export const TIPOGASTO_MESSAGES = {
     TIPO_GASTO_CREATED: "Tipo de gasto creado correctamente",
+    TIPO_GASTO_UPDATED: "Tipo de gasto actualizado correctamente",
     TIPO_GASTO_DELETED: "Tipo de gasto eliminado correctamente",
     TIPOS_GASTO_RETRIEVED: "Tipos de gasto obtenidos correctamente",
 };

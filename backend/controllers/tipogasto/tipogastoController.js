@@ -151,3 +151,45 @@ export const deleteTipoGasto = async (req, res) => {
         return res.status(500).json({ message: TIPOGASTO_ERRORS.SERVER_ERROR });
     }
 };
+
+export const updateTipoGasto = async (req, res) => {
+    const id_usuario = req.user?.id_usuario;
+    const idTipoGastoResult = normalizeIntegerId(req.params?.id_tipo_gasto, TIPOGASTO_ERRORS.TIPO_GASTO_ID_REQUIRED);
+    const nombreTipo = typeof req.body?.nombre_tipo === "string" ? req.body.nombre_tipo.trim() : "";
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: TIPOGASTO_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (idTipoGastoResult.error) {
+        return res.status(400).json({ message: idTipoGastoResult.error });
+    }
+
+    if (!nombreTipo) {
+        return res.status(400).json({ message: TIPOGASTO_ERRORS.NOMBRE_REQUIRED });
+    }
+
+    try {
+        const tipoGasto = await TipoGasto.findByPk(idTipoGastoResult.value);
+
+        if (!tipoGasto) {
+            return res.status(404).json({ message: TIPOGASTO_ERRORS.TIPO_GASTO_NOT_FOUND });
+        }
+
+        const accessResult = await ensureNegocioAccess(id_usuario, tipoGasto.id_negocio);
+
+        if (accessResult.status) {
+            return res.status(accessResult.status).json({ message: accessResult.message });
+        }
+
+        tipoGasto.nombre_tipo = nombreTipo;
+        await tipoGasto.save();
+
+        return res.status(200).json({
+            message: TIPOGASTO_MESSAGES.TIPO_GASTO_UPDATED,
+            tipo_gasto: serializeTipoGasto(tipoGasto),
+        });
+    } catch (error) {
+        return res.status(500).json({ message: TIPOGASTO_ERRORS.SERVER_ERROR });
+    }
+};

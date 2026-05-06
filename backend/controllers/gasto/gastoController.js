@@ -237,3 +237,75 @@ export const deleteGasto = async (req, res) => {
         return res.status(500).json({ message: GASTO_ERRORS.SERVER_ERROR });
     }
 };
+
+export const updateGasto = async (req, res) => {
+    const id_usuario = req.user?.id_usuario;
+    const idGastoResult = normalizeIntegerId(req.params?.id_gasto, GASTO_ERRORS.GASTO_ID_REQUIRED);
+    const idTipoGastoResult = normalizeIntegerId(req.body?.id_tipo_gasto, GASTO_ERRORS.TIPO_GASTO_ID_REQUIRED);
+    const nombre = typeof req.body?.nombre === "string" ? req.body.nombre.trim() : "";
+    const fechaResult = normalizeFecha(req.body?.fecha);
+    const importeResult = normalizeImporte(req.body?.importe);
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: GASTO_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (idGastoResult.error) {
+        return res.status(400).json({ message: idGastoResult.error });
+    }
+
+    if (idTipoGastoResult.error) {
+        return res.status(400).json({ message: idTipoGastoResult.error });
+    }
+
+    if (!nombre) {
+        return res.status(400).json({ message: GASTO_ERRORS.NOMBRE_REQUIRED });
+    }
+
+    if (fechaResult.error) {
+        return res.status(400).json({ message: fechaResult.error });
+    }
+
+    if (importeResult.error) {
+        return res.status(400).json({ message: importeResult.error });
+    }
+
+    try {
+        const gasto = await Gasto.findByPk(idGastoResult.value);
+
+        if (!gasto) {
+            return res.status(404).json({ message: GASTO_ERRORS.GASTO_NOT_FOUND });
+        }
+
+        const currentTipoGasto = await TipoGasto.findByPk(gasto.id_tipo_gasto);
+
+        if (!currentTipoGasto) {
+            return res.status(404).json({ message: GASTO_ERRORS.TIPO_GASTO_NOT_FOUND });
+        }
+
+        const accessResult = await ensureNegocioAccess(id_usuario, currentTipoGasto.id_negocio);
+
+        if (accessResult.status) {
+            return res.status(accessResult.status).json({ message: accessResult.message });
+        }
+
+        const newTipoGasto = await TipoGasto.findByPk(idTipoGastoResult.value);
+
+        if (!newTipoGasto || newTipoGasto.id_negocio !== currentTipoGasto.id_negocio) {
+            return res.status(404).json({ message: GASTO_ERRORS.TIPO_GASTO_NOT_FOUND });
+        }
+
+        gasto.id_tipo_gasto = idTipoGastoResult.value;
+        gasto.nombre = nombre;
+        gasto.fecha = fechaResult.value;
+        gasto.importe = importeResult.value;
+        await gasto.save();
+
+        return res.status(200).json({
+            message: GASTO_MESSAGES.GASTO_UPDATED,
+            gasto: serializeGasto(gasto, newTipoGasto),
+        });
+    } catch (error) {
+        return res.status(500).json({ message: GASTO_ERRORS.SERVER_ERROR });
+    }
+};
