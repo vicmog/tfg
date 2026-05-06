@@ -1,3 +1,4 @@
+import { Gasto } from "../../models/Gasto.js";
 import { TipoGasto } from "../../models/TipoGasto.js";
 import { UsuarioNegocio } from "../../models/UsuarioNegocio.js";
 import {
@@ -140,6 +141,9 @@ export const deleteTipoGasto = async (req, res) => {
             return res.status(accessResult.status).json({ message: accessResult.message });
         }
 
+        await Gasto.destroy({
+            where: { id_tipo_gasto: tipoGasto.id_tipo_gasto },
+        });
         await tipoGasto.destroy();
 
         return res.status(200).json({ message: TIPOGASTO_MESSAGES.TIPO_GASTO_DELETED });

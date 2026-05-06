@@ -105,4 +105,51 @@ describe("Gastos", () => {
             );
         });
     });
+
+    it("elimina un tipo de gasto tras confirmacion", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    tipos_gasto: [mockTipoGasto],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    message: "Tipo de gasto eliminado correctamente",
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    tipos_gasto: [],
+                }),
+            });
+
+        const { getByTestId, queryByText, getByText } = render(<Gastos navigation={mockNavigation} route={mockGastosRoute} />);
+
+        await waitFor(() => {
+            expect(getByText("Luz")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("tipo-gasto-delete-button-12"));
+
+        await waitFor(() => {
+            expect(getByTestId("tipo-gasto-delete-confirm-12")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("tipo-gasto-delete-confirm-button-12"));
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.deleteTipoGastoById(12),
+                expect.objectContaining({ method: "DELETE" })
+            );
+        });
+
+        await waitFor(() => {
+            expect(queryByText("Luz")).toBeNull();
+        });
+    });
 });

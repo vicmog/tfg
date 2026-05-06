@@ -138,4 +138,61 @@ describe("TipoGastoDetail", () => {
         expect(mockNavigation.goBack).not.toHaveBeenCalled();
         expect(getByTestId("tipo-gasto-detail-back-button")).toBeTruthy();
     });
+
+    it("elimina un gasto tras confirmacion", async () => {
+        (fetch as jest.Mock)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    gastos: [
+                        {
+                            id_gasto: 1,
+                            id_tipo_gasto: 12,
+                            nombre: "Factura de abril",
+                            fecha: "2026-04-03T00:00:00.000Z",
+                            importe: 48.5,
+                        },
+                    ],
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    message: "Gasto eliminado correctamente",
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    gastos: [],
+                }),
+            });
+
+        const { getByText, getByTestId, queryByText } = render(
+            <TipoGastoDetail navigation={mockNavigation} route={mockDetailRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByText("Factura de abril")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("gasto-delete-button-1"));
+
+        await waitFor(() => {
+            expect(getByTestId("gasto-delete-confirm-1")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("gasto-delete-confirm-button-1"));
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.deleteGastoById(1),
+                expect.objectContaining({ method: "DELETE" })
+            );
+        });
+
+        await waitFor(() => {
+            expect(queryByText("Factura de abril")).toBeNull();
+        });
+    });
 });
