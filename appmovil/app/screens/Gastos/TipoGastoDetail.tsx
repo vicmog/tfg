@@ -89,12 +89,25 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
     const [calendarCursor, setCalendarCursor] = useState<Date>(new Date());
     const [modalVisible, setModalVisible] = useState(false);
     const [modalError, setModalError] = useState("");
+    const [searchText, setSearchText] = useState("");
 
     const normalizedRole = (negocio.rol || "").toLowerCase();
     const canManageGastos = normalizedRole === "jefe" || normalizedRole === "admin";
 
     const webCalendarCells = useMemo(() => buildCalendarMatrix(calendarCursor), [calendarCursor]);
     const selectedDate = parseApiDate(gastoFecha);
+    const filteredGastos = useMemo(() => {
+        const query = searchText.trim().toLowerCase();
+
+        if (!query) {
+            return gastos;
+        }
+
+        return gastos.filter((gasto) => (
+            gasto.nombre.toLowerCase().includes(query)
+            || formatDate(gasto.fecha).toLowerCase().includes(query)
+        ));
+    }, [gastos, searchText]);
 
     const loadData = useCallback(async () => {
         setLoading(true);
@@ -391,8 +404,30 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
                 </TouchableOpacity>
             </View>
 
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
-            {success ? <Text style={styles.successText}>{success}</Text> : null}
+            <View style={styles.searchContainer}>
+                <MaterialIcons name="search" size={18} color="#6b7280" style={styles.searchIcon} />
+                <TextInput
+                    style={styles.searchInput}
+                    value={searchText}
+                    onChangeText={setSearchText}
+                    placeholder="Buscar por nombre o fecha"
+                    placeholderTextColor="#9ca3af"
+                    testID="gasto-search-input"
+                />
+            </View>
+
+            {error ? (
+                <View style={styles.feedbackErrorBox}>
+                    <MaterialIcons name="error-outline" size={18} color="#b91c1c" />
+                    <Text style={styles.feedbackErrorText}>{error}</Text>
+                </View>
+            ) : null}
+            {success ? (
+                <View style={styles.feedbackSuccessBox}>
+                    <MaterialIcons name="check-circle-outline" size={18} color="#166534" />
+                    <Text style={styles.feedbackSuccessText}>{success}</Text>
+                </View>
+            ) : null}
 
             <Modal
                 visible={modalVisible}
@@ -527,14 +562,23 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
                     <ActivityIndicator color="#1976D2" />
                 ) : gastos.length === 0 ? (
                     <Text style={styles.emptyText}>Todavia no hay gastos en esta categoria</Text>
+                ) : filteredGastos.length === 0 ? (
+                    <Text style={styles.emptyText}>No hay resultados para tu busqueda</Text>
                 ) : (
-                    gastos.map((gasto) => (
+                    filteredGastos.map((gasto) => (
                         <View key={gasto.id_gasto}>
                             <View style={styles.listCard}>
                                 <View style={styles.listContent}>
-                                    <Text style={styles.listTitle}>{gasto.nombre}</Text>
-                                    <Text style={styles.listMeta}>Fecha: {formatDate(gasto.fecha)}</Text>
-                                    <Text style={styles.listAmount}>{formatAmount(gasto.importe)}</Text>
+                                    <View style={styles.titleRow}>
+                                        <Text style={styles.listTitle}>{gasto.nombre}</Text>
+                                        <View style={styles.amountBadge}>
+                                            <Text style={styles.listAmount}>{formatAmount(gasto.importe)}</Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.metaRow}>
+                                        <MaterialIcons name="event" size={14} color="#6b7280" />
+                                        <Text style={styles.listMeta}>{formatDate(gasto.fecha)}</Text>
+                                    </View>
                                 </View>
 
                                 {canManageGastos ? (
@@ -599,7 +643,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#f7fafc",
-        paddingTop: 10,
+        paddingTop: 8,
     },
     header: {
         flexDirection: "row",
@@ -642,6 +686,27 @@ const styles = StyleSheet.create({
         color: "#6b7280",
         fontSize: 13,
     },
+    searchContainer: {
+        marginTop: 12,
+        marginHorizontal: 16,
+        borderWidth: 1,
+        borderColor: "#d1d5db",
+        borderRadius: 12,
+        backgroundColor: "#fff",
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+    },
+    searchIcon: {
+        marginRight: 8,
+    },
+    searchInput: {
+        flex: 1,
+        color: "#111827",
+        fontSize: 14,
+        paddingVertical: 8,
+    },
     content: {
         padding: 16,
         gap: 12,
@@ -679,21 +744,39 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         fontSize: 15,
     },
-    errorText: {
+    feedbackErrorBox: {
         marginHorizontal: 16,
         marginTop: 12,
-        color: "#b91c1c",
         backgroundColor: "#fef2f2",
+        borderWidth: 1,
+        borderColor: "#fecaca",
         borderRadius: 10,
         padding: 10,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
     },
-    successText: {
+    feedbackErrorText: {
+        color: "#b91c1c",
+        fontWeight: "600",
+        flex: 1,
+    },
+    feedbackSuccessBox: {
         marginHorizontal: 16,
         marginTop: 12,
-        color: "#166534",
         backgroundColor: "#f0fdf4",
+        borderWidth: 1,
+        borderColor: "#bbf7d0",
         borderRadius: 10,
         padding: 10,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+    },
+    feedbackSuccessText: {
+        color: "#166534",
+        fontWeight: "600",
+        flex: 1,
     },
     modalOverlay: {
         flex: 1,
@@ -810,17 +893,38 @@ const styles = StyleSheet.create({
         flex: 1,
         gap: 4,
     },
+    titleRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: 8,
+    },
     listTitle: {
         fontSize: 15,
         fontWeight: "700",
         color: "#111827",
+        flex: 1,
+    },
+    amountBadge: {
+        backgroundColor: "#ecfdf5",
+        borderWidth: 1,
+        borderColor: "#a7f3d0",
+        borderRadius: 999,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+    },
+    metaRow: {
+        marginTop: 2,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
     },
     listMeta: {
         color: "#6b7280",
         fontSize: 13,
     },
     listAmount: {
-        fontSize: 15,
+        fontSize: 13,
         fontWeight: "700",
         color: "#0f766e",
     },
