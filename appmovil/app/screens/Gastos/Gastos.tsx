@@ -12,11 +12,16 @@ const Gastos: React.FC<GastosProps> = ({ route, navigation }) => {
     const [tiposGasto, setTiposGasto] = useState<TipoGasto[]>([]);
     const [loading, setLoading] = useState(false);
     const [savingTipo, setSavingTipo] = useState(false);
+    const [deletingTipoGastoId, setDeletingTipoGastoId] = useState<number | null>(null);
+    const [confirmDeleteTipoGastoId, setConfirmDeleteTipoGastoId] = useState<number | null>(null);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [newTipoNombre, setNewTipoNombre] = useState("");
     const [modalVisible, setModalVisible] = useState(false);
     const [modalError, setModalError] = useState("");
+
+    const normalizedRole = (negocio.rol || "").toLowerCase();
+    const canManageGastos = normalizedRole === "jefe" || normalizedRole === "admin";
 
     const loadData = useCallback(async () => {
         setLoading(true);
@@ -105,6 +110,46 @@ const Gastos: React.FC<GastosProps> = ({ route, navigation }) => {
         setNewTipoNombre("");
     };
 
+    const handleAskDeleteTipoGasto = (idTipoGasto: number) => {
+        setError("");
+        setSuccess("");
+        setConfirmDeleteTipoGastoId(idTipoGasto);
+    };
+
+    const handleCancelDeleteTipoGasto = () => {
+        setConfirmDeleteTipoGastoId(null);
+    };
+
+    const handleDeleteTipoGasto = async (idTipoGasto: number) => {
+        setError("");
+        setSuccess("");
+        setDeletingTipoGastoId(idTipoGasto);
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(API_ROUTES.deleteTipoGastoById(idTipoGasto), {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setError(data.message || "No se pudo eliminar el tipo de gasto");
+                return;
+            }
+
+            setSuccess("Tipo de gasto eliminado correctamente");
+            setConfirmDeleteTipoGastoId(null);
+            await loadData();
+        } catch {
+            setError("Error de conexion. Intentalo de nuevo.");
+        } finally {
+            setDeletingTipoGastoId(null);
+        }
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -165,18 +210,59 @@ const Gastos: React.FC<GastosProps> = ({ route, navigation }) => {
                     <Text style={styles.emptyText}>Aun no hay tipos de gasto creados</Text>
                 ) : (
                     tiposGasto.map((tipo) => (
-                        <TouchableOpacity
-                            key={tipo.id_tipo_gasto}
-                            style={styles.listCard}
-                            onPress={() => navigation.navigate("TipoGastoDetail", { negocio, tipoGasto: tipo })}
-                            testID={`tipo-gasto-card-${tipo.id_tipo_gasto}`}
-                        >
-                            <View style={styles.typeCardContent}>
-                                <Text style={styles.listTitle}>{tipo.nombre_tipo}</Text>
-                                <Text style={styles.listMeta}>Toca para abrir y añadir gastos</Text>
+                        <View key={tipo.id_tipo_gasto}>
+                            <View style={styles.listCard}>
+                                <TouchableOpacity
+                                    style={styles.typeCardContent}
+                                    onPress={() => navigation.navigate("TipoGastoDetail", { negocio, tipoGasto: tipo })}
+                                    testID={`tipo-gasto-card-${tipo.id_tipo_gasto}`}
+                                >
+                                    <Text style={styles.listTitle}>{tipo.nombre_tipo}</Text>
+                                    <Text style={styles.listMeta}>Toca para abrir y añadir gastos</Text>
+                                </TouchableOpacity>
+
+                                {canManageGastos ? (
+                                    <TouchableOpacity
+                                        style={styles.deleteIconButton}
+                                        onPress={() => handleAskDeleteTipoGasto(tipo.id_tipo_gasto)}
+                                        disabled={deletingTipoGastoId === tipo.id_tipo_gasto}
+                                        testID={`tipo-gasto-delete-button-${tipo.id_tipo_gasto}`}
+                                    >
+                                        {deletingTipoGastoId === tipo.id_tipo_gasto ? (
+                                            <ActivityIndicator size="small" color="#fff" />
+                                        ) : (
+                                            <MaterialIcons name="delete" size={18} color="#fff" />
+                                        )}
+                                    </TouchableOpacity>
+                                ) : (
+                                    <MaterialIcons name="chevron-right" size={24} color="#9ca3af" />
+                                )}
                             </View>
-                            <MaterialIcons name="chevron-right" size={24} color="#9ca3af" />
-                        </TouchableOpacity>
+
+                            {confirmDeleteTipoGastoId === tipo.id_tipo_gasto ? (
+                                <View style={styles.confirmBox} testID={`tipo-gasto-delete-confirm-${tipo.id_tipo_gasto}`}>
+                                    <Text style={styles.confirmTitle}>Eliminar tipo de gasto</Text>
+                                    <Text style={styles.confirmMessage}>¿Seguro que quieres eliminar este tipo de gasto? Se borrarán también todos sus gastos.</Text>
+                                    <View style={styles.confirmActions}>
+                                        <TouchableOpacity
+                                            style={styles.confirmCancelButton}
+                                            onPress={handleCancelDeleteTipoGasto}
+                                            testID={`tipo-gasto-delete-cancel-${tipo.id_tipo_gasto}`}
+                                        >
+                                            <Text style={styles.confirmCancelText}>Cancelar</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={styles.confirmDeleteButton}
+                                            onPress={() => handleDeleteTipoGasto(tipo.id_tipo_gasto)}
+                                            disabled={deletingTipoGastoId === tipo.id_tipo_gasto}
+                                            testID={`tipo-gasto-delete-confirm-button-${tipo.id_tipo_gasto}`}
+                                        >
+                                            <Text style={styles.confirmDeleteText}>Eliminar</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            ) : null}
+                        </View>
                     ))
                 )}
             </ScrollView>
@@ -282,6 +368,14 @@ const styles = StyleSheet.create({
         color: "#374151",
         fontSize: 13,
     },
+    deleteIconButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 999,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#dc2626",
+    },
     errorText: {
         color: "#b91c1c",
         fontWeight: "600",
@@ -379,6 +473,47 @@ const styles = StyleSheet.create({
         fontWeight: "600",
     },
     webCalendarDayTextSelected: {
+        color: "#fff",
+    },
+    confirmBox: {
+        marginTop: 8,
+        backgroundColor: "#fff7ed",
+        borderWidth: 1,
+        borderColor: "#fed7aa",
+        borderRadius: 10,
+        padding: 12,
+        gap: 10,
+    },
+    confirmTitle: {
+        fontWeight: "700",
+        color: "#9a3412",
+    },
+    confirmMessage: {
+        color: "#7c2d12",
+    },
+    confirmActions: {
+        flexDirection: "row",
+        gap: 10,
+        justifyContent: "flex-end",
+    },
+    confirmCancelButton: {
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 10,
+        backgroundColor: "#e5e7eb",
+    },
+    confirmCancelText: {
+        fontWeight: "700",
+        color: "#374151",
+    },
+    confirmDeleteButton: {
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 10,
+        backgroundColor: "#dc2626",
+    },
+    confirmDeleteText: {
+        fontWeight: "700",
         color: "#fff",
     },
     emptyText: {

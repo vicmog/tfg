@@ -75,6 +75,8 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
     const [gastos, setGastos] = useState<Gasto[]>([]);
     const [loading, setLoading] = useState(false);
     const [savingGasto, setSavingGasto] = useState(false);
+    const [deletingGastoId, setDeletingGastoId] = useState<number | null>(null);
+    const [confirmDeleteGastoId, setConfirmDeleteGastoId] = useState<number | null>(null);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [gastoNombre, setGastoNombre] = useState("");
@@ -84,6 +86,9 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
     const [calendarCursor, setCalendarCursor] = useState<Date>(new Date());
     const [modalVisible, setModalVisible] = useState(false);
     const [modalError, setModalError] = useState("");
+
+    const normalizedRole = (negocio.rol || "").toLowerCase();
+    const canManageGastos = normalizedRole === "jefe" || normalizedRole === "admin";
 
     const webCalendarCells = useMemo(() => buildCalendarMatrix(calendarCursor), [calendarCursor]);
     const selectedDate = parseApiDate(gastoFecha);
@@ -233,6 +238,46 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
         setDatePickerVisible(false);
     };
 
+    const handleAskDeleteGasto = (idGasto: number) => {
+        setError("");
+        setSuccess("");
+        setConfirmDeleteGastoId(idGasto);
+    };
+
+    const handleCancelDeleteGasto = () => {
+        setConfirmDeleteGastoId(null);
+    };
+
+    const handleDeleteGasto = async (idGasto: number) => {
+        setError("");
+        setSuccess("");
+        setDeletingGastoId(idGasto);
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(API_ROUTES.deleteGastoById(idGasto), {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                setError(data.message || "No se pudo eliminar el gasto");
+                return;
+            }
+
+            setSuccess("Gasto eliminado correctamente");
+            setConfirmDeleteGastoId(null);
+            await loadData();
+        } catch {
+            setError("Error de conexion. Intentalo de nuevo.");
+        } finally {
+            setDeletingGastoId(null);
+        }
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -380,10 +425,53 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
                     <Text style={styles.emptyText}>Todavia no hay gastos en esta categoria</Text>
                 ) : (
                     gastos.map((gasto) => (
-                        <View key={gasto.id_gasto} style={styles.listCard}>
-                            <Text style={styles.listTitle}>{gasto.nombre}</Text>
-                            <Text style={styles.listMeta}>Fecha: {formatDate(gasto.fecha)}</Text>
-                            <Text style={styles.listAmount}>{formatAmount(gasto.importe)}</Text>
+                        <View key={gasto.id_gasto}>
+                            <View style={styles.listCard}>
+                                <View style={styles.listContent}>
+                                    <Text style={styles.listTitle}>{gasto.nombre}</Text>
+                                    <Text style={styles.listMeta}>Fecha: {formatDate(gasto.fecha)}</Text>
+                                    <Text style={styles.listAmount}>{formatAmount(gasto.importe)}</Text>
+                                </View>
+
+                                {canManageGastos ? (
+                                    <TouchableOpacity
+                                        style={styles.deleteIconButton}
+                                        onPress={() => handleAskDeleteGasto(gasto.id_gasto)}
+                                        disabled={deletingGastoId === gasto.id_gasto}
+                                        testID={`gasto-delete-button-${gasto.id_gasto}`}
+                                    >
+                                        {deletingGastoId === gasto.id_gasto ? (
+                                            <ActivityIndicator size="small" color="#fff" />
+                                        ) : (
+                                            <MaterialIcons name="delete" size={18} color="#fff" />
+                                        )}
+                                    </TouchableOpacity>
+                                ) : null}
+                            </View>
+
+                            {confirmDeleteGastoId === gasto.id_gasto ? (
+                                <View style={styles.confirmBox} testID={`gasto-delete-confirm-${gasto.id_gasto}`}>
+                                    <Text style={styles.confirmTitle}>Eliminar gasto</Text>
+                                    <Text style={styles.confirmMessage}>¿Seguro que quieres eliminar este gasto?</Text>
+                                    <View style={styles.confirmActions}>
+                                        <TouchableOpacity
+                                            style={styles.confirmCancelButton}
+                                            onPress={handleCancelDeleteGasto}
+                                            testID={`gasto-delete-cancel-${gasto.id_gasto}`}
+                                        >
+                                            <Text style={styles.confirmCancelText}>Cancelar</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={styles.confirmDeleteButton}
+                                            onPress={() => handleDeleteGasto(gasto.id_gasto)}
+                                            disabled={deletingGastoId === gasto.id_gasto}
+                                            testID={`gasto-delete-confirm-button-${gasto.id_gasto}`}
+                                        >
+                                            <Text style={styles.confirmDeleteText}>Eliminar</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            ) : null}
                         </View>
                     ))
                 )}
@@ -600,6 +688,13 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "#e5e7eb",
         padding: 14,
+        flexDirection: "row",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: 10,
+    },
+    listContent: {
+        flex: 1,
         gap: 4,
     },
     listTitle: {
@@ -615,6 +710,15 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: "700",
         color: "#0f766e",
+    },
+    deleteIconButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 999,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#dc2626",
+        marginLeft: 8,
     },
     modalOverlay: {
         flex: 1,
@@ -637,5 +741,46 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "700",
         color: "#111827",
+    },
+    confirmBox: {
+        marginTop: 8,
+        backgroundColor: "#fff7ed",
+        borderWidth: 1,
+        borderColor: "#fed7aa",
+        borderRadius: 10,
+        padding: 12,
+        gap: 10,
+    },
+    confirmTitle: {
+        fontWeight: "700",
+        color: "#9a3412",
+    },
+    confirmMessage: {
+        color: "#7c2d12",
+    },
+    confirmActions: {
+        flexDirection: "row",
+        gap: 10,
+        justifyContent: "flex-end",
+    },
+    confirmCancelButton: {
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 10,
+        backgroundColor: "#e5e7eb",
+    },
+    confirmCancelText: {
+        fontWeight: "700",
+        color: "#374151",
+    },
+    confirmDeleteButton: {
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 10,
+        backgroundColor: "#dc2626",
+    },
+    confirmDeleteText: {
+        fontWeight: "700",
+        color: "#fff",
     },
 });
