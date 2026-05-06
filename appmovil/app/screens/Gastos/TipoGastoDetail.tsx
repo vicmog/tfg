@@ -5,7 +5,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { API_ROUTES } from "@/app/constants/apiRoutes";
-import { Gasto } from "../types";
+import { Gasto, TipoGasto } from "../types";
 import { TipoGastoDetailProps } from "./types";
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -73,8 +73,11 @@ const formatAmount = (value: number) =>
 const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) => {
     const { negocio, tipoGasto } = route.params;
     const [gastos, setGastos] = useState<Gasto[]>([]);
+    const [currentTipoGasto, setCurrentTipoGasto] = useState<TipoGasto>(tipoGasto);
     const [loading, setLoading] = useState(false);
     const [savingGasto, setSavingGasto] = useState(false);
+    const [updatingGasto, setUpdatingGasto] = useState(false);
+    const [editingGasto, setEditingGasto] = useState<Gasto | null>(null);
     const [deletingGastoId, setDeletingGastoId] = useState<number | null>(null);
     const [confirmDeleteGastoId, setConfirmDeleteGastoId] = useState<number | null>(null);
     const [error, setError] = useState("");
@@ -99,28 +102,28 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
 
         try {
             const token = await AsyncStorage.getItem("token");
-            const response = await fetch(API_ROUTES.gastosByNegocio(negocio.id_negocio), {
+            const gastosResponse = await fetch(API_ROUTES.gastosByNegocio(negocio.id_negocio), {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
-            if (!response.ok) {
-                const data = await response.json();
+            if (!gastosResponse.ok) {
+                const data = await gastosResponse.json();
                 setError(data.message || "No se pudieron obtener los gastos");
                 return;
             }
 
-            const data = await response.json();
-            const gastosList = ((data.gastos || []) as Gasto[]).filter(
-                (gasto) => gasto.id_tipo_gasto === tipoGasto.id_tipo_gasto
+            const gastosData = await gastosResponse.json();
+            const gastosList = ((gastosData.gastos || []) as Gasto[]).filter(
+                (gasto) => gasto.id_tipo_gasto === currentTipoGasto.id_tipo_gasto
             );
 
             setGastos(gastosList);
-        } catch (fetchError) {
+        } catch {
             setError("Error de conexion. Intentalo de nuevo.");
         } finally {
             setLoading(false);
         }
-    }, [negocio.id_negocio, tipoGasto.id_tipo_gasto]);
+    }, [negocio.id_negocio, currentTipoGasto.id_tipo_gasto]);
 
     useFocusEffect(
         useCallback(() => {
@@ -166,7 +169,7 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
                 },
                 body: JSON.stringify({
                     id_negocio: negocio.id_negocio,
-                    id_tipo_gasto: tipoGasto.id_tipo_gasto,
+                    id_tipo_gasto: currentTipoGasto.id_tipo_gasto,
                     nombre,
                     fecha: gastoFecha.trim(),
                     importe: importeValue,
@@ -194,12 +197,105 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
         }
     };
 
+    const handleUpdateGasto = async () => {
+        if (!editingGasto) {
+            return;
+        }
+
+        const nombre = gastoNombre.trim();
+
+        if (!nombre) {
+            setModalError("El nombre del gasto es obligatorio");
+            return;
+        }
+
+        if (!gastoFecha.trim()) {
+            setModalError("La fecha del gasto es obligatoria");
+            return;
+        }
+
+        if (!DATE_FILTER_REGEX.test(gastoFecha.trim())) {
+            setModalError("La fecha del gasto no es valida");
+            return;
+        }
+
+        const importeValue = Number.parseFloat(gastoImporte.replace(",", "."));
+        if (!Number.isFinite(importeValue) || importeValue <= 0) {
+            setModalError("El importe del gasto debe ser mayor que 0");
+            return;
+        }
+
+        setUpdatingGasto(true);
+        setModalError("");
+        setSuccess("");
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(API_ROUTES.updateGastoById(editingGasto.id_gasto), {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    id_tipo_gasto: currentTipoGasto.id_tipo_gasto,
+                    nombre,
+                    fecha: gastoFecha.trim(),
+                    importe: importeValue,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                setModalError(data.message || "No se pudo actualizar el gasto");
+                return;
+            }
+
+            setSuccess(data.message || "Gasto actualizado correctamente");
+            setEditingGasto(null);
+            setGastoNombre("");
+            setGastoImporte("");
+            setGastoFecha(todayKey());
+            setDatePickerVisible(false);
+            setModalVisible(false);
+            await loadData();
+        } catch {
+            setModalError("Error de conexion. Intentalo de nuevo.");
+        } finally {
+            setUpdatingGasto(false);
+        }
+    };
+
+    const handleSaveGasto = async () => {
+        if (editingGasto) {
+            await handleUpdateGasto();
+            return;
+        }
+
+        await handleCreateGasto();
+    };
+
     const handleOpenModal = () => {
         setModalError("");
         setGastoNombre("");
         setGastoImporte("");
         setGastoFecha(todayKey());
+        setEditingGasto(null);
         setCalendarCursor(new Date());
+        setDatePickerVisible(false);
+        setModalVisible(true);
+    };
+
+    const handleOpenEditModal = (gasto: Gasto) => {
+        setError("");
+        setSuccess("");
+        setModalError("");
+        setEditingGasto(gasto);
+        setGastoNombre(gasto.nombre);
+        setGastoImporte(`${gasto.importe}`.replace(".", ","));
+        setGastoFecha(toApiDate(new Date(gasto.fecha)));
+        setCalendarCursor(parseApiDate(toApiDate(new Date(gasto.fecha))) || new Date());
         setDatePickerVisible(false);
         setModalVisible(true);
     };
@@ -207,6 +303,7 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
     const handleCloseModal = () => {
         setModalVisible(false);
         setModalError("");
+        setEditingGasto(null);
         setGastoNombre("");
         setGastoImporte("");
         setGastoFecha(todayKey());
@@ -285,7 +382,7 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
                     <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
                 </TouchableOpacity>
                 <View style={styles.headerTextWrap}>
-                    <Text style={styles.title}>{tipoGasto.nombre_tipo}</Text>
+                    <Text style={styles.title}>{currentTipoGasto.nombre_tipo}</Text>
                     <Text style={styles.subtitle}>Gastos de esta categoria</Text>
                 </View>
                 <TouchableOpacity style={styles.addButton} onPress={handleOpenModal} testID="toggle-gasto-form-button">
@@ -307,7 +404,9 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalCard}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Añadir gasto en {tipoGasto.nombre_tipo}</Text>
+                            <Text style={styles.modalTitle}>
+                                {editingGasto ? "Editar gasto" : `Añadir gasto en ${currentTipoGasto.nombre_tipo}`}
+                            </Text>
                             <TouchableOpacity onPress={handleCloseModal} testID="close-gasto-form-button">
                                 <MaterialIcons name="close" size={22} color="#6b7280" />
                             </TouchableOpacity>
@@ -403,11 +502,16 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
 
                         {modalError ? <Text style={styles.modalErrorText} testID="gasto-error-message">{modalError}</Text> : null}
 
-                        <TouchableOpacity style={styles.primaryButton} onPress={handleCreateGasto} disabled={savingGasto} testID="gasto-save-button">
-                            {savingGasto ? (
+                        <TouchableOpacity
+                            style={styles.primaryButton}
+                            onPress={handleSaveGasto}
+                            disabled={savingGasto || updatingGasto}
+                            testID="gasto-save-button"
+                        >
+                            {savingGasto || updatingGasto ? (
                                 <ActivityIndicator color="#fff" />
                             ) : (
-                                <Text style={styles.primaryButtonText}>Registrar gasto</Text>
+                                <Text style={styles.primaryButtonText}>{editingGasto ? "Guardar cambios" : "Registrar gasto"}</Text>
                             )}
                         </TouchableOpacity>
                     </View>
@@ -434,18 +538,27 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
                                 </View>
 
                                 {canManageGastos ? (
-                                    <TouchableOpacity
-                                        style={styles.deleteIconButton}
-                                        onPress={() => handleAskDeleteGasto(gasto.id_gasto)}
-                                        disabled={deletingGastoId === gasto.id_gasto}
-                                        testID={`gasto-delete-button-${gasto.id_gasto}`}
-                                    >
-                                        {deletingGastoId === gasto.id_gasto ? (
-                                            <ActivityIndicator size="small" color="#fff" />
-                                        ) : (
-                                            <MaterialIcons name="delete" size={18} color="#fff" />
-                                        )}
-                                    </TouchableOpacity>
+                                    <View style={styles.actionsWrap}>
+                                        <TouchableOpacity
+                                            style={styles.editIconButton}
+                                            onPress={() => handleOpenEditModal(gasto)}
+                                            testID={`gasto-edit-button-${gasto.id_gasto}`}
+                                        >
+                                            <MaterialIcons name="edit" size={18} color="#fff" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={styles.deleteIconButton}
+                                            onPress={() => handleAskDeleteGasto(gasto.id_gasto)}
+                                            disabled={deletingGastoId === gasto.id_gasto}
+                                            testID={`gasto-delete-button-${gasto.id_gasto}`}
+                                        >
+                                            {deletingGastoId === gasto.id_gasto ? (
+                                                <ActivityIndicator size="small" color="#fff" />
+                                            ) : (
+                                                <MaterialIcons name="delete" size={18} color="#fff" />
+                                            )}
+                                        </TouchableOpacity>
+                                    </View>
                                 ) : null}
                             </View>
 
@@ -720,27 +833,19 @@ const styles = StyleSheet.create({
         backgroundColor: "#dc2626",
         marginLeft: 8,
     },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: "rgba(17,24,39,0.45)",
+    editIconButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 999,
+        alignItems: "center",
         justifyContent: "center",
-        padding: 20,
+        backgroundColor: "#2563eb",
     },
-    modalCard: {
-        backgroundColor: "#fff",
-        borderRadius: 16,
-        padding: 16,
-        gap: 10,
-    },
-    modalHeader: {
+    actionsWrap: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-between",
-    },
-    modalTitle: {
-        fontSize: 16,
-        fontWeight: "700",
-        color: "#111827",
+        gap: 8,
+        marginLeft: 8,
     },
     confirmBox: {
         marginTop: 8,

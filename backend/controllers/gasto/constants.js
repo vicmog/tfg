@@ -17,6 +17,7 @@ export const GASTO_ERRORS = {
 
 export const GASTO_MESSAGES = {
     GASTO_CREATED: "Gasto registrado correctamente",
+    GASTO_UPDATED: "Gasto actualizado correctamente",
     GASTO_DELETED: "Gasto eliminado correctamente",
     GASTOS_RETRIEVED: "Gastos obtenidos correctamente",
 };

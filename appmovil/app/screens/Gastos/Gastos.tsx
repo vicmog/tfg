@@ -12,6 +12,8 @@ const Gastos: React.FC<GastosProps> = ({ route, navigation }) => {
     const [tiposGasto, setTiposGasto] = useState<TipoGasto[]>([]);
     const [loading, setLoading] = useState(false);
     const [savingTipo, setSavingTipo] = useState(false);
+    const [updatingTipo, setUpdatingTipo] = useState(false);
+    const [editingTipoGasto, setEditingTipoGasto] = useState<TipoGasto | null>(null);
     const [deletingTipoGastoId, setDeletingTipoGastoId] = useState<number | null>(null);
     const [confirmDeleteTipoGastoId, setConfirmDeleteTipoGastoId] = useState<number | null>(null);
     const [error, setError] = useState("");
@@ -98,9 +100,76 @@ const Gastos: React.FC<GastosProps> = ({ route, navigation }) => {
         }
     };
 
+    const handleUpdateTipoGasto = async () => {
+        if (!editingTipoGasto) {
+            return;
+        }
+
+        const nombre = newTipoNombre.trim();
+
+        if (!nombre) {
+            setModalError("El nombre del tipo de gasto es obligatorio");
+            return;
+        }
+
+        setUpdatingTipo(true);
+        setModalError("");
+        setSuccess("");
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(API_ROUTES.updateTipoGastoById(editingTipoGasto.id_tipo_gasto), {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    nombre_tipo: nombre,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                setModalError(data.message || "No se pudo actualizar el tipo de gasto");
+                return;
+            }
+
+            setSuccess(data.message || "Tipo de gasto actualizado correctamente");
+            setModalVisible(false);
+            setEditingTipoGasto(null);
+            setNewTipoNombre("");
+            await loadData();
+        } catch {
+            setModalError("Error de conexion. Intentalo de nuevo.");
+        } finally {
+            setUpdatingTipo(false);
+        }
+    };
+
+    const handleSaveTipoGasto = async () => {
+        if (editingTipoGasto) {
+            await handleUpdateTipoGasto();
+            return;
+        }
+
+        await handleCreateTipoGasto();
+    };
+
     const handleOpenModal = () => {
         setModalError("");
         setNewTipoNombre("");
+        setEditingTipoGasto(null);
+        setModalVisible(true);
+    };
+
+    const handleOpenEditModal = (tipoGasto: TipoGasto) => {
+        setModalError("");
+        setError("");
+        setSuccess("");
+        setEditingTipoGasto(tipoGasto);
+        setNewTipoNombre(tipoGasto.nombre_tipo);
         setModalVisible(true);
     };
 
@@ -108,6 +177,7 @@ const Gastos: React.FC<GastosProps> = ({ route, navigation }) => {
         setModalVisible(false);
         setModalError("");
         setNewTipoNombre("");
+        setEditingTipoGasto(null);
     };
 
     const handleAskDeleteTipoGasto = (idTipoGasto: number) => {
@@ -176,7 +246,9 @@ const Gastos: React.FC<GastosProps> = ({ route, navigation }) => {
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalCard}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Crear tipo de gasto</Text>
+                            <Text style={styles.modalTitle}>
+                                {editingTipoGasto ? "Editar tipo de gasto" : "Crear tipo de gasto"}
+                            </Text>
                             <TouchableOpacity onPress={handleCloseModal} testID="close-tipo-gasto-form-button">
                                 <MaterialIcons name="close" size={22} color="#6b7280" />
                             </TouchableOpacity>
@@ -192,8 +264,17 @@ const Gastos: React.FC<GastosProps> = ({ route, navigation }) => {
 
                         {modalError ? <Text style={styles.modalErrorText} testID="tipo-gasto-error-message">{modalError}</Text> : null}
 
-                        <TouchableOpacity style={styles.primaryButton} onPress={handleCreateTipoGasto} disabled={savingTipo} testID="tipo-gasto-save-button">
-                            {savingTipo ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Crear tipo</Text>}
+                        <TouchableOpacity
+                            style={styles.primaryButton}
+                            onPress={handleSaveTipoGasto}
+                            disabled={savingTipo || updatingTipo}
+                            testID="tipo-gasto-save-button"
+                        >
+                            {savingTipo || updatingTipo ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <Text style={styles.primaryButtonText}>{editingTipoGasto ? "Guardar cambios" : "Crear tipo"}</Text>
+                            )}
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -222,18 +303,27 @@ const Gastos: React.FC<GastosProps> = ({ route, navigation }) => {
                                 </TouchableOpacity>
 
                                 {canManageGastos ? (
-                                    <TouchableOpacity
-                                        style={styles.deleteIconButton}
-                                        onPress={() => handleAskDeleteTipoGasto(tipo.id_tipo_gasto)}
-                                        disabled={deletingTipoGastoId === tipo.id_tipo_gasto}
-                                        testID={`tipo-gasto-delete-button-${tipo.id_tipo_gasto}`}
-                                    >
-                                        {deletingTipoGastoId === tipo.id_tipo_gasto ? (
-                                            <ActivityIndicator size="small" color="#fff" />
-                                        ) : (
-                                            <MaterialIcons name="delete" size={18} color="#fff" />
-                                        )}
-                                    </TouchableOpacity>
+                                    <View style={styles.actionsWrap}>
+                                        <TouchableOpacity
+                                            style={styles.editIconButton}
+                                            onPress={() => handleOpenEditModal(tipo)}
+                                            testID={`tipo-gasto-edit-button-${tipo.id_tipo_gasto}`}
+                                        >
+                                            <MaterialIcons name="edit" size={18} color="#fff" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={styles.deleteIconButton}
+                                            onPress={() => handleAskDeleteTipoGasto(tipo.id_tipo_gasto)}
+                                            disabled={deletingTipoGastoId === tipo.id_tipo_gasto}
+                                            testID={`tipo-gasto-delete-button-${tipo.id_tipo_gasto}`}
+                                        >
+                                            {deletingTipoGastoId === tipo.id_tipo_gasto ? (
+                                                <ActivityIndicator size="small" color="#fff" />
+                                            ) : (
+                                                <MaterialIcons name="delete" size={18} color="#fff" />
+                                            )}
+                                        </TouchableOpacity>
+                                    </View>
                                 ) : (
                                     <MaterialIcons name="chevron-right" size={24} color="#9ca3af" />
                                 )}
@@ -375,6 +465,19 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "#dc2626",
+    },
+    editIconButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 999,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#2563eb",
+    },
+    actionsWrap: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
     },
     errorText: {
         color: "#b91c1c",
