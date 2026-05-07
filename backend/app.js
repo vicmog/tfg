@@ -16,6 +16,7 @@ import compraRoutes from "./routes/compra.js";
 import tipoGastoRoutes from "./routes/tipogasto.js";
 import gastoRoutes from "./routes/gasto.js";
 import plantillaRoutes from "./routes/plantilla.js";
+import ventaRoutes from "./routes/venta.js";
 
 
 dotenv.config();
@@ -40,5 +41,6 @@ app.use("/v1/api/compras", compraRoutes);
 app.use("/v1/api/tipogastos", tipoGastoRoutes);
 app.use("/v1/api/gastos", gastoRoutes);
 app.use("/v1/api/plantillas", plantillaRoutes);
+app.use("/v1/api/ventas", ventaRoutes);
 
 export default app;
