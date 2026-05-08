@@ -189,3 +189,32 @@ export type CompraListItem = {
     proveedor?: string | null;
     proveedores?: string[];
 };
+
+export type Venta = {
+    id_venta: number;
+    id_negocio: number;
+    id_cliente: number;
+    fecha: string;
+    precio_total: number;
+    tipo: "producto" | "servicio";
+    estado: string;
+    createdAt?: string;
+    updatedAt?: string;
+};
+
+export type VentaProducto = {
+    id_venta: number;
+    id_producto: number;
+    cantidad: number;
+};
+
+export type VentaServicio = {
+    id_venta: number;
+    id_servicio: number;
+};
+
+export type VentaItem = {
+    id_producto?: number;
+    id_servicio?: number;
+    cantidad?: number;
+};
