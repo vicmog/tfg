@@ -18,6 +18,11 @@ import { API_ROUTES } from "@/app/constants/apiRoutes";
 import { Venta, Cliente, Producto, Servicio, VentaItem } from "../types";
 import { VentasProps } from "./types";
 
+const normalizeSearchText = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+const createEmptyVentaItem = (ventaType: "producto" | "servicio") =>
+  ventaType === "producto" ? { id_producto: 0, cantidad: 1 } : { id_servicio: 0 };
+
 const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
   const { negocio } = route.params;
   const [ventas, setVentas] = useState<Venta[]>([]);
@@ -30,6 +35,9 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
   const [success, setSuccess] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [modalError, setModalError] = useState("");
+  const [clienteSearchText, setClienteSearchText] = useState("");
+  const [productoSearchText, setProductoSearchText] = useState("");
+  const [servicioSearchText, setServicioSearchText] = useState("");
 
   const [ventaType, setVentaType] = useState<"producto" | "servicio">("producto");
   const [selectedCliente, setSelectedCliente] = useState<number | null>(null);
@@ -107,6 +115,108 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
     return ventas.filter((v) => v.tipo === ventaType);
   }, [ventas, ventaType]);
 
+  const filteredClientes = useMemo(() => {
+    const query = normalizeSearchText(clienteSearchText.trim());
+
+    if (!query) {
+      return clientes;
+    }
+
+    return clientes.filter((cliente) => {
+      const searchableText = normalizeSearchText(
+        [cliente.nombre, cliente.apellido1, cliente.apellido2, cliente.email, cliente.numero_telefono]
+          .filter(Boolean)
+          .join(" ")
+      );
+
+      return searchableText.includes(query);
+    });
+  }, [clienteSearchText, clientes]);
+
+  const filteredProductos = useMemo(() => {
+    const query = normalizeSearchText(productoSearchText.trim());
+
+    if (!query) {
+      return productos;
+    }
+
+    return productos.filter((producto) => {
+      const searchableText = normalizeSearchText(
+        [producto.nombre, producto.referencia, producto.categoria, producto.proveedor_nombre]
+          .filter(Boolean)
+          .join(" ")
+      );
+
+      return searchableText.includes(query);
+    });
+  }, [productoSearchText, productos]);
+
+  const filteredServicios = useMemo(() => {
+    const query = normalizeSearchText(servicioSearchText.trim());
+
+    if (!query) {
+      return servicios;
+    }
+
+    return servicios.filter((servicio) => {
+      const searchableText = normalizeSearchText([servicio.nombre, servicio.descripcion].filter(Boolean).join(" "));
+
+      return searchableText.includes(query);
+    });
+  }, [servicioSearchText, servicios]);
+
+  const precioTotalCalculado = useMemo(() => {
+    if (ventaType === "producto") {
+      return selectedItems.reduce((acc, item) => {
+        const producto = productos.find((entry) => entry.id_producto === item.id_producto);
+        const cantidad = Number.isFinite(item.cantidad) && item.cantidad && item.cantidad > 0 ? item.cantidad : 1;
+
+        if (!producto) {
+          return acc;
+        }
+
+        return acc + producto.precio_venta * cantidad;
+      }, 0);
+    }
+
+    return selectedItems.reduce((acc, item) => {
+      const servicio = servicios.find((entry) => entry.id_servicio === item.id_servicio);
+
+      if (!servicio) {
+        return acc;
+      }
+
+      return acc + servicio.precio;
+    }, 0);
+  }, [productos, selectedItems, servicios, ventaType]);
+
+  const handleOpenVentaModal = () => {
+    setModalVisible(true);
+    setVentaType("producto");
+    setSelectedCliente(null);
+    setSelectedItems([createEmptyVentaItem("producto")]);
+    setPrecioTotal("");
+    setSendEmail(false);
+    setClienteEmail("");
+    setClienteSearchText("");
+    setProductoSearchText("");
+    setServicioSearchText("");
+    setModalError("");
+  };
+
+  const handleCloseVentaModal = () => {
+    setModalVisible(false);
+    setModalError("");
+    setClienteSearchText("");
+    setProductoSearchText("");
+    setServicioSearchText("");
+  };
+
+  const handleChangeVentaType = (nextType: "producto" | "servicio") => {
+    setVentaType(nextType);
+    setSelectedItems([createEmptyVentaItem(nextType)]);
+  };
+
   const handleAddItem = () => {
     if (ventaType === "producto") {
       setSelectedItems([...selectedItems, { id_producto: 0, cantidad: 1 }]);
@@ -116,7 +226,8 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
   };
 
   const handleRemoveItem = (index: number) => {
-    setSelectedItems(selectedItems.filter((_, i) => i !== index));
+    const nextItems = selectedItems.filter((_, i) => i !== index);
+    setSelectedItems(nextItems.length > 0 ? nextItems : [createEmptyVentaItem(ventaType)]);
   };
 
   const handleUpdateItem = (index: number, field: string, value: any) => {
@@ -132,12 +243,12 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
     }
 
     if (selectedItems.length === 0) {
-      setModalError("Debe agregar al menos un producto o servicio");
+      setModalError("Debe seleccionar al menos un producto o servicio");
       return;
     }
 
-    if (!precioTotal || isNaN(parseFloat(precioTotal))) {
-      setModalError("Debe ingresar un precio total válido");
+    if (precioTotalCalculado <= 0) {
+      setModalError("Debe seleccionar al menos un producto o servicio válido");
       return;
     }
 
@@ -154,7 +265,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
         id_cliente: selectedCliente,
         tipo: ventaType,
         items: selectedItems,
-        precio_total: parseFloat(precioTotal),
+        precio_total: precioTotalCalculado,
         fecha: new Date().toISOString().split("T")[0],
       };
 
@@ -235,15 +346,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
         <Text style={styles.headerTitle}>Ventas</Text>
         {canManageVentas && (
           <TouchableOpacity
-            onPress={() => {
-              setModalVisible(true);
-              setVentaType("producto");
-              setSelectedCliente(null);
-              setSelectedItems([]);
-              setPrecioTotal("");
-              setSendEmail(false);
-              setModalError("");
-            }}
+            onPress={handleOpenVentaModal}
             style={styles.addButton}
           >
             <MaterialIcons name="add" size={24} color="#2563eb" />
@@ -345,12 +448,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
       <Modal visible={modalVisible} animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity
-              onPress={() => {
-                setModalVisible(false);
-                setModalError("");
-              }}
-            >
+            <TouchableOpacity onPress={handleCloseVentaModal}>
               <MaterialIcons name="close" size={24} color="#1f2937" />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>
@@ -369,6 +467,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
           <ScrollView
             style={styles.modalContent}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
             {/* Tipo Toggle */}
             <Text style={styles.label}>Tipo de Venta</Text>
@@ -378,10 +477,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                   styles.toggleButton,
                   ventaType === "producto" && styles.toggleButtonActive,
                 ]}
-                onPress={() => {
-                  setVentaType("producto");
-                  setSelectedItems([]);
-                }}
+                onPress={() => handleChangeVentaType("producto")}
               >
                 <Text
                   style={[
@@ -397,10 +493,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                   styles.toggleButton,
                   ventaType === "servicio" && styles.toggleButtonActive,
                 ]}
-                onPress={() => {
-                  setVentaType("servicio");
-                  setSelectedItems([]);
-                }}
+                onPress={() => handleChangeVentaType("servicio")}
               >
                 <Text
                   style={[
@@ -415,36 +508,40 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
 
             {/* Cliente Selector */}
             <Text style={styles.label}>Cliente</Text>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar cliente por nombre, email o teléfono"
+              value={clienteSearchText}
+              onChangeText={setClienteSearchText}
+            />
             <View style={styles.pickerContainer}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.clienteList}
-              >
-                {clientes.map((cliente) => (
-                  <TouchableOpacity
-                    key={cliente.id_cliente}
-                    style={[
-                      styles.clienteButton,
-                      selectedCliente === cliente.id_cliente &&
-                        styles.clienteButtonActive,
-                    ]}
-                    onPress={() => {
-                      setSelectedCliente(cliente.id_cliente);
-                      setClienteEmail(cliente.email || "");
-                    }}
-                  >
-                    <Text
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.clienteList}>
+                {filteredClientes.length === 0 ? (
+                  <Text style={styles.emptyPickerText}>No hay clientes que coincidan</Text>
+                ) : (
+                  filteredClientes.map((cliente) => (
+                    <TouchableOpacity
+                      key={cliente.id_cliente}
                       style={[
-                        styles.clienteButtonText,
-                        selectedCliente === cliente.id_cliente &&
-                          styles.clienteButtonTextActive,
+                        styles.clienteButton,
+                        selectedCliente === cliente.id_cliente && styles.clienteButtonActive,
                       ]}
+                      onPress={() => {
+                        setSelectedCliente(cliente.id_cliente);
+                        setClienteEmail(cliente.email || "");
+                      }}
                     >
-                      {cliente.nombre}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      <Text
+                        style={[
+                          styles.clienteButtonText,
+                          selectedCliente === cliente.id_cliente && styles.clienteButtonTextActive,
+                        ]}
+                      >
+                        {cliente.nombre}
+                      </Text>
+                    </TouchableOpacity>
+                  ))
+                )}
               </ScrollView>
             </View>
 
@@ -453,13 +550,23 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
               <Text style={styles.label}>
                 {ventaType === "producto" ? "Productos" : "Servicios"}
               </Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder={
+                  ventaType === "producto"
+                    ? "Buscar producto por nombre, referencia o categoría"
+                    : "Buscar servicio por nombre o descripción"
+                }
+                value={ventaType === "producto" ? productoSearchText : servicioSearchText}
+                onChangeText={ventaType === "producto" ? setProductoSearchText : setServicioSearchText}
+              />
               {selectedItems.map((item, index) => (
                 <View key={index} style={styles.itemContainer}>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <View style={styles.itemSelect}>
                       {ventaType === "producto" && (
                         <>
-                          {productos.map((prod) => (
+                          {filteredProductos.map((prod) => (
                             <TouchableOpacity
                               key={prod.id_producto}
                               style={[
@@ -490,7 +597,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                       )}
                       {ventaType === "servicio" && (
                         <>
-                          {servicios.map((serv) => (
+                          {filteredServicios.map((serv) => (
                             <TouchableOpacity
                               key={serv.id_servicio}
                               style={[
@@ -567,8 +674,8 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
               style={styles.input}
               keyboardType="decimal-pad"
               placeholder="0.00"
-              value={precioTotal}
-              onChangeText={setPrecioTotal}
+              value={precioTotalCalculado.toFixed(2)}
+              editable={false}
             />
 
             {/* Email */}
@@ -711,6 +818,14 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 18, fontWeight: "600", color: "#1f2937" },
   modalError: { margin: 12 },
   modalContent: { flex: 1, padding: 16 },
+  searchInput: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "#f3f4f6",
+    borderRadius: 6,
+    fontSize: 14,
+    marginBottom: 12,
+  },
   label: { fontSize: 14, fontWeight: "600", color: "#1f2937", marginTop: 12, marginBottom: 8 },
   pickerContainer: { marginBottom: 12 },
   clienteList: { flexGrow: 0 },
@@ -724,6 +839,7 @@ const styles = StyleSheet.create({
   clienteButtonActive: { backgroundColor: "#2563eb" },
   clienteButtonText: { fontSize: 14, color: "#6b7280" },
   clienteButtonTextActive: { color: "#fff" },
+  emptyPickerText: { fontSize: 13, color: "#6b7280", paddingVertical: 8 },
   itemsSection: { marginBottom: 12 },
   itemContainer: {
     flexDirection: "row",
