@@ -1190,20 +1190,11 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                 </View>
               </View>
 
-              {/* Items */}
+              {}
               {selectedVenta.tipo === "producto" && (
                 <View style={styles.detailSection}>
                   <Text style={styles.detailSectionTitle}>Productos</Text>
                   <View style={styles.detailCard}>
-                    {productos
-                      .filter((p) => p.id_negocio === negocio.id_negocio)
-                      .map((producto) => {
-                        const ventaProducto = ventas
-                          .find((v) => v.id_venta === selectedVenta.id_venta);
-                        // Aquí se debería mostrar los VentaProductos asociados
-                        // Por ahora se muestran todos los productos disponibles
-                        return null;
-                      })}
                     <Text style={styles.emptyText}>Ver detalles en edición</Text>
                   </View>
                 </View>
@@ -1230,7 +1221,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
         </View>
       </Modal>
 
-      {}
+      {datePickerVisible && editingWhichDate && (
         <Modal
           transparent={true}
           animationType="fade"
@@ -1855,10 +1846,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
     color: "#2563eb",
-  },
-  modalContent: {
-    flex: 1,
-    padding: 16,
   },
   closeButton: {
     marginTop: 24,
