@@ -3,6 +3,8 @@ export const VENTA_ERRORS = {
     NEGOCIO_ID_REQUIRED: "El negocio es obligatorio",
     VENTA_ID_REQUIRED: "La venta es obligatoria",
     CLIENTE_ID_REQUIRED: "El cliente es obligatorio",
+    PRODUCTO_ID_REQUIRED: "El producto es obligatorio",
+    SERVICIO_ID_REQUIRED: "El servicio es obligatorio",
     TIPO_REQUIRED: "El tipo de venta (producto/servicio) es obligatorio",
     TIPO_INVALID: "El tipo debe ser 'producto' o 'servicio'",
     ITEMS_REQUIRED: "Debe especificar al menos un producto o servicio",

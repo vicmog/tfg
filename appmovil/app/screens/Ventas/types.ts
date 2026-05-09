@@ -2,3 +2,4 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { NavigationScreenList } from "@/app/index";
 
 export type VentasProps = NativeStackScreenProps<NavigationScreenList, "Ventas">;
+export type EditarVentaProps = NativeStackScreenProps<NavigationScreenList, "EditarVenta">;

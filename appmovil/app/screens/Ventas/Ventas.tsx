@@ -2,6 +2,7 @@ import React, { useCallback, useState, useMemo } from "react";
 import {
   ActivityIndicator,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,6 +12,7 @@ import {
   FlatList,
   Pressable,
 } from "react-native";
+import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -22,6 +24,43 @@ const normalizeSearchText = (value: string) => value.normalize("NFD").replace(/[
 
 const createEmptyVentaItem = (ventaType: "producto" | "servicio") =>
   ventaType === "producto" ? { id_producto: 0, cantidad: 1 } : { id_servicio: 0 };
+
+const toLocalDateKey = (value: string | Date) => {
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const toDateOnlyDisplay = (value: string | Date) => {
+  const date = new Date(value);
+  return date.toLocaleDateString("es-ES", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
+
+const dateFromKey = (key: string) => {
+  const [year, month, day] = key.split("-").map(Number);
+  return new Date(year, month - 1, day, 0, 0, 0, 0);
+};
+
+const buildCalendarMatrix = (cursor: Date) => {
+  const year = cursor.getFullYear();
+  const month = cursor.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const startWeekDay = (firstDay.getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells: Array<number | null> = [];
+
+  for (let i = 0; i < startWeekDay; i += 1) cells.push(null);
+  for (let day = 1; day <= daysInMonth; day += 1) cells.push(day);
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  return cells;
+}
 
 const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
   const { negocio } = route.params;
@@ -45,9 +84,14 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
   const [clienteEmail, setClienteEmail] = useState("");
   const [sendEmail, setSendEmail] = useState(false);
   const [precioTotal, setPrecioTotal] = useState("");
+  const [fecha, setFecha] = useState<string>(toLocalDateKey(new Date()));
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
+  const [datePickerCursor, setDatePickerCursor] = useState<Date>(new Date());
 
   const normalizedRole = (negocio.rol || "").toLowerCase();
   const canManageVentas = normalizedRole === "jefe" || normalizedRole === "admin";
+  const WEEK_LABELS = ["L", "M", "X", "J", "V", "S", "D"];
+  const webCalendarCells = buildCalendarMatrix(datePickerCursor);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -201,7 +245,34 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
     setClienteSearchText("");
     setProductoSearchText("");
     setServicioSearchText("");
+    setFecha(toLocalDateKey(new Date()));
+    setDatePickerCursor(new Date());
+    setDatePickerVisible(false);
     setModalError("");
+  };
+
+  const handleDateChange = (event: DateTimePickerEvent, selectedDateValue?: Date) => {
+    if (Platform.OS !== "ios") {
+      setDatePickerVisible(false);
+    }
+
+    if (event.type === "dismissed" || !selectedDateValue) {
+      return;
+    }
+
+    setFecha(toLocalDateKey(selectedDateValue));
+  };
+
+  const handleOpenDatePicker = () => {
+    const selectedDate = dateFromKey(fecha);
+    setDatePickerCursor(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
+    setDatePickerVisible(true);
+  };
+
+  const handleSelectDateFromCalendar = (day: number) => {
+    const pickedDate = new Date(datePickerCursor.getFullYear(), datePickerCursor.getMonth(), day);
+    setFecha(toLocalDateKey(pickedDate));
+    setDatePickerVisible(false);
   };
 
   const handleCloseVentaModal = () => {
@@ -266,7 +337,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
         tipo: ventaType,
         items: selectedItems,
         precio_total: precioTotalCalculado,
-        fecha: new Date().toISOString().split("T")[0],
+        fecha: fecha,
       };
 
       const response = await fetch(API_ROUTES.ventas, {
@@ -438,6 +509,27 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                   <MaterialIcons name="event" size={16} color="#6b7280" />
                   <Text style={styles.metaText}>{formatDate(venta.fecha)}</Text>
                 </View>
+                {canManageVentas && (
+                  <View style={styles.cardActions}>
+                    <TouchableOpacity
+                      style={styles.editButton}
+                      onPress={() => navigation.navigate("EditarVenta", { negocio, venta })}
+                    >
+                      <MaterialIcons name="edit" size={18} color="#2563eb" />
+                      <Text style={styles.editButtonText}>Editar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      onPress={() => {
+                        // Implementar confirmación de eliminación aquí
+                        // Por ahora solo mostramos el botón
+                      }}
+                    >
+                      <MaterialIcons name="delete" size={18} color="#dc2626" />
+                      <Text style={styles.deleteButtonText}>Eliminar</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             );
           })}
@@ -678,6 +770,92 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
               editable={false}
             />
 
+            {/* Fecha */}
+            <Text style={styles.label}>Fecha</Text>
+            <TouchableOpacity
+              style={styles.selector}
+              onPress={handleOpenDatePicker}
+            >
+              <Text style={styles.selectorValue}>{toDateOnlyDisplay(fecha)}</Text>
+              <MaterialIcons name="event" size={20} color="#6b7280" />
+            </TouchableOpacity>
+
+            {datePickerVisible ? (
+              Platform.OS === "web" ? (
+                <View style={styles.inlineCalendarCard}>
+                  <View style={styles.inlineCalendarHeader}>
+                    <TouchableOpacity
+                      onPress={() =>
+                        setDatePickerCursor(
+                          (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
+                        )
+                      }
+                    >
+                      <MaterialIcons name="chevron-left" size={20} color="#374151" />
+                    </TouchableOpacity>
+                    <Text style={styles.inlineCalendarTitle}>
+                      {datePickerCursor.toLocaleDateString("es-ES", {
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() =>
+                        setDatePickerCursor(
+                          (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
+                        )
+                      }
+                    >
+                      <MaterialIcons name="chevron-right" size={20} color="#374151" />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.inlineWeekRow}>
+                    {WEEK_LABELS.map((label) => (
+                      <Text key={label} style={styles.inlineWeekLabel}>
+                        {label}
+                      </Text>
+                    ))}
+                  </View>
+                  <View style={styles.inlineDaysGrid}>
+                    {webCalendarCells.map((day, index) => {
+                      if (day === null) {
+                        return <View key={`empty-${index}`} style={styles.inlineDayCell} />;
+                      }
+
+                      const dayKey = toLocalDateKey(
+                        new Date(datePickerCursor.getFullYear(), datePickerCursor.getMonth(), day)
+                      );
+                      const isSelected = dayKey === fecha;
+
+                      return (
+                        <TouchableOpacity
+                          key={`calendar-day-${day}`}
+                          style={[styles.inlineDayCell, isSelected && styles.inlineDayCellSelected]}
+                          onPress={() => handleSelectDateFromCalendar(day)}
+                        >
+                          <Text
+                            style={[
+                              styles.inlineDayText,
+                              isSelected && styles.inlineDayTextSelected,
+                            ]}
+                          >
+                            {day}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : (
+                <DateTimePicker
+                  value={dateFromKey(fecha)}
+                  mode="date"
+                  display={Platform.OS === "ios" ? "spinner" : "default"}
+                  onChange={handleDateChange}
+                />
+              )
+            ) : null}
+
             {/* Email */}
             <Text style={styles.label}>Email Cliente</Text>
             <TextInput
@@ -912,6 +1090,112 @@ const styles = StyleSheet.create({
   },
   saveButtonDisabled: { opacity: 0.6 },
   saveButtonText: { fontSize: 14, color: "#fff", fontWeight: "600" },
+  cardActions: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+  },
+  editButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    paddingVertical: 8,
+    backgroundColor: "#dbeafe",
+    borderRadius: 6,
+  },
+  editButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#2563eb",
+  },
+  deleteButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    paddingVertical: 8,
+    backgroundColor: "#fee2e2",
+    borderRadius: 6,
+  },
+  deleteButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#dc2626",
+  },
+  selector: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "#f3f4f6",
+    borderRadius: 6,
+    marginBottom: 12,
+  },
+  selectorValue: {
+    fontSize: 14,
+    color: "#1f2937",
+  },
+  inlineCalendarCard: {
+    backgroundColor: "#f9fafb",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  inlineCalendarHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  inlineCalendarTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1f2937",
+    textTransform: "capitalize",
+  },
+  inlineWeekRow: {
+    flexDirection: "row",
+    marginBottom: 8,
+  },
+  inlineWeekLabel: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6b7280",
+  },
+  inlineDaysGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  inlineDayCell: {
+    width: "14.28%",
+    aspectRatio: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+    borderRadius: 4,
+  },
+  inlineDayCellSelected: {
+    backgroundColor: "#2563eb",
+  },
+  inlineDayText: {
+    fontSize: 13,
+    color: "#6b7280",
+  },
+  inlineDayTextSelected: {
+    color: "#fff",
+    fontWeight: "600",
+  },
 });
 
 export default Ventas;

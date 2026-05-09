@@ -75,13 +75,34 @@ const ensureNegocioAccess = async (id_usuario, id_negocio) => {
     return { usuarioNegocio };
 };
 
+const formatDateToString = (date) => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = `${d.getMonth() + 1}`.padStart(2, "0");
+    const day = `${d.getDate()}`.padStart(2, "0");
+    return `${year}-${month}-${day}`;
+};
+
 const serializeVenta = (venta) => ({
     id_venta: venta.id_venta,
     id_cliente: venta.id_cliente,
-    fecha: venta.fecha,
+    fecha: formatDateToString(venta.fecha),
     precio_total: venta.precio_total,
     tipo: venta.tipo,
     estado: venta.estado,
+    createdAt: venta.createdAt,
+    updatedAt: venta.updatedAt,
+});
+
+const serializeVentaWithItems = (venta, items) => ({
+    id_venta: venta.id_venta,
+    id_cliente: venta.id_cliente,
+    id_negocio: venta.id_negocio,
+    fecha: formatDateToString(venta.fecha),
+    precio_total: venta.precio_total,
+    tipo: venta.tipo,
+    estado: venta.estado,
+    items: items,
     createdAt: venta.createdAt,
     updatedAt: venta.updatedAt,
 });
@@ -263,6 +284,67 @@ export const getVentasByNegocio = async (req, res) => {
     }
 };
 
+export const getVentaById = async (req, res) => {
+    const id_usuario = req.user?.id_usuario;
+    const idVentaResult = normalizeIntegerId(req.params?.id_venta, VENTA_ERRORS.VENTA_ID_REQUIRED);
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: VENTA_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (idVentaResult.error) {
+        return res.status(400).json({ message: idVentaResult.error });
+    }
+
+    try {
+        const venta = await Venta.findByPk(idVentaResult.value);
+
+        if (!venta) {
+            return res.status(404).json({ message: VENTA_ERRORS.VENTA_NOT_FOUND });
+        }
+
+        const cliente = await Cliente.findByPk(venta.id_cliente);
+
+        if (!cliente) {
+            return res.status(404).json({ message: VENTA_ERRORS.CLIENTE_NOT_FOUND });
+        }
+
+        const accessResult = await ensureNegocioAccess(id_usuario, cliente.id_negocio);
+
+        if (accessResult.status) {
+            return res.status(accessResult.status).json({ message: accessResult.message });
+        }
+
+        // Cargar items según el tipo
+        let items = [];
+
+        if (venta.tipo === "producto") {
+            const ventaProductos = await VentaProducto.findAll({
+                where: { id_venta: venta.id_venta },
+            });
+            items = ventaProductos.map((vp) => ({
+                id_producto: vp.id_producto,
+                cantidad: vp.cantidad,
+            }));
+        } else if (venta.tipo === "servicio") {
+            const ventaServicios = await VentaServicio.findAll({
+                where: { id_venta: venta.id_venta },
+            });
+            items = ventaServicios.map((vs) => ({
+                id_servicio: vs.id_servicio,
+            }));
+        }
+
+        return res.status(200).json({
+            message: VENTA_MESSAGES.VENTAS_RETRIEVED,
+            venta: serializeVentaWithItems(venta, items),
+        });
+    } catch (error) {
+        console.error("Error en getVentaById:", error);
+        return res.status(500).json({ message: VENTA_ERRORS.SERVER_ERROR });
+    }
+};
+
 export const deleteVenta = async (req, res) => {
     const id_usuario = req.user?.id_usuario;
     const idVentaResult = normalizeIntegerId(req.params?.id_venta, VENTA_ERRORS.VENTA_ID_REQUIRED);
@@ -298,6 +380,144 @@ export const deleteVenta = async (req, res) => {
 
         return res.status(200).json({ message: VENTA_MESSAGES.VENTA_DELETED });
     } catch (error) {
+        return res.status(500).json({ message: VENTA_ERRORS.SERVER_ERROR });
+    }
+};
+
+export const updateVenta = async (req, res) => {
+    const id_usuario = req.user?.id_usuario;
+    const idVentaResult = normalizeIntegerId(req.params?.id_venta, VENTA_ERRORS.VENTA_ID_REQUIRED);
+    const idClienteResult = req.body?.id_cliente ? normalizeIntegerId(req.body.id_cliente, VENTA_ERRORS.CLIENTE_ID_REQUIRED) : null;
+    const tipo = typeof req.body?.tipo === "string" ? req.body.tipo.toLowerCase().trim() : "";
+    const items = Array.isArray(req.body?.items) ? req.body.items : [];
+    const precioTotalResult = req.body?.precio_total ? normalizePrice(
+        req.body.precio_total,
+        VENTA_ERRORS.PRECIO_TOTAL_REQUIRED,
+        VENTA_ERRORS.PRECIO_TOTAL_INVALID
+    ) : null;
+    const fechaResult = req.body?.fecha ? normalizeFecha(req.body.fecha) : null;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: VENTA_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (idVentaResult.error) {
+        return res.status(400).json({ message: idVentaResult.error });
+    }
+
+    try {
+        const venta = await Venta.findByPk(idVentaResult.value);
+
+        if (!venta) {
+            return res.status(404).json({ message: VENTA_ERRORS.VENTA_NOT_FOUND });
+        }
+
+        const cliente = await Cliente.findByPk(venta.id_cliente);
+
+        if (!cliente) {
+            return res.status(404).json({ message: VENTA_ERRORS.CLIENTE_NOT_FOUND });
+        }
+
+        const accessResult = await ensureNegocioAccess(id_usuario, cliente.id_negocio);
+
+        if (accessResult.status) {
+            return res.status(accessResult.status).json({ message: accessResult.message });
+        }
+
+        // Validar cliente si se proporciona
+        if (idClienteResult) {
+            if (idClienteResult.error) {
+                return res.status(400).json({ message: idClienteResult.error });
+            }
+
+            const nuevoCliente = await Cliente.findByPk(idClienteResult.value);
+            if (!nuevoCliente || nuevoCliente.id_negocio !== cliente.id_negocio) {
+                return res.status(404).json({ message: VENTA_ERRORS.CLIENTE_NOT_FOUND });
+            }
+
+            venta.id_cliente = idClienteResult.value;
+        }
+
+        // Validar y actualizar tipo
+        if (tipo) {
+            if (!["producto", "servicio"].includes(tipo)) {
+                return res.status(400).json({ message: VENTA_ERRORS.TIPO_INVALID });
+            }
+            venta.tipo = tipo;
+        }
+
+        // Validar y actualizar precio total
+        if (precioTotalResult) {
+            if (precioTotalResult.error) {
+                return res.status(400).json({ message: precioTotalResult.error });
+            }
+            venta.precio_total = precioTotalResult.value;
+        }
+
+        // Validar y actualizar fecha
+        if (fechaResult) {
+            if (fechaResult.error) {
+                return res.status(400).json({ message: fechaResult.error });
+            }
+            venta.fecha = fechaResult.value;
+        }
+
+        // Actualizar items si se proporcionan
+        if (items && items.length > 0) {
+            if (venta.tipo === "producto") {
+                // Eliminar items antiguos
+                await VentaProducto.destroy({ where: { id_venta: venta.id_venta } });
+
+                // Crear nuevos items
+                for (const item of items) {
+                    const idProductoResult = normalizeIntegerId(item.id_producto, VENTA_ERRORS.PRODUCTO_ID_REQUIRED);
+                    if (idProductoResult.error) {
+                        return res.status(400).json({ message: idProductoResult.error });
+                    }
+
+                    const producto = await Producto.findByPk(idProductoResult.value);
+                    if (!producto) {
+                        return res.status(404).json({ message: VENTA_ERRORS.PRODUCTO_NOT_FOUND });
+                    }
+
+                    await VentaProducto.create({
+                        id_venta: venta.id_venta,
+                        id_producto: idProductoResult.value,
+                        cantidad: Math.max(1, Number.parseInt(item.cantidad || "1", 10)),
+                    });
+                }
+            } else if (venta.tipo === "servicio") {
+                // Eliminar items antiguos
+                await VentaServicio.destroy({ where: { id_venta: venta.id_venta } });
+
+                // Crear nuevos items
+                for (const item of items) {
+                    const idServicioResult = normalizeIntegerId(item.id_servicio, VENTA_ERRORS.SERVICIO_ID_REQUIRED);
+                    if (idServicioResult.error) {
+                        return res.status(400).json({ message: idServicioResult.error });
+                    }
+
+                    const servicio = await Servicio.findByPk(idServicioResult.value);
+                    if (!servicio) {
+                        return res.status(404).json({ message: VENTA_ERRORS.SERVICIO_NOT_FOUND });
+                    }
+
+                    await VentaServicio.create({
+                        id_venta: venta.id_venta,
+                        id_servicio: idServicioResult.value,
+                    });
+                }
+            }
+        }
+
+        await venta.save();
+
+        return res.status(200).json({
+            message: VENTA_MESSAGES.VENTA_CREATED,
+            venta: serializeVenta(venta),
+        });
+    } catch (error) {
+        console.error("Error en updateVenta:", error);
         return res.status(500).json({ message: VENTA_ERRORS.SERVER_ERROR });
     }
 };

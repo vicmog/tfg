@@ -79,6 +79,8 @@ export const API_ROUTES = {
   deleteProductoById: (idProducto: number) => `${API_BASE_URL}${API_PREFIX}/productos/${idProducto}`,
   ventas: `${API_BASE_URL}${API_PREFIX}/ventas`,
   ventasByNegocio: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/ventas/${idNegocio}`,
+  ventaById: (idVenta: number) => `${API_BASE_URL}${API_PREFIX}/ventas/detalle/${idVenta}`,
+  updateVentaById: (idVenta: number) => `${API_BASE_URL}${API_PREFIX}/ventas/${idVenta}`,
   sendVentaEmailById: (idVenta: number) => `${API_BASE_URL}${API_PREFIX}/ventas/${idVenta}/send-email`,
   deleteVentaById: (idVenta: number) => `${API_BASE_URL}${API_PREFIX}/ventas/${idVenta}`,
   users: `${API_BASE_URL}${API_PREFIX}/users`,
