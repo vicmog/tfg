@@ -103,6 +103,8 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
   const [fecha, setFecha] = useState<string>(toLocalDateKey(new Date()));
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [datePickerCursor, setDatePickerCursor] = useState<Date>(new Date());
+  const [selectedVenta, setSelectedVenta] = useState<Venta | null>(null);
+  const [viewVentaModalVisible, setViewVentaModalVisible] = useState(false);
 
   const normalizedRole = (negocio.rol || "").toLowerCase();
   const canManageVentas = normalizedRole === "jefe" || normalizedRole === "admin";
@@ -340,6 +342,16 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
     setClienteSearchText("");
     setProductoSearchText("");
     setServicioSearchText("");
+  };
+
+  const handleOpenViewVentaModal = (venta: Venta) => {
+    setSelectedVenta(venta);
+    setViewVentaModalVisible(true);
+  };
+
+  const handleCloseViewVentaModal = () => {
+    setViewVentaModalVisible(false);
+    setSelectedVenta(null);
   };
 
   const handleChangeVentaType = (nextType: "producto" | "servicio") => {
@@ -667,7 +679,11 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
           {filteredVentas.map((venta) => {
             const cliente = clientes.find((c) => c.id_cliente === venta.id_cliente);
             return (
-              <View key={venta.id_venta} style={styles.card}>
+              <Pressable 
+                key={venta.id_venta} 
+                style={styles.card}
+                onPress={() => handleOpenViewVentaModal(venta)}
+              >
                 <View style={styles.cardHeader}>
                   <View style={styles.titleRow}>
                     <Text style={styles.cardTitle}>
@@ -731,7 +747,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                     ) : null}
                   </View>
                 )}
-              </View>
+              </Pressable>
             );
           })}
         </ScrollView>
@@ -1103,8 +1119,118 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
         </View>
       </Modal>
 
+      {/* View Venta Modal */}
+      <Modal
+        visible={viewVentaModalVisible}
+        animationType="slide"
+        onRequestClose={handleCloseViewVentaModal}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Detalles de Venta</Text>
+            <TouchableOpacity onPress={handleCloseViewVentaModal}>
+              <MaterialIcons name="close" size={28} color="#1f2937" />
+            </TouchableOpacity>
+          </View>
+
+          {selectedVenta && (
+            <ScrollView style={styles.modalContent}>
+              {/* Cliente Info */}
+              <View style={styles.detailSection}>
+                <Text style={styles.detailSectionTitle}>Cliente</Text>
+                <View style={styles.detailCard}>
+                  <View style={styles.detailRow}>
+                    <MaterialIcons name="person" size={20} color="#2563eb" />
+                    <Text style={styles.detailValue}>
+                      {clientes.find((c) => c.id_cliente === selectedVenta.id_cliente)?.nombre || "Desconocido"}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Fecha Info */}
+              <View style={styles.detailSection}>
+                <Text style={styles.detailSectionTitle}>Fecha</Text>
+                <View style={styles.detailCard}>
+                  <View style={styles.detailRow}>
+                    <MaterialIcons name="event" size={20} color="#2563eb" />
+                    <Text style={styles.detailValue}>{formatDate(selectedVenta.fecha)}</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Precio Total */}
+              <View style={styles.detailSection}>
+                <Text style={styles.detailSectionTitle}>Precio Total</Text>
+                <View style={[styles.detailCard, styles.priceCard]}>
+                  <Text style={styles.priceText}>{formatPrice(selectedVenta.precio_total)}</Text>
+                </View>
+              </View>
+
+              {/* Tipo y Estado */}
+              <View style={styles.detailSection}>
+                <Text style={styles.detailSectionTitle}>Información</Text>
+                <View style={styles.detailCard}>
+                  <View style={[styles.detailRow, { paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "#e5e7eb" }]}>
+                    <MaterialIcons name="shopping-cart" size={20} color="#2563eb" />
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={styles.detailLabel}>Tipo</Text>
+                      <Text style={styles.detailValue}>
+                        {selectedVenta.tipo === "producto" ? "Productos" : "Servicios"}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={[styles.detailRow, { paddingTop: 12 }]}>
+                    <MaterialIcons name="info" size={20} color="#2563eb" />
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={styles.detailLabel}>Estado</Text>
+                      <Text style={styles.detailValue}>{selectedVenta.estado || "Completado"}</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              {/* Items */}
+              {selectedVenta.tipo === "producto" && (
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailSectionTitle}>Productos</Text>
+                  <View style={styles.detailCard}>
+                    {productos
+                      .filter((p) => p.id_negocio === negocio.id_negocio)
+                      .map((producto) => {
+                        const ventaProducto = ventas
+                          .find((v) => v.id_venta === selectedVenta.id_venta);
+                        // Aquí se debería mostrar los VentaProductos asociados
+                        // Por ahora se muestran todos los productos disponibles
+                        return null;
+                      })}
+                    <Text style={styles.emptyText}>Ver detalles en edición</Text>
+                  </View>
+                </View>
+              )}
+
+              {selectedVenta.tipo === "servicio" && (
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailSectionTitle}>Servicios</Text>
+                  <View style={styles.detailCard}>
+                    <Text style={styles.emptyText}>Ver detalles en edición</Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Close Button */}
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={handleCloseViewVentaModal}
+              >
+                <Text style={styles.closeButtonText}>Cerrar</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          )}
+        </View>
+      </Modal>
+
       {}
-      {datePickerVisible && editingWhichDate && (
         <Modal
           transparent={true}
           animationType="fade"
@@ -1686,6 +1812,66 @@ const styles = StyleSheet.create({
   datePickerConfirmText: {
     color: "#fff",
     fontWeight: "600",
+  },
+  detailSection: {
+    marginBottom: 20,
+  },
+  detailSectionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1f2937",
+    marginBottom: 8,
+    paddingHorizontal: 12,
+  },
+  detailCard: {
+    backgroundColor: "#f9fafb",
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  detailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  detailLabel: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginBottom: 4,
+  },
+  detailValue: {
+    fontSize: 14,
+    color: "#1f2937",
+    fontWeight: "500",
+  },
+  priceCard: {
+    backgroundColor: "#f0f9ff",
+    borderColor: "#2563eb",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 20,
+  },
+  priceText: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#2563eb",
+  },
+  modalContent: {
+    flex: 1,
+    padding: 16,
+  },
+  closeButton: {
+    marginTop: 24,
+    paddingVertical: 12,
+    backgroundColor: "#2563eb",
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  closeButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 16,
   },
 });
 
