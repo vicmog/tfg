@@ -105,6 +105,8 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
   const [datePickerCursor, setDatePickerCursor] = useState<Date>(new Date());
   const [selectedVenta, setSelectedVenta] = useState<Venta | null>(null);
   const [viewVentaModalVisible, setViewVentaModalVisible] = useState(false);
+  const [viewVentaLoading, setViewVentaLoading] = useState(false);
+  const [viewVentaError, setViewVentaError] = useState("");
 
   const normalizedRole = (negocio.rol || "").toLowerCase();
   const canManageVentas = normalizedRole === "jefe" || normalizedRole === "admin";
@@ -344,9 +346,33 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
     setServicioSearchText("");
   };
 
-  const handleOpenViewVentaModal = (venta: Venta) => {
+  const handleOpenViewVentaModal = async (venta: Venta) => {
     setSelectedVenta(venta);
     setViewVentaModalVisible(true);
+    setViewVentaLoading(true);
+    setViewVentaError("");
+
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const response = await fetch(API_ROUTES.ventaById(venta.id_venta), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setViewVentaError(data.message || "No se pudieron cargar los detalles de la venta");
+        return;
+      }
+
+      const data = await response.json();
+      if (data.venta) {
+        setSelectedVenta(data.venta as Venta);
+      }
+    } catch {
+      setViewVentaError("Error de conexion. Intentalo de nuevo.");
+    } finally {
+      setViewVentaLoading(false);
+    }
   };
 
   const handleCloseViewVentaModal = () => {
@@ -517,6 +543,16 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
       style: "currency",
       currency: "EUR",
     }).format(price);
+  };
+
+  const getVentaItemLabel = (item: VentaItem) => {
+    if (selectedVenta?.tipo === "producto") {
+      const producto = productos.find((entry) => entry.id_producto === item.id_producto);
+      return producto?.nombre || `Producto #${item.id_producto ?? "?"}`;
+    }
+
+    const servicio = servicios.find((entry) => entry.id_servicio === item.id_servicio);
+    return servicio?.nombre || `Servicio #${item.id_servicio ?? "?"}`;
   };
 
   return (
@@ -1133,8 +1169,19 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
             </TouchableOpacity>
           </View>
 
-          {selectedVenta && (
+          {viewVentaLoading ? (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator size="large" color="#2563eb" />
+            </View>
+          ) : selectedVenta ? (
             <ScrollView style={styles.modalContent}>
+              {viewVentaError ? (
+                <View style={[styles.feedbackBox, styles.modalFeedbackBox]}>
+                  <MaterialIcons name="error-outline" size={20} color="#dc2626" />
+                  <Text style={styles.feedbackText}>{viewVentaError}</Text>
+                </View>
+              ) : null}
+
               {/* Cliente Info */}
               <View style={styles.detailSection}>
                 <Text style={styles.detailSectionTitle}>Cliente</Text>
@@ -1191,23 +1238,34 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
               </View>
 
               {}
-              {selectedVenta.tipo === "producto" && (
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>Productos</Text>
-                  <View style={styles.detailCard}>
-                    <Text style={styles.emptyText}>Ver detalles en edición</Text>
-                  </View>
+              <View style={styles.detailSection}>
+                <Text style={styles.detailSectionTitle}>
+                  {selectedVenta.tipo === "producto" ? "Productos" : "Servicios"}
+                </Text>
+                <View style={styles.detailCard}>
+                  {selectedVenta.items && selectedVenta.items.length > 0 ? (
+                    selectedVenta.items.map((item, index) => (
+                      <View key={`${selectedVenta.id_venta}-${index}`} style={styles.ventaItemRow}>
+                        <View style={styles.ventaItemTextBlock}>
+                          <Text style={styles.ventaItemName}>{getVentaItemLabel(item)}</Text>
+                          {selectedVenta.tipo === "producto" ? (
+                            <Text style={styles.ventaItemMeta}>
+                              Cantidad: {item.cantidad ?? 1}
+                            </Text>
+                          ) : null}
+                        </View>
+                        <MaterialIcons
+                          name={selectedVenta.tipo === "producto" ? "inventory-2" : "room-service"}
+                          size={20}
+                          color="#2563eb"
+                        />
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={styles.emptyText}>No hay ítems disponibles para esta venta</Text>
+                  )}
                 </View>
-              )}
-
-              {selectedVenta.tipo === "servicio" && (
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>Servicios</Text>
-                  <View style={styles.detailCard}>
-                    <Text style={styles.emptyText}>Ver detalles en edición</Text>
-                  </View>
-                </View>
-              )}
+              </View>
 
               {/* Close Button */}
               <TouchableOpacity
@@ -1217,7 +1275,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                 <Text style={styles.closeButtonText}>Cerrar</Text>
               </TouchableOpacity>
             </ScrollView>
-          )}
+          ) : null}
         </View>
       </Modal>
 
@@ -1451,6 +1509,7 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 18, fontWeight: "600", color: "#1f2937" },
   modalError: { margin: 12 },
   modalContent: { flex: 1, padding: 16 },
+  modalFeedbackBox: { marginHorizontal: 0, marginBottom: 16 },
   searchInput: {
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -1834,6 +1893,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#1f2937",
     fontWeight: "500",
+  },
+  ventaItemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+  },
+  ventaItemTextBlock: {
+    flex: 1,
+  },
+  ventaItemName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1f2937",
+    marginBottom: 2,
+  },
+  ventaItemMeta: {
+    fontSize: 12,
+    color: "#6b7280",
   },
   priceCard: {
     backgroundColor: "#f0f9ff",

@@ -198,6 +198,7 @@ export type Venta = {
     precio_total: number;
     tipo: "producto" | "servicio";
     estado: string;
+    items?: VentaItem[];
     createdAt?: string;
     updatedAt?: string;
 };
