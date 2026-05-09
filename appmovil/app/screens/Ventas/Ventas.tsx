@@ -19,6 +19,15 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { API_ROUTES } from "@/app/constants/apiRoutes";
 import { Venta, Cliente, Producto, Servicio, VentaItem } from "../types";
 import { VentasProps } from "./types";
+import {
+  CONFIRM_DELETE_TITLE,
+  CONFIRM_DELETE_MESSAGE,
+  CONFIRM_DELETE_CANCEL,
+  CONFIRM_DELETE_ACCEPT,
+  DEFAULT_DELETE_ERROR,
+  DELETE_SUCCESS_MESSAGE,
+  CONNECTION_ERROR,
+} from "./constants";
 
 const normalizeSearchText = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
@@ -70,6 +79,8 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [loading, setLoading] = useState(false);
   const [savingVenta, setSavingVenta] = useState(false);
+  const [deletingVentaId, setDeletingVentaId] = useState<number | null>(null);
+  const [confirmDeleteVentaId, setConfirmDeleteVentaId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
@@ -387,6 +398,47 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
     }
   };
 
+  const handleDeleteVenta = async (ventaId: number) => {
+    setError("");
+    setSuccess("");
+    setDeletingVentaId(ventaId);
+
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const response = await fetch(API_ROUTES.deleteVentaById(ventaId), {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || DEFAULT_DELETE_ERROR);
+        return;
+      }
+
+      setSuccess(DELETE_SUCCESS_MESSAGE);
+      setConfirmDeleteVentaId(null);
+      await loadData();
+    } catch {
+      setError(CONNECTION_ERROR);
+    } finally {
+      setDeletingVentaId(null);
+    }
+  };
+
+  const handleAskDeleteVenta = (ventaId: number) => {
+    setError("");
+    setSuccess("");
+    setConfirmDeleteVentaId(ventaId);
+  };
+
+  const handleCancelDeleteVenta = () => {
+    setConfirmDeleteVentaId(null);
+  };
+
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
@@ -510,24 +562,50 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                   <Text style={styles.metaText}>{formatDate(venta.fecha)}</Text>
                 </View>
                 {canManageVentas && (
-                  <View style={styles.cardActions}>
-                    <TouchableOpacity
-                      style={styles.editButton}
-                      onPress={() => navigation.navigate("EditarVenta", { negocio, venta })}
-                    >
-                      <MaterialIcons name="edit" size={18} color="#2563eb" />
-                      <Text style={styles.editButtonText}>Editar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.deleteButton}
-                      onPress={() => {
-                        // Implementar confirmación de eliminación aquí
-                        // Por ahora solo mostramos el botón
-                      }}
-                    >
-                      <MaterialIcons name="delete" size={18} color="#dc2626" />
-                      <Text style={styles.deleteButtonText}>Eliminar</Text>
-                    </TouchableOpacity>
+                  <View>
+                    <View style={styles.cardActions}>
+                      <TouchableOpacity
+                        style={styles.editButton}
+                        onPress={() => navigation.navigate("EditarVenta", { negocio, venta })}
+                      >
+                        <MaterialIcons name="edit" size={18} color="#2563eb" />
+                        <Text style={styles.editButtonText}>Editar</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.deleteButton, deletingVentaId === venta.id_venta && styles.deleteButtonDisabled]}
+                        disabled={deletingVentaId === venta.id_venta}
+                        onPress={() => handleAskDeleteVenta(venta.id_venta)}
+                      >
+                        {deletingVentaId === venta.id_venta ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <MaterialIcons name="delete" size={18} color="#fff" />
+                        )}
+                        <Text style={styles.deleteButtonText}>Eliminar</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {confirmDeleteVentaId === venta.id_venta ? (
+                      <View style={styles.confirmBox}>
+                        <Text style={styles.confirmTitle}>{CONFIRM_DELETE_TITLE}</Text>
+                        <Text style={styles.confirmMessage}>{CONFIRM_DELETE_MESSAGE}</Text>
+                        <View style={styles.confirmActions}>
+                          <TouchableOpacity
+                            style={styles.confirmCancelButton}
+                            onPress={handleCancelDeleteVenta}
+                          >
+                            <Text style={styles.confirmCancelText}>{CONFIRM_DELETE_CANCEL}</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.confirmDeleteButton}
+                            onPress={() => handleDeleteVenta(venta.id_venta)}
+                            disabled={deletingVentaId === venta.id_venta}
+                          >
+                            <Text style={styles.confirmDeleteText}>{CONFIRM_DELETE_ACCEPT}</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ) : null}
                   </View>
                 )}
               </View>
@@ -1120,13 +1198,64 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
     paddingVertical: 8,
-    backgroundColor: "#fee2e2",
+    backgroundColor: "#dc2626",
     borderRadius: 6,
   },
   deleteButtonText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#dc2626",
+    color: "#fff",
+  },
+  deleteButtonDisabled: {
+    opacity: 0.6,
+  },
+  confirmBox: {
+    marginTop: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    backgroundColor: "#fef2f2",
+    borderRadius: 6,
+    borderLeftWidth: 4,
+    borderLeftColor: "#dc2626",
+  },
+  confirmTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1f2937",
+    marginBottom: 4,
+  },
+  confirmMessage: {
+    fontSize: 13,
+    color: "#6b7280",
+    marginBottom: 12,
+  },
+  confirmActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  confirmCancelButton: {
+    flex: 1,
+    paddingVertical: 8,
+    backgroundColor: "#e5e7eb",
+    borderRadius: 4,
+    alignItems: "center",
+  },
+  confirmCancelText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#6b7280",
+  },
+  confirmDeleteButton: {
+    flex: 1,
+    paddingVertical: 8,
+    backgroundColor: "#dc2626",
+    borderRadius: 4,
+    alignItems: "center",
+  },
+  confirmDeleteText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#fff",
   },
   selector: {
     flexDirection: "row",
