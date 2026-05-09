@@ -27,6 +27,7 @@ import {
   DEFAULT_DELETE_ERROR,
   DELETE_SUCCESS_MESSAGE,
   CONNECTION_ERROR,
+  REESTRABLERCER_FILTROS,
 } from "./constants";
 
 const normalizeSearchText = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -85,6 +86,10 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
   const [success, setSuccess] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [modalError, setModalError] = useState("");
+  const [searchVentasClienteText, setSearchVentasClienteText] = useState("");
+  const [fechaDesde, setFechaDesde] = useState<string>("");
+  const [fechaHasta, setFechaHasta] = useState<string>("");
+  const [editingWhichDate, setEditingWhichDate] = useState<"desde" | "hasta" | null>(null);
   const [clienteSearchText, setClienteSearchText] = useState("");
   const [productoSearchText, setProductoSearchText] = useState("");
   const [servicioSearchText, setServicioSearchText] = useState("");
@@ -98,6 +103,10 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
   const [fecha, setFecha] = useState<string>(toLocalDateKey(new Date()));
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [datePickerCursor, setDatePickerCursor] = useState<Date>(new Date());
+  const [selectedVenta, setSelectedVenta] = useState<Venta | null>(null);
+  const [viewVentaModalVisible, setViewVentaModalVisible] = useState(false);
+  const [viewVentaLoading, setViewVentaLoading] = useState(false);
+  const [viewVentaError, setViewVentaError] = useState("");
 
   const normalizedRole = (negocio.rol || "").toLowerCase();
   const canManageVentas = normalizedRole === "jefe" || normalizedRole === "admin";
@@ -167,8 +176,35 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
   );
 
   const filteredVentas = useMemo(() => {
-    return ventas.filter((v) => v.tipo === ventaType);
-  }, [ventas, ventaType]);
+    return ventas.filter((v) => {
+      if (v.tipo !== ventaType) return false;
+
+      if (searchVentasClienteText.trim()) {
+        const query = normalizeSearchText(searchVentasClienteText.trim());
+        const cliente = clientes.find((c) => c.id_cliente === v.id_cliente);
+        if (!cliente) return false;
+        const clienteText = normalizeSearchText(
+          `${cliente.nombre || ""} ${cliente.apellido1 || ""} ${cliente.apellido2 || ""} ${cliente.email || ""}`
+        );
+        if (!clienteText.includes(query)) return false;
+      }
+
+      if (fechaDesde || fechaHasta) {
+        const ventaDate = new Date(v.fecha);
+        if (fechaDesde) {
+          const desdeDate = new Date(fechaDesde);
+          if (ventaDate < desdeDate) return false;
+        }
+        if (fechaHasta) {
+          const hastaDate = new Date(fechaHasta);
+          hastaDate.setHours(23, 59, 59, 999);
+          if (ventaDate > hastaDate) return false;
+        }
+      }
+
+      return true;
+    });
+  }, [ventas, ventaType, clientes, searchVentasClienteText, fechaDesde, fechaHasta]);
 
   const filteredClientes = useMemo(() => {
     const query = normalizeSearchText(clienteSearchText.trim());
@@ -262,6 +298,22 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
     setModalError("");
   };
 
+  const handleClearFilters = () => {
+    setSearchVentasClienteText("");
+    setFechaDesde("");
+    setFechaHasta("");
+  };
+
+  const handleSelectFecha = (date: Date) => {
+    if (editingWhichDate === "desde") {
+      setFechaDesde(toLocalDateKey(date));
+    } else if (editingWhichDate === "hasta") {
+      setFechaHasta(toLocalDateKey(date));
+    }
+    setDatePickerVisible(false);
+    setEditingWhichDate(null);
+  };
+
   const handleDateChange = (event: DateTimePickerEvent, selectedDateValue?: Date) => {
     if (Platform.OS !== "ios") {
       setDatePickerVisible(false);
@@ -292,6 +344,40 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
     setClienteSearchText("");
     setProductoSearchText("");
     setServicioSearchText("");
+  };
+
+  const handleOpenViewVentaModal = async (venta: Venta) => {
+    setSelectedVenta(venta);
+    setViewVentaModalVisible(true);
+    setViewVentaLoading(true);
+    setViewVentaError("");
+
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const response = await fetch(API_ROUTES.ventaById(venta.id_venta), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setViewVentaError(data.message || "No se pudieron cargar los detalles de la venta");
+        return;
+      }
+
+      const data = await response.json();
+      if (data.venta) {
+        setSelectedVenta(data.venta as Venta);
+      }
+    } catch {
+      setViewVentaError("Error de conexion. Intentalo de nuevo.");
+    } finally {
+      setViewVentaLoading(false);
+    }
+  };
+
+  const handleCloseViewVentaModal = () => {
+    setViewVentaModalVisible(false);
+    setSelectedVenta(null);
   };
 
   const handleChangeVentaType = (nextType: "producto" | "servicio") => {
@@ -459,6 +545,16 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
     }).format(price);
   };
 
+  const getVentaItemLabel = (item: VentaItem) => {
+    if (selectedVenta?.tipo === "producto") {
+      const producto = productos.find((entry) => entry.id_producto === item.id_producto);
+      return producto?.nombre || `Producto #${item.id_producto ?? "?"}`;
+    }
+
+    const servicio = servicios.find((entry) => entry.id_servicio === item.id_servicio);
+    return servicio?.nombre || `Servicio #${item.id_servicio ?? "?"}`;
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -523,7 +619,82 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Loading */}
+      {}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filtersContainer}
+        contentContainerStyle={styles.filtersContent}
+      >
+        {}
+        <View style={styles.filterSection}>
+          <View style={styles.searchBox}>
+            <MaterialIcons name="search" size={18} color="#6b7280" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar por cliente..."
+              value={searchVentasClienteText}
+              onChangeText={setSearchVentasClienteText}
+              placeholderTextColor="#9ca3af"
+            />
+          </View>
+        </View>
+
+        {}
+        <TouchableOpacity
+          style={[styles.filterButton, fechaDesde && styles.filterButtonActive]}
+          onPress={() => {
+            const date = fechaDesde ? new Date(fechaDesde) : new Date();
+            setDatePickerCursor(date);
+            setEditingWhichDate("desde");
+            setDatePickerVisible(true);
+          }}
+        >
+          <MaterialIcons name="date-range" size={16} color={fechaDesde ? "#fff" : "#6b7280"} />
+          <Text style={[styles.filterButtonText, fechaDesde && styles.filterButtonTextActive]}>
+            {fechaDesde ? toDateOnlyDisplay(fechaDesde) : "Desde"}
+          </Text>
+          {fechaDesde && (
+            <TouchableOpacity onPress={() => setFechaDesde("")}>
+              <MaterialIcons name="close" size={14} color="#fff" />
+            </TouchableOpacity>
+          )}
+        </TouchableOpacity>
+
+        {}
+        <TouchableOpacity
+          style={[styles.filterButton, fechaHasta && styles.filterButtonActive]}
+          onPress={() => {
+            const date = fechaHasta ? new Date(fechaHasta) : new Date();
+            setDatePickerCursor(date);
+            setEditingWhichDate("hasta");
+            setDatePickerVisible(true);
+          }}
+        >
+          <MaterialIcons name="date-range" size={16} color={fechaHasta ? "#fff" : "#6b7280"} />
+          <Text style={[styles.filterButtonText, fechaHasta && styles.filterButtonTextActive]}>
+            {fechaHasta ? toDateOnlyDisplay(fechaHasta) : "Hasta"}
+          </Text>
+          {fechaHasta && (
+            <TouchableOpacity onPress={() => setFechaHasta("")}>
+              <MaterialIcons name="close" size={14} color="#fff" />
+            </TouchableOpacity>
+          )}
+        </TouchableOpacity>
+
+        {}
+        {(searchVentasClienteText || fechaDesde || fechaHasta) && (
+          <TouchableOpacity
+            style={styles.filterClearButton}
+            onPress={handleClearFilters}
+          >
+            <MaterialIcons name="clear-all" size={16} color="#6b7280" />
+            <Text style={styles.filterClearText}>{REESTRABLERCER_FILTROS}</Text>
+          </TouchableOpacity>
+        )}
+      </ScrollView>
+
+      {}
       {loading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#2563eb" />
@@ -544,7 +715,11 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
           {filteredVentas.map((venta) => {
             const cliente = clientes.find((c) => c.id_cliente === venta.id_cliente);
             return (
-              <View key={venta.id_venta} style={styles.card}>
+              <Pressable 
+                key={venta.id_venta} 
+                style={styles.card}
+                onPress={() => handleOpenViewVentaModal(venta)}
+              >
                 <View style={styles.cardHeader}>
                   <View style={styles.titleRow}>
                     <Text style={styles.cardTitle}>
@@ -608,13 +783,13 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                     ) : null}
                   </View>
                 )}
-              </View>
+              </Pressable>
             );
           })}
         </ScrollView>
       )}
 
-      {/* Modal */}
+      {}
       <Modal visible={modalVisible} animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
@@ -676,7 +851,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
               </TouchableOpacity>
             </View>
 
-            {/* Cliente Selector */}
+            {}
             <Text style={styles.label}>Cliente</Text>
             <TextInput
               style={styles.searchInput}
@@ -715,7 +890,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
               </ScrollView>
             </View>
 
-            {/* Items */}
+            {}
             <View style={styles.itemsSection}>
               <Text style={styles.label}>
                 {ventaType === "producto" ? "Productos" : "Servicios"}
@@ -838,7 +1013,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
               </TouchableOpacity>
             </View>
 
-            {/* Precio Total */}
+            {}
             <Text style={styles.label}>Precio Total (€)</Text>
             <TextInput
               style={styles.input}
@@ -934,7 +1109,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
               )
             ) : null}
 
-            {/* Email */}
+            {}
             <Text style={styles.label}>Email Cliente</Text>
             <TextInput
               style={styles.input}
@@ -945,7 +1120,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
               editable={false}
             />
 
-            {/* Send Email Checkbox */}
+            {}
             <TouchableOpacity
               style={styles.checkboxContainer}
               onPress={() => setSendEmail(!sendEmail)}
@@ -958,7 +1133,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
               <Text style={styles.checkboxLabel}>Enviar ticket al email</Text>
             </TouchableOpacity>
 
-            {/* Save Button */}
+            {}
             <TouchableOpacity
               style={[
                 styles.saveButton,
@@ -979,6 +1154,266 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
           </ScrollView>
         </View>
       </Modal>
+
+      {/* View Venta Modal */}
+      <Modal
+        visible={viewVentaModalVisible}
+        animationType="slide"
+        onRequestClose={handleCloseViewVentaModal}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Detalles de Venta</Text>
+            <TouchableOpacity onPress={handleCloseViewVentaModal}>
+              <MaterialIcons name="close" size={28} color="#1f2937" />
+            </TouchableOpacity>
+          </View>
+
+          {viewVentaLoading ? (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator size="large" color="#2563eb" />
+            </View>
+          ) : selectedVenta ? (
+            <ScrollView style={styles.modalContent}>
+              {viewVentaError ? (
+                <View style={[styles.feedbackBox, styles.modalFeedbackBox]}>
+                  <MaterialIcons name="error-outline" size={20} color="#dc2626" />
+                  <Text style={styles.feedbackText}>{viewVentaError}</Text>
+                </View>
+              ) : null}
+
+              {/* Cliente Info */}
+              <View style={styles.detailSection}>
+                <Text style={styles.detailSectionTitle}>Cliente</Text>
+                <View style={styles.detailCard}>
+                  <View style={styles.detailRow}>
+                    <MaterialIcons name="person" size={20} color="#2563eb" />
+                    <Text style={styles.detailValue}>
+                      {clientes.find((c) => c.id_cliente === selectedVenta.id_cliente)?.nombre || "Desconocido"}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Fecha Info */}
+              <View style={styles.detailSection}>
+                <Text style={styles.detailSectionTitle}>Fecha</Text>
+                <View style={styles.detailCard}>
+                  <View style={styles.detailRow}>
+                    <MaterialIcons name="event" size={20} color="#2563eb" />
+                    <Text style={styles.detailValue}>{formatDate(selectedVenta.fecha)}</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Precio Total */}
+              <View style={styles.detailSection}>
+                <Text style={styles.detailSectionTitle}>Precio Total</Text>
+                <View style={[styles.detailCard, styles.priceCard]}>
+                  <Text style={styles.priceText}>{formatPrice(selectedVenta.precio_total)}</Text>
+                </View>
+              </View>
+
+              {/* Tipo y Estado */}
+              <View style={styles.detailSection}>
+                <Text style={styles.detailSectionTitle}>Información</Text>
+                <View style={styles.detailCard}>
+                  <View style={[styles.detailRow, { paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "#e5e7eb" }]}>
+                    <MaterialIcons name="shopping-cart" size={20} color="#2563eb" />
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={styles.detailLabel}>Tipo</Text>
+                      <Text style={styles.detailValue}>
+                        {selectedVenta.tipo === "producto" ? "Productos" : "Servicios"}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={[styles.detailRow, { paddingTop: 12 }]}>
+                    <MaterialIcons name="info" size={20} color="#2563eb" />
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={styles.detailLabel}>Estado</Text>
+                      <Text style={styles.detailValue}>{selectedVenta.estado || "Completado"}</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              {}
+              <View style={styles.detailSection}>
+                <Text style={styles.detailSectionTitle}>
+                  {selectedVenta.tipo === "producto" ? "Productos" : "Servicios"}
+                </Text>
+                <View style={styles.detailCard}>
+                  {selectedVenta.items && selectedVenta.items.length > 0 ? (
+                    selectedVenta.items.map((item, index) => (
+                      <View key={`${selectedVenta.id_venta}-${index}`} style={styles.ventaItemRow}>
+                        <View style={styles.ventaItemTextBlock}>
+                          <Text style={styles.ventaItemName}>{getVentaItemLabel(item)}</Text>
+                          {selectedVenta.tipo === "producto" ? (
+                            <Text style={styles.ventaItemMeta}>
+                              Cantidad: {item.cantidad ?? 1}
+                            </Text>
+                          ) : null}
+                        </View>
+                        <MaterialIcons
+                          name={selectedVenta.tipo === "producto" ? "inventory-2" : "room-service"}
+                          size={20}
+                          color="#2563eb"
+                        />
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={styles.emptyText}>No hay ítems disponibles para esta venta</Text>
+                  )}
+                </View>
+              </View>
+
+              {/* Close Button */}
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={handleCloseViewVentaModal}
+              >
+                <Text style={styles.closeButtonText}>Cerrar</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          ) : null}
+        </View>
+      </Modal>
+
+      {datePickerVisible && editingWhichDate && (
+        <Modal
+          transparent={true}
+          animationType="fade"
+          visible={true}
+          onRequestClose={() => {
+            setDatePickerVisible(false);
+            setEditingWhichDate(null);
+          }}
+        >
+          <View style={styles.datePickerOverlay}>
+            <View style={styles.datePickerCard}>
+              <View style={styles.datePickerHeader}>
+                <Text style={styles.datePickerTitle}>
+                  {editingWhichDate === "desde" ? "Fecha desde" : "Fecha hasta"}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setDatePickerVisible(false);
+                    setEditingWhichDate(null);
+                  }}
+                >
+                  <MaterialIcons name="close" size={24} color="#6b7280" />
+                </TouchableOpacity>
+              </View>
+
+              {Platform.OS === "web" ? (
+                <View style={styles.inlineCalendarCard}>
+                  <View style={styles.inlineCalendarHeader}>
+                    <TouchableOpacity
+                      onPress={() =>
+                        setDatePickerCursor(
+                          (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
+                        )
+                      }
+                    >
+                      <MaterialIcons name="chevron-left" size={20} color="#374151" />
+                    </TouchableOpacity>
+                    <Text style={styles.inlineCalendarTitle}>
+                      {datePickerCursor.toLocaleDateString("es-ES", {
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() =>
+                        setDatePickerCursor(
+                          (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
+                        )
+                      }
+                    >
+                      <MaterialIcons name="chevron-right" size={20} color="#374151" />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.inlineWeekRow}>
+                    {WEEK_LABELS.map((label) => (
+                      <Text key={label} style={styles.inlineWeekLabel}>
+                        {label}
+                      </Text>
+                    ))}
+                  </View>
+                  <View style={styles.inlineDaysGrid}>
+                    {webCalendarCells.map((day, index) => {
+                      if (day === null) {
+                        return <View key={`empty-${index}`} style={styles.inlineDayCell} />;
+                      }
+
+                      const dayKey = toLocalDateKey(
+                        new Date(datePickerCursor.getFullYear(), datePickerCursor.getMonth(), day)
+                      );
+                      const isSelectedFilter =
+                        (editingWhichDate === "desde" && dayKey === fechaDesde) ||
+                        (editingWhichDate === "hasta" && dayKey === fechaHasta);
+
+                      return (
+                        <TouchableOpacity
+                          key={`filter-calendar-day-${day}`}
+                          style={[
+                            styles.inlineDayCell,
+                            isSelectedFilter && styles.inlineDayCellSelected,
+                          ]}
+                          onPress={() => {
+                            const pickedDate = new Date(
+                              datePickerCursor.getFullYear(),
+                              datePickerCursor.getMonth(),
+                              day
+                            );
+                            handleSelectFecha(pickedDate);
+                          }}
+                        >
+                          <Text
+                            style={[
+                              styles.inlineDayText,
+                              isSelectedFilter && styles.inlineDayTextSelected,
+                            ]}
+                          >
+                            {day}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : (
+                <DateTimePicker
+                  value={
+                    editingWhichDate === "desde" && fechaDesde
+                      ? new Date(fechaDesde)
+                      : editingWhichDate === "hasta" && fechaHasta
+                        ? new Date(fechaHasta)
+                        : new Date()
+                  }
+                  mode="date"
+                  display="spinner"
+                  onChange={(event, selectedDate) => {
+                    if (selectedDate && event.type !== "dismissed") {
+                      handleSelectFecha(selectedDate);
+                    }
+                  }}
+                />
+              )}
+
+              <TouchableOpacity
+                style={styles.datePickerConfirmButton}
+                onPress={() => {
+                  setDatePickerVisible(false);
+                  setEditingWhichDate(null);
+                }}
+              >
+                <Text style={styles.datePickerConfirmText}>Aceptar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 };
@@ -1074,6 +1509,7 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 18, fontWeight: "600", color: "#1f2937" },
   modalError: { margin: 12 },
   modalContent: { flex: 1, padding: 16 },
+  modalFeedbackBox: { marginHorizontal: 0, marginBottom: 16 },
   searchInput: {
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -1324,6 +1760,186 @@ const styles = StyleSheet.create({
   inlineDayTextSelected: {
     color: "#fff",
     fontWeight: "600",
+  },
+  filtersContainer: {
+    flexGrow: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+    backgroundColor: "#f9fafb",
+  },
+  filtersContent: {
+    flexDirection: "row",
+    gap: 8,
+    paddingVertical: 4,
+  },
+  filterSection: {
+    flex: 1,
+    minWidth: 200,
+  },
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  filterButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: "#fff",
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    minWidth: 90,
+  },
+  filterButtonActive: {
+    backgroundColor: "#2563eb",
+    borderColor: "#2563eb",
+  },
+  filterButtonText: {
+    fontSize: 12,
+    color: "#6b7280",
+    fontWeight: "500",
+  },
+  filterButtonTextActive: {
+    color: "#fff",
+  },
+  filterClearButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: "#fff",
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  filterClearText: {
+    fontSize: 12,
+    color: "#6b7280",
+    fontWeight: "500",
+  },
+  datePickerOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  datePickerCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    width: "90%",
+    maxWidth: 400,
+  },
+  datePickerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  datePickerTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1f2937",
+  },
+  datePickerConfirmButton: {
+    marginTop: 16,
+    paddingVertical: 10,
+    backgroundColor: "#2563eb",
+    borderRadius: 6,
+    alignItems: "center",
+  },
+  datePickerConfirmText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+  detailSection: {
+    marginBottom: 20,
+  },
+  detailSectionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1f2937",
+    marginBottom: 8,
+    paddingHorizontal: 12,
+  },
+  detailCard: {
+    backgroundColor: "#f9fafb",
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  detailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  detailLabel: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginBottom: 4,
+  },
+  detailValue: {
+    fontSize: 14,
+    color: "#1f2937",
+    fontWeight: "500",
+  },
+  ventaItemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+  },
+  ventaItemTextBlock: {
+    flex: 1,
+  },
+  ventaItemName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1f2937",
+    marginBottom: 2,
+  },
+  ventaItemMeta: {
+    fontSize: 12,
+    color: "#6b7280",
+  },
+  priceCard: {
+    backgroundColor: "#f0f9ff",
+    borderColor: "#2563eb",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 20,
+  },
+  priceText: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#2563eb",
+  },
+  closeButton: {
+    marginTop: 24,
+    paddingVertical: 12,
+    backgroundColor: "#2563eb",
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  closeButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 16,
   },
 });
 
