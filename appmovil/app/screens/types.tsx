@@ -223,6 +223,7 @@ export type VentaItem = {
 export type DashboardStats = {
     ingresosTotales: number;
     gastosTotales: number;
+    comprasTotales: number;
     beneficioNeto: number;
     numReservas: number;
     numVentas: number;
@@ -329,4 +330,30 @@ export type ServiceStats = {
     serviciosMasReservados: ServicioConReservas[];
     serviciosConMayorFacturacion: ServicioConFacturacion[];
     duracionMediaServicios: ServicioDuracion[];
+};
+
+export type CompraPorDia = {
+    fecha: string;
+    cantidad: number;
+    total: number;
+};
+
+export type CompraPorEstado = {
+    estado: string;
+    cantidad: number;
+    total: number;
+};
+
+export type ProductoComprado = {
+    id_producto: number;
+    nombre: string;
+    cantidad_esperada: number;
+    cantidad_llegada: number;
+    importe_total: number;
+};
+
+export type CompraStats = {
+    comprasPorDia: CompraPorDia[];
+    comprasPorEstado: CompraPorEstado[];
+    productosMasComprados: ProductoComprado[];
 };

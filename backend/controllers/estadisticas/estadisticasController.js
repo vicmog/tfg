@@ -4,6 +4,7 @@ import { VentaServicio } from "../../models/VentaServicio.js";
 import { Reserva } from "../../models/Reserva.js";
 import { Producto } from "../../models/Producto.js";
 import { Servicio } from "../../models/Servicio.js";
+import { Compra } from "../../models/Compra.js";
 import { Gasto } from "../../models/Gasto.js";
 import { Cliente } from "../../models/Cliente.js";
 import { UsuarioNegocio } from "../../models/UsuarioNegocio.js";
@@ -126,8 +127,22 @@ export const getDashboardStats = async (req, res) => {
                 type: sequelize.QueryTypes.SELECT,
             }
         );
-
+        
         const gastosTotales = Number(gastosResultQuery?.[0]?.total) || 0;
+
+        const comprasResultQuery = await sequelize.query(
+            `SELECT COALESCE(SUM(c.importe_total), 0) as total
+             FROM "Compra" c
+             WHERE c.id_negocio = :id_negocio
+               AND c.estado = 'completada'
+               AND c.fecha BETWEEN :startDate AND :endDate`,
+            {
+                replacements: { id_negocio, startDate: monthStart, endDate: monthEnd },
+                type: sequelize.QueryTypes.SELECT,
+            }
+        );
+
+        const comprasTotales = Number(comprasResultQuery?.[0]?.total) || 0;
 
         const numReservasQuery = await sequelize.query(
             `SELECT COUNT(*) as total
@@ -163,8 +178,9 @@ export const getDashboardStats = async (req, res) => {
             message: ESTADISTICAS_MESSAGES.DASHBOARD_RETRIEVED,
             dashboard: {
                 ingresosTotales,
-                gastosTotales,
-                beneficioNeto: ingresosTotales - gastosTotales,
+                gastosTotales: gastosTotales + comprasTotales,
+                comprasTotales,
+                beneficioNeto: ingresosTotales - gastosTotales - comprasTotales,
                 numReservas,
                 numVentas,
                 numClientes
@@ -565,6 +581,88 @@ export const getServiceStats = async (req, res) => {
         });
     } catch (error) {
         console.error("Error en getServiceStats:", error);
+        return res.status(500).json({ message: ESTADISTICAS_ERRORS.SERVER_ERROR });
+    }
+};
+
+export const getCompraStats = async (req, res) => {
+    try {
+        const id_usuario = req.user?.id_usuario;
+        const idNegocioResult = normalizeIntegerId(
+            req.params?.id_negocio,
+            ESTADISTICAS_ERRORS.INVALID_NEGOCIO_ID
+        );
+        const filterType = req.query?.filter || FILTER_TYPES.MONTH;
+        const startDate = req.query?.startDate;
+        const endDate = req.query?.endDate;
+
+        if (!id_usuario) {
+            return res.status(401).json({ message: ESTADISTICAS_ERRORS.USER_NOT_AUTHENTICATED });
+        }
+
+        if (idNegocioResult.error) {
+            return res.status(400).json({ message: idNegocioResult.error });
+        }
+
+        const hasAccess = await hasAccessToNegocio(id_usuario, idNegocioResult.value);
+        if (!hasAccess) {
+            return res.status(403).json({ message: ESTADISTICAS_ERRORS.NO_ACCESS });
+        }
+
+        const id_negocio = idNegocioResult.value;
+        const dateRange = getDateRange(filterType, startDate, endDate);
+        const rangeStart = dateRange?.[Op.between]?.[0];
+        const rangeEnd = dateRange?.[Op.between]?.[1];
+
+        const comprasPorDia = await sequelize.query(
+            `SELECT DATE(c.fecha) as fecha, COUNT(*) as cantidad, COALESCE(SUM(c.importe_total), 0) as total
+             FROM "Compra" c
+             WHERE c.id_negocio = :id_negocio AND c.fecha BETWEEN :startDate AND :endDate
+             GROUP BY DATE(c.fecha)
+             ORDER BY fecha ASC`,
+            {
+                replacements: { id_negocio, startDate: rangeStart, endDate: rangeEnd },
+                type: sequelize.QueryTypes.SELECT,
+            }
+        );
+
+        const comprasPorEstado = await sequelize.query(
+            `SELECT c.estado, COUNT(*) as cantidad, COALESCE(SUM(c.importe_total), 0) as total
+             FROM "Compra" c
+             WHERE c.id_negocio = :id_negocio AND c.fecha BETWEEN :startDate AND :endDate
+             GROUP BY c.estado
+             ORDER BY cantidad DESC`,
+            {
+                replacements: { id_negocio, startDate: rangeStart, endDate: rangeEnd },
+                type: sequelize.QueryTypes.SELECT,
+            }
+        );
+
+        const productosMasComprados = await sequelize.query(
+            `SELECT p.id_producto, p.nombre, SUM(cp.cantidad_esperada) as cantidad_esperada, SUM(cp.cantidad_llegada) as cantidad_llegada, SUM(c.importe_total) as importe_total
+             FROM "CompraProducto" cp
+             JOIN "Compra" c ON cp.id_compra = c.id_compra
+             JOIN "Producto" p ON cp.id_producto = p.id_producto
+             WHERE c.id_negocio = :id_negocio AND c.fecha BETWEEN :startDate AND :endDate
+             GROUP BY p.id_producto, p.nombre
+             ORDER BY cantidad_esperada DESC
+             LIMIT 15`,
+            {
+                replacements: { id_negocio, startDate: rangeStart, endDate: rangeEnd },
+                type: sequelize.QueryTypes.SELECT,
+            }
+        );
+
+        return res.status(200).json({
+            message: ESTADISTICAS_MESSAGES.PURCHASE_STATS_RETRIEVED,
+            purchaseStats: {
+                comprasPorDia,
+                comprasPorEstado,
+                productosMasComprados,
+            },
+        });
+    } catch (error) {
+        console.error("Error en getCompraStats:", error);
         return res.status(500).json({ message: ESTADISTICAS_ERRORS.SERVER_ERROR });
     }
 };

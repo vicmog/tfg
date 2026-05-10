@@ -18,6 +18,7 @@ import {
   ReservaStats,
   ProductStats,
   ServiceStats,
+  CompraStats,
 } from "../types";
 import { EstadisticasProps } from "./types";
 import { StatCard, ChartCard, StatsFilter, FilterType } from "./components";
@@ -42,6 +43,9 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
   const [serviceStats, setServiceStats] = useState<ServiceStats | null>(null);
   const [serviceLoading, setServiceLoading] = useState(false);
+
+  const [purchaseStats, setPurchaseStats] = useState<CompraStats | null>(null);
+  const [purchaseLoading, setPurchaseLoading] = useState(false);
 
   const loadDashboardStats = useCallback(async () => {
     setLoading(true);
@@ -165,6 +169,30 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     }
   }, [negocio.id_negocio, filter]);
 
+  const loadPurchaseStats = useCallback(async () => {
+    setPurchaseLoading(true);
+
+    try {
+      const token = await AsyncStorage.getItem("token");
+
+      const response = await fetch(
+        API_ROUTES.estadisticasCompras(negocio.id_negocio, filter),
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setPurchaseStats(data.purchaseStats);
+      }
+    } catch {
+      console.error("Error loading purchase stats");
+    } finally {
+      setPurchaseLoading(false);
+    }
+  }, [negocio.id_negocio, filter]);
+
   useFocusEffect(
     useCallback(() => {
       loadDashboardStats();
@@ -172,12 +200,14 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
       loadReservaStats();
       loadProductStats();
       loadServiceStats();
+      loadPurchaseStats();
     }, [
       loadDashboardStats,
       loadSalesStats,
       loadReservaStats,
       loadProductStats,
       loadServiceStats,
+      loadPurchaseStats,
     ])
   );
 
@@ -350,7 +380,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
             <ChartCard
               title="Estado de Reservas"
-              icon="api"
+              icon="event-note"
               loading={reservaLoading}
               data={reservaStats.reservasPorEstado.map((r) => ({
                 label: r.estado || "Sin estado",
@@ -457,6 +487,61 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                 secondary: `${s.total_reservas} reservas`,
                 color: "#06b6d4",
                 icon: "schedule",
+              }))}
+            />
+          </View>
+        )}
+
+        {purchaseStats && (
+          <View>
+            <Text style={styles.sectionTitle}>Estadísticas de Compras</Text>
+
+            <ChartCard
+              title="Compras por Día"
+              icon="shopping-cart"
+              loading={purchaseLoading}
+              data={purchaseStats.comprasPorDia.map((c) => ({
+                label: new Date(c.fecha).toLocaleDateString("es-ES"),
+                value: `${c.cantidad} compras`,
+                secondary: `Total: ${formatCurrency(c.total)}`,
+                color: "#f97316",
+                icon: "shopping-cart",
+              }))}
+            />
+
+            <ChartCard
+              title="Estado de Compras"
+              icon="fact-check"
+              loading={purchaseLoading}
+              data={purchaseStats.comprasPorEstado.map((c) => ({
+                label: c.estado || "Sin estado",
+                value: `${c.cantidad} compras`,
+                secondary: `Total: ${formatCurrency(c.total)}`,
+                color:
+                  c.estado === "completada"
+                    ? "#10b981"
+                    : c.estado === "cancelada"
+                      ? "#ef4444"
+                      : "#f97316",
+                icon:
+                  c.estado === "completada"
+                    ? "check-circle"
+                    : c.estado === "cancelada"
+                      ? "cancel"
+                      : "shopping-cart",
+              }))}
+            />
+
+            <ChartCard
+              title="Productos Más Comprados"
+              icon="inventory-2"
+              loading={purchaseLoading}
+              data={purchaseStats.productosMasComprados.map((p) => ({
+                label: p.nombre,
+                value: `${p.cantidad_esperada} u`,
+                secondary: `Llegaron: ${p.cantidad_llegada} | Total: ${formatCurrency(p.importe_total)}`,
+                color: "#f59e0b",
+                icon: "local-shipping",
               }))}
             />
           </View>
