@@ -420,19 +420,6 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
             />
 
             <ChartCard
-              title="Productos con Mayor Facturación"
-              icon="trending-up"
-              loading={productLoading}
-              data={productStats.productosConMayorFacturacion.map((p) => ({
-                label: p.nombre,
-                value: formatCurrency(p.facturacion),
-                secondary: `${p.cantidad_vendida} unidades vendidas`,
-                color: "#10b981",
-                icon: "paid",
-              }))}
-            />
-
-            <ChartCard
               title="Productos con Stock Bajo"
               icon="warning"
               loading={productLoading}
