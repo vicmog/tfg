@@ -219,3 +219,114 @@ export type VentaItem = {
     id_servicio?: number;
     cantidad?: number;
 };
+
+export type DashboardStats = {
+    ingresosTotales: number;
+    gastosTotales: number;
+    beneficioNeto: number;
+    numReservas: number;
+    numVentas: number;
+    numClientes: number;
+};
+
+export type VentaPorDia = {
+    fecha: string;
+    total: number;
+    cantidad: number;
+};
+
+export type ProductoVendido = {
+    id_producto: number;
+    nombre: string;
+    cantidad: number;
+    total_cantidad: number;
+    ingresos: number;
+};
+
+export type ServicioVendido = {
+    id_servicio: number;
+    nombre: string;
+    cantidad: number;
+    ingresos: number;
+};
+
+export type SalesStats = {
+    ventasPorDia: VentaPorDia[];
+    productosMasVendidos: ProductoVendido[];
+    serviciosMasVendidos: ServicioVendido[];
+};
+
+export type ReservaPorDia = {
+    fecha: string;
+    cantidad: number;
+};
+
+export type ReservaPorEstado = {
+    estado: string;
+    cantidad: number;
+};
+
+export type HoraConMasReservas = {
+    hora: number;
+    cantidad: number;
+};
+
+export type ServicioReservado = {
+    id_servicio: number;
+    nombre: string;
+    cantidad: number;
+};
+
+export type ReservaStats = {
+    reservasPorDia: ReservaPorDia[];
+    reservasPorEstado: ReservaPorEstado[];
+    horasConMasReservas: HoraConMasReservas[];
+    serviciosMasReservados: ServicioReservado[];
+};
+
+export type ProductoConFacturacion = {
+    id_producto: number;
+    nombre: string;
+    cantidad_vendida: number;
+    facturacion: number;
+};
+
+export type ProductoConStockBajo = {
+    id_producto: number;
+    nombre: string;
+    stock: number;
+    stock_minimo: number;
+    precio_venta: number;
+};
+
+export type ProductStats = {
+    productosMasVendidos: ProductoConFacturacion[];
+    productosConStockBajo: ProductoConStockBajo[];
+    productosConMayorFacturacion: ProductoConFacturacion[];
+};
+
+export type ServicioConFacturacion = {
+    id_servicio: number;
+    nombre: string;
+    cantidad_ventas: number;
+    facturacion_total: number;
+};
+
+export type ServicioConReservas = {
+    id_servicio: number;
+    nombre: string;
+    cantidad_reservas: number;
+};
+
+export type ServicioDuracion = {
+    id_servicio: number;
+    nombre: string;
+    duracion_promedio: number;
+    total_reservas: number;
+};
+
+export type ServiceStats = {
+    serviciosMasReservados: ServicioConReservas[];
+    serviciosConMayorFacturacion: ServicioConFacturacion[];
+    duracionMediaServicios: ServicioDuracion[];
+};
