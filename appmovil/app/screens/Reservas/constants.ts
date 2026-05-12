@@ -6,6 +6,7 @@ export const updateReservaByIdRoute = (idReserva: number) => API_ROUTES.updateRe
 export const cancelReservaByIdRoute = (idReserva: number) => API_ROUTES.cancelReservaById(idReserva);
 export const completeReservaByIdRoute = (idReserva: number) => API_ROUTES.completeReservaById(idReserva);
 export const deleteReservaByIdRoute = (idReserva: number) => API_ROUTES.deleteReservaById(idReserva);
+export const reservasHacerCajaRoute = (idNegocio: number) => API_ROUTES.reservasHacerCaja(idNegocio);
 export const clientesByNegocioRoute = (idNegocio: number) => API_ROUTES.clientesByNegocio(idNegocio);
 export const recursosByNegocioRoute = (idNegocio: number) => API_ROUTES.recursosByNegocio(idNegocio);
 export const serviciosByNegocioRoute = (idNegocio: number) => API_ROUTES.serviciosByNegocio(idNegocio);
@@ -23,6 +24,9 @@ export const SUCCESS_MESSAGE = "Reserva registrada correctamente";
 export const RESERVA_CANCELADA_MESSAGE = "Reserva cancelada correctamente";
 export const RESERVA_COMPLETADA_MESSAGE = "Reserva completada correctamente";
 export const RESERVA_ELIMINADA_MESSAGE = "Reserva eliminada correctamente";
+export const HACER_CAJA_BUTTON = "Hacer caja";
+export const HACER_CAJA_SUCCESS = "Caja realizada correctamente";
+export const CONFIRM_HACER_CAJA_QUESTION = "¿Realizar cierre de caja para las reservas del día? Esta acción marcará las reservas como completadas y es irreversible.";
 export const AGENDA_TITLE_PREFIX = "Agenda del";
 export const SELECTED_DAY_LABEL = "Día seleccionado";
 export const TODAY_BUTTON_TEXT = "Hoy";

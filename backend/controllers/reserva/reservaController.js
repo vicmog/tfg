@@ -4,6 +4,8 @@ import { Recurso } from "../../models/Recurso.js";
 import { Reserva } from "../../models/Reserva.js";
 import { Servicio } from "../../models/Servicio.js";
 import { ServicioReserva } from "../../models/ServicioReserva.js";
+import { Venta } from "../../models/Venta.js";
+import { VentaServicio } from "../../models/VentaServicio.js";
 import { UsuarioNegocio } from "../../models/UsuarioNegocio.js";
 import { sendClienteEmail } from "../../utils/mailer.js";
 import { RESERVA_ERRORS, RESERVA_MESSAGES } from "./constants.js";
@@ -637,6 +639,97 @@ export const completeReserva = async (req, res) => {
     }
 };
 
+export const hacerCaja = async (req, res) => {
+    const { id_negocio } = req.params;
+    const id_usuario = req.user?.id_usuario;
+
+    if (!id_usuario) {
+        return res.status(401).json({ message: RESERVA_ERRORS.USER_NOT_AUTHENTICATED });
+    }
+
+    if (!id_negocio) {
+        return res.status(400).json({ message: RESERVA_ERRORS.NEGOCIO_ID_REQUIRED });
+    }
+
+    try {
+        const usuarioNegocio = await UsuarioNegocio.findOne({ where: { id_usuario, id_negocio } });
+        if (!usuarioNegocio) {
+            return res.status(403).json({ message: RESERVA_ERRORS.NO_ACCESS_TO_NEGOCIO });
+        }
+
+        const recursos = await Recurso.findAll({ where: { id_negocio }, attributes: ["id_recurso"] });
+        const idRecursos = recursos.map((r) => r.id_recurso);
+
+        if (!idRecursos.length) {
+            return res.status(200).json({ ventas: [] });
+        }
+
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayEnd = new Date();
+        todayEnd.setHours(23, 59, 59, 999);
+
+        const reservas = await Reserva.findAll({
+            where: {
+                id_recurso: idRecursos,
+                estado: "pendiente",
+                fecha_hora_inicio: { [Op.gte]: todayStart, [Op.lte]: todayEnd },
+            },
+        });
+
+        if (!reservas.length) {
+            return res.status(200).json({ ventas: [] });
+        }
+
+        const transaction = await Reserva.sequelize.transaction();
+        const ventasCreadas = [];
+
+        try {
+            for (const reserva of reservas) {
+                const serviciosReserva = await ServicioReserva.findAll({ where: { id_reserva: reserva.id_reserva }, transaction });
+                const servicioIds = serviciosReserva.map((sr) => sr.id_servicio);
+
+                // If no services linked to the reservation, mark as completed but don't create a sale
+                if (!servicioIds.length) {
+                    await reserva.update({ estado: "completada" }, { transaction });
+                    ventasCreadas.push({ id_reserva: reserva.id_reserva, id_venta: null, precio_total: 0 });
+                    continue;
+                }
+
+                const servicios = await Servicio.findAll({ where: { id_servicio: servicioIds }, transaction });
+
+                const precioTotal = servicios.reduce((sum, s) => sum + (s.precio || 0), 0);
+
+                const venta = await Venta.create({
+                    id_cliente: reserva.id_cliente,
+                    fecha: new Date(),
+                    precio_total: precioTotal,
+                    tipo: "servicio",
+                }, { transaction });
+
+                for (const id_servicio of servicioIds) {
+                    await VentaServicio.create({ id_venta: venta.id_venta, id_servicio }, { transaction });
+                }
+
+                // Mark reservation as completed after creating the sale
+                await reserva.update({ estado: "completada" }, { transaction });
+
+                ventasCreadas.push({ id_reserva: reserva.id_reserva, id_venta: venta.id_venta, precio_total: precioTotal });
+            }
+
+            await transaction.commit();
+
+            return res.status(201).json({ message: "Caja realizada", ventas: ventasCreadas });
+        } catch (error) {
+            await transaction.rollback();
+            throw error;
+        }
+    } catch (error) {
+        console.error("Error haciendo caja:", error);
+        return res.status(500).json({ message: RESERVA_ERRORS.SERVER_ERROR });
+    }
+};
+
 export const deleteReserva = async (req, res) => {
     const { id_reserva } = req.params;
     const id_usuario = req.user?.id_usuario;
@@ -708,7 +801,7 @@ export const getReservasByNegocio = async (req, res) => {
 
         try {
             reservas = await Reserva.findAll({
-                where: { id_recurso: idRecursos },
+                where: { id_recurso: idRecursos, estado: { [Op.ne]: "cancelada" } },
                 order: [["fecha_hora_inicio", "DESC"]],
             });
         } catch (queryError) {
@@ -728,7 +821,7 @@ export const getReservasByNegocio = async (req, res) => {
             }
 
             const reservasLegacy = await Reserva.findAll({
-                where: { id_cliente: idClientes },
+                where: { id_cliente: idClientes, estado: { [Op.ne]: "cancelada" } },
                 order: [["fecha", "DESC"], ["hora_inicio", "DESC"]],
             });
 
