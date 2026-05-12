@@ -77,6 +77,107 @@ const getDateRange = (filterType, startDate = null, endDate = null) => {
     return dateRange;
 };
 
+const toNumberOrNull = (value) => {
+    if (value === undefined || value === null || `${value}`.trim() === "") {
+        return null;
+    }
+    const parsed = Number.parseInt(`${value}`.trim(), 10);
+    return Number.isNaN(parsed) ? null : parsed;
+};
+
+const parseDashboardFilters = (query) => {
+    const now = new Date();
+    const year = toNumberOrNull(query?.year) ?? now.getFullYear();
+    const month = toNumberOrNull(query?.month);
+    const day = toNumberOrNull(query?.day);
+
+    if (year < 2000 || year > 2100) {
+        return { error: "El año debe estar entre 2000 y 2100" };
+    }
+
+    if (month !== null && (month < 1 || month > 12)) {
+        return { error: "El mes debe estar entre 1 y 12" };
+    }
+
+    if (day !== null && month === null) {
+        return { error: "Para filtrar por día, también debes indicar un mes" };
+    }
+
+    if (day !== null) {
+        const maxDay = new Date(year, month, 0).getDate();
+        if (day < 1 || day > maxDay) {
+            return { error: `El día debe estar entre 1 y ${maxDay} para ${month}/${year}` };
+        }
+    }
+
+    return { year, month, day };
+};
+
+const getSummaryRangeFromFilter = ({ year, month, day }) => {
+    if (day !== null && month !== null) {
+        const start = new Date(year, month - 1, day);
+        const end = new Date(year, month - 1, day + 1);
+        return { start, end, mode: "day" };
+    }
+
+    if (month !== null) {
+        const start = new Date(year, month - 1, 1);
+        const end = new Date(year, month, 1);
+        return { start, end, mode: "month" };
+    }
+
+    const start = new Date(year, 0, 1);
+    const end = new Date(year + 1, 0, 1);
+    return { start, end, mode: "year" };
+};
+
+const getChartRangeFromFilter = ({ year, month }) => {
+    if (month !== null) {
+        const endDate = new Date(year, month, 1);
+        const startDate = new Date(year, month - 5, 1);
+        return { startDate, endDate, granularity: "month" };
+    }
+
+    const endDate = new Date(year + 1, 0, 1);
+    const startDate = new Date(year - 4, 0, 1);
+    return { startDate, endDate, granularity: "year" };
+};
+
+const buildChartPeriods = ({ year, month, granularity }) => {
+    const periods = [];
+
+    if (granularity === "year") {
+        for (let i = 4; i >= 0; i -= 1) {
+            periods.push(new Date(year - i, 0, 1));
+        }
+        return periods;
+    }
+
+    for (let i = 4; i >= 0; i -= 1) {
+        periods.push(new Date(year, month - 1 - i, 1));
+    }
+    return periods;
+};
+
+const getPeriodKeyFromDate = (date, granularity) => {
+    if (granularity === "year") {
+        return `${date.getFullYear()}`;
+    }
+    return `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, "0")}`;
+};
+
+const getPeriodKeyFromRow = (periodValue, granularity) => {
+    const raw = `${periodValue}`.slice(0, 10);
+    return granularity === "year" ? raw.slice(0, 4) : raw.slice(0, 7);
+};
+
+const getPeriodLabel = (date, granularity) => {
+    if (granularity === "year") {
+        return `${date.getFullYear()}`;
+    }
+    return date.toLocaleDateString("es-ES", { month: "short", year: "2-digit" });
+};
+
 export const getDashboardStats = async (req, res) => {
     try {
         const id_usuario = req.user?.id_usuario;
@@ -98,19 +199,32 @@ export const getDashboardStats = async (req, res) => {
             return res.status(403).json({ message: ESTADISTICAS_ERRORS.NO_ACCESS });
         }
 
-        const id_negocio = idNegocioResult.value;
-        const now = new Date();
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        const dashboardFilters = parseDashboardFilters(req.query);
+        if (dashboardFilters.error) {
+            return res.status(400).json({ message: dashboardFilters.error });
+        }
 
-        
+        const id_negocio = idNegocioResult.value;
+        const { year, month, day } = dashboardFilters;
+        const summaryRange = getSummaryRangeFromFilter({ year, month, day });
+        const chartRange = getChartRangeFromFilter({ year, month });
+        const expectedPeriods = buildChartPeriods({
+            year,
+            month,
+            granularity: chartRange.granularity,
+        });
+
         const ventasResultQuery = await sequelize.query(
             `SELECT SUM(v.precio_total) as total
              FROM "Venta" v
              JOIN "Cliente" c ON v.id_cliente = c.id_cliente
-             WHERE c.id_negocio = :id_negocio AND v.fecha BETWEEN :startDate AND :endDate`,
+             WHERE c.id_negocio = :id_negocio AND v.fecha >= :startDate AND v.fecha < :endDate`,
             {
-                replacements: { id_negocio, startDate: monthStart, endDate: monthEnd },
+                replacements: {
+                    id_negocio,
+                    startDate: summaryRange.start,
+                    endDate: summaryRange.end,
+                },
                 type: sequelize.QueryTypes.SELECT,
             }
         );
@@ -121,9 +235,13 @@ export const getDashboardStats = async (req, res) => {
             `SELECT COALESCE(SUM(g.importe), 0) as total
              FROM "Gasto" g
              JOIN "TipoGasto" tg ON g.id_tipo_gasto = tg.id_tipo_gasto
-             WHERE tg.id_negocio = :id_negocio AND g.fecha BETWEEN :startDate AND :endDate`,
+             WHERE tg.id_negocio = :id_negocio AND g.fecha >= :startDate AND g.fecha < :endDate`,
             {
-                replacements: { id_negocio, startDate: monthStart, endDate: monthEnd },
+                replacements: {
+                    id_negocio,
+                    startDate: summaryRange.start,
+                    endDate: summaryRange.end,
+                },
                 type: sequelize.QueryTypes.SELECT,
             }
         );
@@ -135,9 +253,14 @@ export const getDashboardStats = async (req, res) => {
              FROM "Compra" c
              WHERE c.id_negocio = :id_negocio
                AND c.estado = 'completada'
-               AND c.fecha BETWEEN :startDate AND :endDate`,
+               AND c.fecha >= :startDate
+               AND c.fecha < :endDate`,
             {
-                replacements: { id_negocio, startDate: monthStart, endDate: monthEnd },
+                replacements: {
+                    id_negocio,
+                    startDate: summaryRange.start,
+                    endDate: summaryRange.end,
+                },
                 type: sequelize.QueryTypes.SELECT,
             }
         );
@@ -148,9 +271,15 @@ export const getDashboardStats = async (req, res) => {
             `SELECT COUNT(*) as total
              FROM "Reserva" r
              JOIN "Cliente" c ON r.id_cliente = c.id_cliente
-             WHERE c.id_negocio = :id_negocio AND r.fecha_hora_inicio BETWEEN :startDate AND :endDate`,
+             WHERE c.id_negocio = :id_negocio
+               AND r.fecha_hora_inicio >= :startDate
+               AND r.fecha_hora_inicio < :endDate`,
             {
-                replacements: { id_negocio, startDate: monthStart, endDate: monthEnd },
+                replacements: {
+                    id_negocio,
+                    startDate: summaryRange.start,
+                    endDate: summaryRange.end,
+                },
                 type: sequelize.QueryTypes.SELECT,
             }
         );
@@ -161,13 +290,113 @@ export const getDashboardStats = async (req, res) => {
             `SELECT COUNT(*) as cantidad
              FROM "Venta" v
              JOIN "Cliente" c ON v.id_cliente = c.id_cliente
-             WHERE c.id_negocio = :id_negocio AND v.fecha BETWEEN :startDate AND :endDate`,
+             WHERE c.id_negocio = :id_negocio AND v.fecha >= :startDate AND v.fecha < :endDate`,
             {
-                replacements: { id_negocio, startDate: monthStart, endDate: monthEnd },
+                replacements: {
+                    id_negocio,
+                    startDate: summaryRange.start,
+                    endDate: summaryRange.end,
+                },
                 type: sequelize.QueryTypes.SELECT,
             }
         );
         const numVentas = (numVentasQuery && numVentasQuery[0]) ? Number(numVentasQuery[0].cantidad) : 0;
+
+        const truncateUnit = chartRange.granularity === "year" ? "year" : "month";
+
+        const ingresosPorPeriodo = await sequelize.query(
+            `SELECT DATE_TRUNC('${truncateUnit}', v.fecha)::DATE as periodo, COALESCE(SUM(v.precio_total), 0) as ingresos
+             FROM "Venta" v
+             JOIN "Cliente" c ON v.id_cliente = c.id_cliente
+             WHERE c.id_negocio = :id_negocio
+               AND v.fecha >= :startDate
+               AND v.fecha < :endDate
+             GROUP BY DATE_TRUNC('${truncateUnit}', v.fecha)::DATE
+             ORDER BY periodo ASC`,
+            {
+                replacements: {
+                    id_negocio,
+                    startDate: chartRange.startDate,
+                    endDate: chartRange.endDate,
+                },
+                type: sequelize.QueryTypes.SELECT,
+            }
+        );
+
+        const gastosPorPeriodo = await sequelize.query(
+            `SELECT DATE_TRUNC('${truncateUnit}', g.fecha)::DATE as periodo, COALESCE(SUM(g.importe), 0) as gastos
+             FROM "Gasto" g
+             JOIN "TipoGasto" tg ON g.id_tipo_gasto = tg.id_tipo_gasto
+             WHERE tg.id_negocio = :id_negocio
+               AND g.fecha >= :startDate
+               AND g.fecha < :endDate
+             GROUP BY DATE_TRUNC('${truncateUnit}', g.fecha)::DATE
+             ORDER BY periodo ASC`,
+            {
+                replacements: {
+                    id_negocio,
+                    startDate: chartRange.startDate,
+                    endDate: chartRange.endDate,
+                },
+                type: sequelize.QueryTypes.SELECT,
+            }
+        );
+
+        const comprasPorPeriodo = await sequelize.query(
+            `SELECT DATE_TRUNC('${truncateUnit}', c.fecha)::DATE as periodo, COALESCE(SUM(c.importe_total), 0) as compras
+             FROM "Compra" c
+             WHERE c.id_negocio = :id_negocio
+               AND c.estado = 'completada'
+               AND c.fecha >= :startDate
+               AND c.fecha < :endDate
+             GROUP BY DATE_TRUNC('${truncateUnit}', c.fecha)::DATE
+             ORDER BY periodo ASC`,
+            {
+                replacements: {
+                    id_negocio,
+                    startDate: chartRange.startDate,
+                    endDate: chartRange.endDate,
+                },
+                type: sequelize.QueryTypes.SELECT,
+            }
+        );
+
+        const ingresosMap = new Map(
+            ingresosPorPeriodo.map((row) => [
+                getPeriodKeyFromRow(row.periodo, chartRange.granularity),
+                Number(row.ingresos) || 0,
+            ])
+        );
+
+        const gastosMap = new Map(
+            gastosPorPeriodo.map((row) => [
+                getPeriodKeyFromRow(row.periodo, chartRange.granularity),
+                Number(row.gastos) || 0,
+            ])
+        );
+
+        const comprasMap = new Map(
+            comprasPorPeriodo.map((row) => [
+                getPeriodKeyFromRow(row.periodo, chartRange.granularity),
+                Number(row.compras) || 0,
+            ])
+        );
+
+        const netProfitChart = expectedPeriods.map((periodDate) => {
+            const periodKey = getPeriodKeyFromDate(periodDate, chartRange.granularity);
+            const ingresos = ingresosMap.get(periodKey) || 0;
+            const gastos = gastosMap.get(periodKey) || 0;
+            const compras = comprasMap.get(periodKey) || 0;
+
+            return {
+                key: periodKey,
+                label: getPeriodLabel(periodDate, chartRange.granularity),
+                ingresos,
+                gastos,
+                compras,
+                beneficio: ingresos - gastos - compras,
+            };
+        });
 
         
         const numClientes = await Cliente.count({
@@ -185,6 +414,16 @@ export const getDashboardStats = async (req, res) => {
                 numVentas,
                 numClientes
             },
+            chart: {
+                mode: chartRange.granularity,
+                netProfit: netProfitChart,
+            },
+            filter: {
+                year,
+                month,
+                day,
+                summaryMode: summaryRange.mode,
+            }
         });
     } catch (error) {
         console.error("Error en getDashboardStats:", error);

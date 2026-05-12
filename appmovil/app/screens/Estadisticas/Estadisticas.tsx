@@ -1,236 +1,250 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
   ActivityIndicator,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
   TouchableOpacity,
+  View,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { BarChart } from "react-native-gifted-charts";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_ROUTES } from "@/app/constants/apiRoutes";
-import {
-  DashboardStats,
-  SalesStats,
-  ReservaStats,
-  ProductStats,
-  ServiceStats,
-  CompraStats,
-} from "../types";
 import { EstadisticasProps } from "./types";
-import { StatCard, ChartCard, StatsFilter, FilterType } from "./components";
+
+type PickerType = "year" | "month" | "day";
+
+type PickerOption = {
+  label: string;
+  value: number | null;
+};
+
+const MONTH_LABELS = [
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
+];
+
+type DashboardSummary = {
+  ingresosTotales: number;
+  gastosTotales: number;
+  comprasTotales: number;
+  beneficioNeto: number;
+  numReservas: number;
+  numVentas: number;
+};
+
+type DashboardChartPoint = {
+  key: string;
+  label: string;
+  ingresos: number;
+  gastos: number;
+  compras: number;
+  beneficio: number;
+};
+
+type DashboardResponse = {
+  dashboard: DashboardSummary;
+  chart: {
+    mode: "month" | "year";
+    netProfit: DashboardChartPoint[];
+  };
+  filter: {
+    year: number;
+    month: number | null;
+    day: number | null;
+    summaryMode: "day" | "month" | "year";
+  };
+};
 
 const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
   const { negocio } = route.params;
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
 
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(currentMonth);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [activePicker, setActivePicker] = useState<PickerType | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState<FilterType>("month");
+  const [dashboard, setDashboard] = useState<DashboardSummary | null>(null);
+  const [chartData, setChartData] = useState<DashboardChartPoint[]>([]);
 
-  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
+  const yearOptions = useMemo<PickerOption[]>(() => {
+    const years = Array.from({ length: 8 }, (_, index) => currentYear - 5 + index).reverse();
+    return years.map((year) => ({ label: String(year), value: year }));
+  }, [currentYear]);
 
-  const [salesStats, setSalesStats] = useState<SalesStats | null>(null);
-  const [salesLoading, setSalesLoading] = useState(false);
+  const monthOptions = useMemo<PickerOption[]>(() => {
+    return [
+      { label: "Sin especificar", value: null },
+      ...MONTH_LABELS.map((label, index) => ({ label, value: index + 1 })),
+    ];
+  }, []);
 
-  const [reservaStats, setReservaStats] = useState<ReservaStats | null>(null);
-  const [reservaLoading, setReservaLoading] = useState(false);
-
-  const [productStats, setProductStats] = useState<ProductStats | null>(null);
-  const [productLoading, setProductLoading] = useState(false);
-
-  const [serviceStats, setServiceStats] = useState<ServiceStats | null>(null);
-  const [serviceLoading, setServiceLoading] = useState(false);
-
-  const [purchaseStats, setPurchaseStats] = useState<CompraStats | null>(null);
-  const [purchaseLoading, setPurchaseLoading] = useState(false);
-
-  const loadDashboardStats = useCallback(async () => {
-    setLoading(true);
-    setError("");
-
-    try {
-      const token = await AsyncStorage.getItem("token");
-
-      const response = await fetch(API_ROUTES.estadisticasDashboard(negocio.id_negocio), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        setError(data.message || "No se pudieron obtener las estadísticas");
-        return;
-      }
-
-      const data = await response.json();
-      setDashboardStats(data.dashboard);
-    } catch {
-      setError("Error de conexión. Intenta de nuevo.");
-    } finally {
-      setLoading(false);
+  const dayOptions = useMemo<PickerOption[]>(() => {
+    if (!selectedYear || !selectedMonth) {
+      return [{ label: "Sin especificar", value: null }];
     }
-  }, [negocio.id_negocio]);
 
-  const loadSalesStats = useCallback(async () => {
-    setSalesLoading(true);
+    const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+    const days = Array.from({ length: daysInMonth }, (_, index) => index + 1);
 
-    try {
-      const token = await AsyncStorage.getItem("token");
+    return [
+      { label: "Sin especificar", value: null },
+      ...days.map((day) => ({ label: String(day), value: day })),
+    ];
+  }, [selectedMonth, selectedYear]);
 
-      const response = await fetch(
-        API_ROUTES.estadisticasVentas(negocio.id_negocio, filter),
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setSalesStats(data.salesStats);
-      }
-    } catch {
-      console.error("Error loading sales stats");
-    } finally {
-      setSalesLoading(false);
+  const applyYear = (year: number | null) => {
+    if (!year) {
+      return;
     }
-  }, [negocio.id_negocio, filter]);
 
-  const loadReservaStats = useCallback(async () => {
-    setReservaLoading(true);
+    setSelectedYear(year);
 
-    try {
-      const token = await AsyncStorage.getItem("token");
-
-      const response = await fetch(
-        API_ROUTES.estadisticasReservas(negocio.id_negocio, filter),
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setReservaStats(data.reservaStats);
-      }
-    } catch {
-      console.error("Error loading reserva stats");
-    } finally {
-      setReservaLoading(false);
+    if (!selectedMonth) {
+      setSelectedDay(null);
+      return;
     }
-  }, [negocio.id_negocio, filter]);
 
-  const loadProductStats = useCallback(async () => {
-    setProductLoading(true);
-
-    try {
-      const token = await AsyncStorage.getItem("token");
-
-      const response = await fetch(
-        API_ROUTES.estadisticasProductos(negocio.id_negocio, filter),
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setProductStats(data.productStats);
-      }
-    } catch {
-      console.error("Error loading product stats");
-    } finally {
-      setProductLoading(false);
+    const daysInMonth = new Date(year, selectedMonth, 0).getDate();
+    if (selectedDay && selectedDay > daysInMonth) {
+      setSelectedDay(daysInMonth);
     }
-  }, [negocio.id_negocio, filter]);
-
-  const loadServiceStats = useCallback(async () => {
-    setServiceLoading(true);
-
-    try {
-      const token = await AsyncStorage.getItem("token");
-
-      const response = await fetch(
-        API_ROUTES.estadisticasServicios(negocio.id_negocio, filter),
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setServiceStats(data.serviceStats);
-      }
-    } catch {
-      console.error("Error loading service stats");
-    } finally {
-      setServiceLoading(false);
-    }
-  }, [negocio.id_negocio, filter]);
-
-  const loadPurchaseStats = useCallback(async () => {
-    setPurchaseLoading(true);
-
-    try {
-      const token = await AsyncStorage.getItem("token");
-
-      const response = await fetch(
-        API_ROUTES.estadisticasCompras(negocio.id_negocio, filter),
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setPurchaseStats(data.purchaseStats);
-      }
-    } catch {
-      console.error("Error loading purchase stats");
-    } finally {
-      setPurchaseLoading(false);
-    }
-  }, [negocio.id_negocio, filter]);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadDashboardStats();
-      loadSalesStats();
-      loadReservaStats();
-      loadProductStats();
-      loadServiceStats();
-      loadPurchaseStats();
-    }, [
-      loadDashboardStats,
-      loadSalesStats,
-      loadReservaStats,
-      loadProductStats,
-      loadServiceStats,
-      loadPurchaseStats,
-    ])
-  );
-
-  const handleFilterChange = (newFilter: FilterType) => {
-    setFilter(newFilter);
   };
+
+  const applyMonth = (month: number | null) => {
+    setSelectedMonth(month);
+
+    if (!month) {
+      setSelectedDay(null);
+      return;
+    }
+
+    const daysInMonth = new Date(selectedYear, month, 0).getDate();
+    if (selectedDay && selectedDay > daysInMonth) {
+      setSelectedDay(daysInMonth);
+    }
+  };
+
+  const applyDay = (day: number | null) => {
+    setSelectedDay(day);
+  };
+
+  const selectOption = (value: number | null) => {
+    if (activePicker === "year") {
+      applyYear(value);
+    }
+
+    if (activePicker === "month") {
+      applyMonth(value);
+    }
+
+    if (activePicker === "day") {
+      applyDay(value);
+    }
+
+    setActivePicker(null);
+  };
+
+  const yearLabel = selectedYear ? String(selectedYear) : "Sin especificar";
+  const monthLabel = selectedMonth ? MONTH_LABELS[selectedMonth - 1] : "Sin especificar";
+  const dayLabel = selectedDay ? String(selectedDay) : "Sin especificar";
+
+  const summary = [selectedDay, selectedMonth, selectedYear]
+    .filter((value) => value !== null)
+    .join("/");
+
+  const pickerOptions = activePicker === "year" ? yearOptions : activePicker === "month" ? monthOptions : dayOptions;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("es-ES", {
       style: "currency",
       currency: "EUR",
+      maximumFractionDigits: 0,
     }).format(value);
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#2563eb" />
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const loadDashboard = useCallback(async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const response = await fetch(
+        API_ROUTES.estadisticasDashboard(
+          negocio.id_negocio,
+          selectedYear,
+          selectedMonth,
+          selectedDay
+        ),
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const data = (await response.json()) as Partial<DashboardResponse> & {
+        message?: string;
+      };
+
+      if (!response.ok) {
+        setError(data.message || "No se pudo cargar el resumen general");
+        return;
+      }
+
+      if (!data.dashboard || !data.chart?.netProfit) {
+        setError("La respuesta de estadísticas no tiene el formato esperado");
+        return;
+      }
+
+      setDashboard(data.dashboard);
+      setChartData(data.chart.netProfit);
+    } catch {
+      setError("Error de conexión. Inténtalo de nuevo.");
+    } finally {
+      setLoading(false);
+    }
+  }, [negocio.id_negocio, selectedDay, selectedMonth, selectedYear]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadDashboard();
+    }, [loadDashboard])
+  );
+
+  const barData = useMemo(() => {
+    return chartData.map((item) => ({
+      value: item.beneficio,
+      label: item.label,
+      frontColor: item.beneficio >= 0 ? "#16a34a" : "#dc2626",
+    }));
+  }, [chartData]);
+
+  const mostNegativeValue = useMemo(() => {
+    if (!chartData.length) {
+      return 0;
+    }
+
+    const minBenefit = Math.min(...chartData.map((item) => item.beneficio));
+    return Math.min(0, minBenefit);
+  }, [chartData]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -239,303 +253,143 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
           <MaterialIcons name="arrow-back" size={24} color="#1f2937" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Estadísticas</Text>
-        <View style={{ width: 40 }} />
+        <View style={styles.headerSpacer} />
       </View>
 
-      {error ? (
-        <View style={styles.errorBox}>
-          <MaterialIcons name="error-outline" size={20} color="#dc2626" />
-          <Text style={styles.errorText}>{error}</Text>
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        <Text style={styles.sectionTitle}>Resumen General</Text>
+        <Text style={styles.sectionDescription}>Mes requiere año y día requiere mes + año.</Text>
+
+        <View style={styles.filtersRow}>
+          <Pressable
+            style={[styles.filterChip, styles.filterChipGrow]}
+            onPress={() => setActivePicker("year")}
+            testID="estadisticas-filter-year"
+          >
+            <Text style={styles.filterLabel}>Año</Text>
+            <Text style={styles.filterValue}>{yearLabel}</Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.filterChip, styles.filterChipGrow]}
+            onPress={() => setActivePicker("month")}
+            testID="estadisticas-filter-month"
+          >
+            <Text style={styles.filterLabel}>Mes</Text>
+            <Text style={styles.filterValue}>{monthLabel}</Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.filterChip, !selectedMonth && styles.filterCardDisabled]}
+            onPress={() => selectedMonth && setActivePicker("day")}
+            disabled={!selectedMonth}
+            testID="estadisticas-filter-day"
+          >
+            <Text style={styles.filterLabel}>Día</Text>
+            <Text style={styles.filterValue}>{dayLabel}</Text>
+          </Pressable>
         </View>
-      ) : null}
 
-      <View style={styles.filterContainer}>
-        <StatsFilter currentFilter={filter} onFilterChange={handleFilterChange} />
-      </View>
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryTitle}>Periodo activo</Text>
+          <Text style={styles.summaryValue}>{summary || "Sin especificar"}</Text>
+        </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {dashboardStats && (
-          <View>
-            <Text style={styles.sectionTitle}>Resumen del Negocio</Text>
+        <View style={styles.chartCard}>
+          <View style={styles.chartHeader}>
+            <Text style={styles.chartTitle}>Beneficio neto</Text>
+            <Text style={styles.chartSubtitle}>
+              {selectedMonth ? "Últimos 5 meses" : "Últimos 5 años"}
+            </Text>
+          </View>
 
-            <StatCard
-              icon="trending-up"
-              title="Ingresos Totales"
-              value={formatCurrency(dashboardStats.ingresosTotales)}
-              color="#10b981"
-              backgroundColor="#d1fae5"
+          {loading ? (
+            <View style={styles.chartLoading}>
+              <ActivityIndicator size="large" color="#0f766e" />
+            </View>
+          ) : (
+            <BarChart
+              data={barData}
+              barWidth={24}
+              spacing={18}
+              roundedTop
+              roundedBottom
+              hideRules
+              noOfSections={5}
+              yAxisThickness={0}
+              xAxisThickness={1}
+              xAxisColor="#d1d5db"
+              isAnimated
+              disablePress
+              yAxisTextStyle={styles.yAxisText}
+              xAxisLabelTextStyle={styles.xAxisText}
+              mostNegativeValue={mostNegativeValue}
+              negativeStepValue={Math.max(1, Math.ceil(Math.abs(mostNegativeValue) / 5))}
+              hideOrigin={false}
             />
+          )}
+        </View>
 
-            <StatCard
-              icon="trending-down"
-              title="Gastos Totales"
-              value={formatCurrency(dashboardStats.gastosTotales)}
-              color="#ef4444"
-              backgroundColor="#fee2e2"
-            />
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-            <StatCard
-              icon="check-circle"
-              title="Beneficio Neto"
-              value={formatCurrency(dashboardStats.beneficioNeto)}
-              color={dashboardStats.beneficioNeto >= 0 ? "#2563eb" : "#ef4444"}
-              backgroundColor={
-                dashboardStats.beneficioNeto >= 0 ? "#dbeafe" : "#fee2e2"
-              }
-            />
-
-            <View style={styles.statsRow}>
-              <View style={styles.statsCol}>
-                <StatCard
-                  icon="calendar-today"
-                  title="Reservas"
-                  value={dashboardStats.numReservas}
-                  color="#8b5cf6"
-                  backgroundColor="#ede9fe"
-                />
-              </View>
-              <View style={styles.statsCol}>
-                <StatCard
-                  icon="shopping-cart"
-                  title="Ventas"
-                  value={dashboardStats.numVentas}
-                  color="#f59e0b"
-                  backgroundColor="#fef3c7"
-                />
-              </View>
+        {dashboard && !loading ? (
+          <View style={styles.metricsGrid}>
+            <View style={styles.metricCard}>
+              <Text style={styles.metricLabel}>Ingresos</Text>
+              <Text style={styles.metricValue}>{formatCurrency(dashboard.ingresosTotales)}</Text>
             </View>
 
-            <StatCard
-              icon="people"
-              title="Clientes"
-              value={dashboardStats.numClientes}
-              color="#06b6d4"
-              backgroundColor="#cffafe"
-            />
+            <View style={styles.metricCard}>
+              <Text style={styles.metricLabel}>Gastos (gastos+compras)</Text>
+              <Text style={styles.metricValue}>{formatCurrency(dashboard.gastosTotales)}</Text>
+            </View>
+
+            <View style={styles.metricCard}>
+              <Text style={styles.metricLabel}>Beneficio neto</Text>
+              <Text
+                style={[
+                  styles.metricValue,
+                  dashboard.beneficioNeto >= 0 ? styles.metricPositive : styles.metricNegative,
+                ]}
+              >
+                {formatCurrency(dashboard.beneficioNeto)}
+              </Text>
+            </View>
+
+            <View style={styles.metricCard}>
+              <Text style={styles.metricLabel}>Nº de reservas</Text>
+              <Text style={styles.metricValue}>{dashboard.numReservas}</Text>
+            </View>
+
+            <View style={styles.metricCard}>
+              <Text style={styles.metricLabel}>Nº de ventas</Text>
+              <Text style={styles.metricValue}>{dashboard.numVentas}</Text>
+            </View>
           </View>
-        )}
-
-        {salesStats && (
-          <View>
-            <Text style={styles.sectionTitle}>Estadísticas de Ventas</Text>
-
-            <ChartCard
-              title="Productos Más Vendidos"
-              icon="inventory-2"
-              loading={salesLoading}
-              data={salesStats.productosMasVendidos.map((p) => ({
-                label: p.nombre,
-                value: `${p.cantidad} vtas`,
-                secondary: `Ingresos: ${formatCurrency(p.ingresos)}`,
-                color: "#2563eb",
-                icon: "trending-up",
-              }))}
-            />
-
-            <ChartCard
-              title="Servicios Más Vendidos"
-              icon="room-service"
-              loading={salesLoading}
-              data={salesStats.serviciosMasVendidos.map((s) => ({
-                label: s.nombre,
-                value: `${s.cantidad} vtas`,
-                secondary: `Ingresos: ${formatCurrency(s.ingresos)}`,
-                color: "#8b5cf6",
-                icon: "trending-up",
-              }))}
-            />
-          </View>
-        )}
-
-        {reservaStats && (
-          <View>
-            <Text style={styles.sectionTitle}>Estadísticas de Reservas</Text>
-
-            <ChartCard
-              title="Servicios Más Reservados"
-              icon="room-service"
-              loading={reservaLoading}
-              data={reservaStats.serviciosMasReservados.map((s) => ({
-                label: s.nombre,
-                value: `${s.cantidad} res`,
-                color: "#8b5cf6",
-                icon: "calendar-today",
-              }))}
-            />
-
-            <ChartCard
-              title="Horarios con Más Reservas"
-              icon="schedule"
-              loading={reservaLoading}
-              data={reservaStats.horasConMasReservas.map((h) => ({
-                label: `${String(h.hora).padStart(2, "0")}:00 - ${String(h.hora + 1).padStart(
-                  2,
-                  "0"
-                )}:00`,
-                value: `${h.cantidad} res`,
-                color: "#06b6d4",
-                icon: "schedule",
-              }))}
-            />
-
-            <ChartCard
-              title="Estado de Reservas"
-              icon="event-note"
-              loading={reservaLoading}
-              data={reservaStats.reservasPorEstado.map((r) => ({
-                label: r.estado || "Sin estado",
-                value: r.cantidad,
-                color:
-                  r.estado === "completada"
-                    ? "#10b981"
-                    : r.estado === "cancelada"
-                      ? "#ef4444"
-                      : "#2563eb",
-                icon:
-                  r.estado === "completada"
-                    ? "check-circle"
-                    : r.estado === "cancelada"
-                      ? "cancel"
-                      : "schedule",
-              }))}
-            />
-          </View>
-        )}
-
-        {productStats && (
-          <View>
-            <Text style={styles.sectionTitle}>Estadísticas de Productos</Text>
-
-            <ChartCard
-              title="Productos Más Vendidos"
-              icon="inventory-2"
-              loading={productLoading}
-              data={productStats.productosMasVendidos.map((p) => ({
-                label: p.nombre,
-                value: `${p.cantidad_vendida} u`,
-                secondary: `Facturación: ${formatCurrency(p.facturacion)}`,
-                color: "#2563eb",
-                icon: "trending-up",
-              }))}
-            />
-
-            <ChartCard
-              title="Productos con Stock Bajo"
-              icon="warning"
-              loading={productLoading}
-              emptyMessage="¡Todos los productos tienen stock suficiente!"
-              data={productStats.productosConStockBajo.map((p) => ({
-                label: p.nombre,
-                value: `${p.stock}/${p.stock_minimo}`,
-                secondary: `Min: ${p.stock_minimo} | Precio: ${formatCurrency(p.precio_venta)}`,
-                color: "#ef4444",
-                icon: "warning",
-              }))}
-            />
-          </View>
-        )}
-
-        {serviceStats && (
-          <View>
-            <Text style={styles.sectionTitle}>Estadísticas de Servicios</Text>
-
-            <ChartCard
-              title="Servicios Más Reservados"
-              icon="room-service"
-              loading={serviceLoading}
-              data={serviceStats.serviciosMasReservados.map((s) => ({
-                label: s.nombre,
-                value: `${s.cantidad_reservas} res`,
-                color: "#8b5cf6",
-                icon: "calendar-today",
-              }))}
-            />
-
-            <ChartCard
-              title="Servicios con Mayor Facturación"
-              icon="paid"
-              loading={serviceLoading}
-              data={serviceStats.serviciosConMayorFacturacion.map((s) => ({
-                label: s.nombre,
-                value: formatCurrency(s.facturacion_total),
-                secondary: `${s.cantidad_ventas} ventas`,
-                color: "#10b981",
-                icon: "trending-up",
-              }))}
-            />
-
-            <ChartCard
-              title="Duración Promedio de Servicios"
-              icon="schedule"
-              loading={serviceLoading}
-              data={serviceStats.duracionMediaServicios.map((s) => ({
-                label: s.nombre,
-                value: `${Math.round(s.duracion_promedio)} min`,
-                secondary: `${s.total_reservas} reservas`,
-                color: "#06b6d4",
-                icon: "schedule",
-              }))}
-            />
-          </View>
-        )}
-
-        {purchaseStats && (
-          <View>
-            <Text style={styles.sectionTitle}>Estadísticas de Compras</Text>
-
-            <ChartCard
-              title="Compras por Día"
-              icon="shopping-cart"
-              loading={purchaseLoading}
-              data={purchaseStats.comprasPorDia.map((c) => ({
-                label: new Date(c.fecha).toLocaleDateString("es-ES"),
-                value: `${c.cantidad} compras`,
-                secondary: `Total: ${formatCurrency(c.total)}`,
-                color: "#f97316",
-                icon: "shopping-cart",
-              }))}
-            />
-
-            <ChartCard
-              title="Estado de Compras"
-              icon="fact-check"
-              loading={purchaseLoading}
-              data={purchaseStats.comprasPorEstado.map((c) => ({
-                label: c.estado || "Sin estado",
-                value: `${c.cantidad} compras`,
-                secondary: `Total: ${formatCurrency(c.total)}`,
-                color:
-                  c.estado === "completada"
-                    ? "#10b981"
-                    : c.estado === "cancelada"
-                      ? "#ef4444"
-                      : "#f97316",
-                icon:
-                  c.estado === "completada"
-                    ? "check-circle"
-                    : c.estado === "cancelada"
-                      ? "cancel"
-                      : "shopping-cart",
-              }))}
-            />
-
-            <ChartCard
-              title="Productos Más Comprados"
-              icon="inventory-2"
-              loading={purchaseLoading}
-              data={purchaseStats.productosMasComprados.map((p) => ({
-                label: p.nombre,
-                value: `${p.cantidad_esperada} u`,
-                secondary: `Llegaron: ${p.cantidad_llegada} | Total: ${formatCurrency(p.importe_total)}`,
-                color: "#f59e0b",
-                icon: "local-shipping",
-              }))}
-            />
-          </View>
-        )}
-
-        <View style={styles.padding} />
+        ) : null}
       </ScrollView>
+
+      <Modal transparent visible={activePicker !== null} animationType="fade">
+        <Pressable style={styles.modalOverlay} onPress={() => setActivePicker(null)}>
+          <Pressable style={styles.modalCard} onPress={() => undefined}>
+            <Text style={styles.modalTitle}>
+              {activePicker === "year" ? "Seleccionar año" : activePicker === "month" ? "Seleccionar mes" : "Seleccionar día"}
+            </Text>
+
+            <ScrollView style={styles.modalOptionsList} showsVerticalScrollIndicator>
+              {pickerOptions.map((option) => (
+                <Pressable
+                  key={`${activePicker}-${option.label}`}
+                  style={styles.modalOption}
+                  onPress={() => selectOption(option.value)}
+                >
+                  <Text style={styles.modalOptionText}>{option.label}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -558,56 +412,188 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
   },
+  headerSpacer: {
+    width: 40,
+  },
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
     color: "#1f2937",
   },
-  centerContainer: {
+  content: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
   },
-  errorBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    margin: 12,
-    padding: 12,
-    backgroundColor: "#fee2e2",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#fecaca",
-    gap: 8,
-  },
-  errorText: {
-    flex: 1,
-    fontSize: 14,
-    color: "#dc2626",
-  },
-  filterContainer: {
+  contentContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  scrollView: {
-    flex: 1,
-    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 22,
+    gap: 12,
   },
   sectionTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#1f2937",
+  },
+  sectionDescription: {
+    color: "#6b7280",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  filtersRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  filterChip: {
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    minHeight: 56,
+    justifyContent: "center",
+  },
+  filterChipGrow: {
+    flex: 1,
+  },
+  filterCardDisabled: {
+    opacity: 0.45,
+  },
+  filterLabel: {
+    fontSize: 12,
+    color: "#111827",
+    fontWeight: "600",
+  },
+  filterValue: {
+    marginTop: 2,
+    fontSize: 13,
+    color: "#0f766e",
+    fontWeight: "700",
+  },
+  summaryCard: {
+    marginTop: 8,
+    backgroundColor: "#ecfeff",
+    borderWidth: 1,
+    borderColor: "#a5f3fc",
+    borderRadius: 14,
+    padding: 14,
+  },
+  summaryTitle: {
+    fontSize: 13,
+    color: "#155e75",
+    marginBottom: 4,
+  },
+  summaryValue: {
+    fontSize: 18,
+    color: "#0c4a6e",
+    fontWeight: "700",
+  },
+  chartCard: {
+    marginTop: 12,
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    padding: 16,
+  },
+  chartHeader: {
+    marginBottom: 10,
+  },
+  chartTitle: {
     fontSize: 16,
     fontWeight: "700",
     color: "#1f2937",
-    marginTop: 20,
-    marginBottom: 12,
   },
-  statsRow: {
+  chartSubtitle: {
+    marginTop: 2,
+    fontSize: 12,
+    color: "#6b7280",
+  },
+  chartLoading: {
+    height: 220,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  yAxisText: {
+    color: "#6b7280",
+    fontSize: 11,
+  },
+  xAxisText: {
+    color: "#6b7280",
+    fontSize: 10,
+  },
+  errorText: {
+    color: "#b91c1c",
+    backgroundColor: "#fee2e2",
+    borderColor: "#fecaca",
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    fontSize: 13,
+  },
+  metricsGrid: {
     flexDirection: "row",
-    gap: 12,
+    flexWrap: "wrap",
+    gap: 10,
   },
-  statsCol: {
+  metricCard: {
+    width: "48%",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 12,
+    padding: 12,
+  },
+  metricLabel: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginBottom: 4,
+  },
+  metricValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  metricPositive: {
+    color: "#166534",
+  },
+  metricNegative: {
+    color: "#b91c1c",
+  },
+  modalOverlay: {
     flex: 1,
+    backgroundColor: "rgba(17, 24, 39, 0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 16,
   },
-  padding: {
-    height: 20,
+  modalCard: {
+    width: "100%",
+    maxWidth: 420,
+    maxHeight: "75%",
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  modalOptionsList: {
+    maxHeight: 420,
+  },
+  modalTitle: {
+    fontSize: 17,
+    color: "#111827",
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  modalOption: {
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
+  },
+  modalOptionText: {
+    fontSize: 15,
+    color: "#1f2937",
   },
 });
 

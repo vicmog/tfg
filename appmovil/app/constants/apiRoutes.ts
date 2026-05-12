@@ -86,7 +86,20 @@ export const API_ROUTES = {
   deleteVentaById: (idVenta: number) => `${API_BASE_URL}${API_PREFIX}/ventas/${idVenta}`,
   users: `${API_BASE_URL}${API_PREFIX}/users`,
   userById: (idUsuario: string | number) => `${API_BASE_URL}${API_PREFIX}/users/user/${idUsuario}`,
-  estadisticasDashboard: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/estadisticas/dashboard/${idNegocio}`,
+  estadisticasDashboard: (
+    idNegocio: number,
+    year?: number,
+    month?: number | null,
+    day?: number | null
+  ) => {
+    const params = new URLSearchParams();
+    if (year) params.append("year", String(year));
+    if (month) params.append("month", String(month));
+    if (day) params.append("day", String(day));
+    const query = params.toString();
+    const base = `${API_BASE_URL}${API_PREFIX}/estadisticas/dashboard/${idNegocio}`;
+    return query ? `${base}?${query}` : base;
+  },
   estadisticasVentas: (idNegocio: number, filter?: string, startDate?: string, endDate?: string) => {
     const params = new URLSearchParams();
     if (filter) params.append("filter", filter);
