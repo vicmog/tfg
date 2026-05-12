@@ -685,21 +685,8 @@ export const getProductStats = async (req, res) => {
             }
         );
 
-        const productosConStockBajo = await sequelize.query(
-            `SELECT p.id_producto, p.nombre, p.stock, p.stock_minimo, p.precio_venta
-             FROM "Producto" p
-             JOIN "Proveedor" pr ON p.id_proveedor = pr.id_proveedor
-             WHERE pr.id_negocio = :id_negocio AND p.stock <= p.stock_minimo
-             ORDER BY p.stock ASC
-             LIMIT 15`,
-            {
-                replacements: { id_negocio },
-                type: sequelize.QueryTypes.SELECT,
-            }
-        );
-
-        const productosConMayorFacturacion = await sequelize.query(
-            `SELECT p.id_producto, p.nombre, SUM(p.precio_venta * vp.cantidad) as facturacion_total, SUM(vp.cantidad) as cantidad_vendida
+        const productosMenosVendidos = await sequelize.query(
+            `SELECT p.id_producto, p.nombre, SUM(vp.cantidad) as cantidad_vendida, SUM(p.precio_venta * vp.cantidad) as facturacion
              FROM "VentaProducto" vp
              JOIN "Venta" v ON vp.id_venta = v.id_venta
              JOIN "Producto" p ON vp.id_producto = p.id_producto
@@ -707,7 +694,7 @@ export const getProductStats = async (req, res) => {
              JOIN "Cliente" c ON v.id_cliente = c.id_cliente
              WHERE c.id_negocio = :id_negocio AND pr.id_negocio = :id_negocio AND v.fecha BETWEEN :startDate AND :endDate
              GROUP BY p.id_producto, p.nombre
-             ORDER BY facturacion_total DESC
+             ORDER BY cantidad_vendida ASC
              LIMIT 15`,
             {
                 replacements: {
@@ -723,8 +710,7 @@ export const getProductStats = async (req, res) => {
             message: ESTADISTICAS_MESSAGES.PRODUCT_STATS_RETRIEVED,
             productStats: {
                 productosMasVendidos,
-                productosConStockBajo,
-                productosConMayorFacturacion,
+                productosMenosVendidos,
             },
         });
     } catch (error) {

@@ -85,6 +85,9 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
   const [error, setError] = useState("");
   const [dashboard, setDashboard] = useState<DashboardSummary | null>(null);
   const [chartData, setChartData] = useState<DashboardChartPoint[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [productError, setProductError] = useState("");
+  const [productosMasVendidos, setProductosMasVendidos] = useState<any[]>([]);
 
   const yearOptions = useMemo<PickerOption[]>(() => {
     const years = Array.from({ length: 8 }, (_, index) => currentYear - 5 + index).reverse();
@@ -226,8 +229,51 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
   useFocusEffect(
     useCallback(() => {
       loadDashboard();
+      loadProductStats();
     }, [loadDashboard])
   );
+
+  const buildRangeForProducts = (year: number, month: number | null, day: number | null) => {
+    if (day !== null && month !== null) {
+      const start = new Date(year, month - 1, day);
+      const end = new Date(year, month - 1, day + 1);
+      return { start: start.toISOString(), end: end.toISOString() };
+    }
+
+    if (month !== null) {
+      const start = new Date(year, month - 1, 1);
+      const end = new Date(year, month, 1);
+      return { start: start.toISOString(), end: end.toISOString() };
+    }
+
+    const start = new Date(year, 0, 1);
+    const end = new Date(year + 1, 0, 1);
+    return { start: start.toISOString(), end: end.toISOString() };
+  };
+
+  const loadProductStats = useCallback(async () => {
+    setLoadingProducts(true);
+    setProductError("");
+
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const { start, end } = buildRangeForProducts(selectedYear, selectedMonth, selectedDay);
+      const url = API_ROUTES.estadisticasProductos(negocio.id_negocio, undefined, start, end);
+      const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setProductError(data.message || "No se pudieron cargar las estadísticas de productos");
+        return;
+      }
+
+      setProductosMasVendidos(data.productStats?.productosMasVendidos || []);
+    } catch (e) {
+      setProductError("Error de conexión al cargar productos");
+    } finally {
+      setLoadingProducts(false);
+    }
+  }, [negocio.id_negocio, selectedDay, selectedMonth, selectedYear]);
 
   const barData = useMemo(() => {
     return chartData.map((item) => ({
@@ -367,6 +413,69 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
             </View>
           </View>
         ) : null}
+
+        <Text style={styles.sectionTitle}>Productos</Text>
+        <Text style={styles.sectionDescription}>Top 5 productos más vendidos y menos vendidos (periodo seleccionado).</Text>
+
+        <View style={styles.chartCard}>
+          <View style={styles.chartHeader}>
+            <Text style={styles.chartTitle}>Top 5 más vendidos</Text>
+            <Text style={styles.chartSubtitle}>Periodo seleccionado</Text>
+          </View>
+
+          {loadingProducts ? (
+            <View style={styles.chartLoading}>
+              <ActivityIndicator size="large" color="#0f766e" />
+            </View>
+          ) : (
+            <BarChart
+              data={productosMasVendidos.slice(0, 5).map((p) => ({ value: Number(p.cantidad_vendida || p.cantidad || 0), label: p.nombre }))}
+              barWidth={24}
+              spacing={18}
+              roundedTop
+              roundedBottom
+              hideRules
+              noOfSections={5}
+              yAxisThickness={0}
+              xAxisThickness={1}
+              xAxisColor="#d1d5db"
+              isAnimated
+              disablePress
+              yAxisTextStyle={styles.yAxisText}
+              xAxisLabelTextStyle={styles.xAxisText}
+            />
+          )}
+        </View>
+
+        <View style={styles.chartCard}>
+          <View style={styles.chartHeader}>
+            <Text style={styles.chartTitle}>Top 5 menos vendidos</Text>
+            <Text style={styles.chartSubtitle}>Periodo seleccionado</Text>
+          </View>
+
+          {loadingProducts ? (
+            <View style={styles.chartLoading}>
+              <ActivityIndicator size="large" color="#0f766e" />
+            </View>
+          ) : (
+            <BarChart
+              data={[...productosMasVendidos].reverse().slice(0, 5).map((p) => ({ value: Number(p.cantidad_vendida || p.cantidad || 0), label: p.nombre }))}
+              barWidth={24}
+              spacing={18}
+              roundedTop
+              roundedBottom
+              hideRules
+              noOfSections={5}
+              yAxisThickness={0}
+              xAxisThickness={1}
+              xAxisColor="#d1d5db"
+              isAnimated
+              disablePress
+              yAxisTextStyle={styles.yAxisText}
+              xAxisLabelTextStyle={styles.xAxisText}
+            />
+          )}
+        </View>
       </ScrollView>
 
       <Modal transparent visible={activePicker !== null} animationType="fade">
