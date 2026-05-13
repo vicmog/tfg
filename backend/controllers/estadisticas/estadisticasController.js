@@ -804,6 +804,89 @@ export const getServiceStats = async (req, res) => {
     }
 };
 
+export const getGastoStats = async (req, res) => {
+    try {
+        const id_usuario = req.user?.id_usuario;
+        const idNegocioResult = normalizeIntegerId(
+            req.params?.id_negocio,
+            ESTADISTICAS_ERRORS.INVALID_NEGOCIO_ID
+        );
+
+        if (!id_usuario) {
+            return res.status(401).json({ message: ESTADISTICAS_ERRORS.USER_NOT_AUTHENTICATED });
+        }
+
+        if (idNegocioResult.error) {
+            return res.status(400).json({ message: idNegocioResult.error });
+        }
+
+        const hasAccess = await hasAccessToNegocio(id_usuario, idNegocioResult.value);
+        if (!hasAccess) {
+            return res.status(403).json({ message: ESTADISTICAS_ERRORS.NO_ACCESS });
+        }
+
+        const dashboardFilters = parseDashboardFilters(req.query);
+        if (dashboardFilters.error) {
+            return res.status(400).json({ message: dashboardFilters.error });
+        }
+
+        const id_negocio = idNegocioResult.value;
+        const { year, month } = dashboardFilters;
+        const chartRange = getChartRangeFromFilter({ year, month });
+        const expectedPeriods = buildChartPeriods({ year, month, granularity: chartRange.granularity });
+
+        const truncateUnit = chartRange.granularity === "year" ? "year" : "month";
+
+        const gastosPorPeriodo = await sequelize.query(
+            `SELECT DATE_TRUNC('${truncateUnit}', g.fecha)::DATE as periodo, COALESCE(SUM(g.importe), 0) as gastos
+             FROM "Gasto" g
+             JOIN "TipoGasto" tg ON g.id_tipo_gasto = tg.id_tipo_gasto
+             WHERE tg.id_negocio = :id_negocio
+               AND g.fecha >= :startDate
+               AND g.fecha < :endDate
+             GROUP BY DATE_TRUNC('${truncateUnit}', g.fecha)::DATE
+             ORDER BY periodo ASC`,
+            {
+                replacements: {
+                    id_negocio,
+                    startDate: chartRange.startDate,
+                    endDate: chartRange.endDate,
+                },
+                type: sequelize.QueryTypes.SELECT,
+            }
+        );
+
+        const gastosMap = new Map(
+            gastosPorPeriodo.map((row) => [
+                getPeriodKeyFromRow(row.periodo, chartRange.granularity),
+                Number(row.gastos) || 0,
+            ])
+        );
+
+        const gastosChart = expectedPeriods.map((periodDate) => {
+            const periodKey = getPeriodKeyFromDate(periodDate, chartRange.granularity);
+            const gastos = gastosMap.get(periodKey) || 0;
+            return {
+                key: periodKey,
+                label: getPeriodLabel(periodDate, chartRange.granularity),
+                gastos,
+            };
+        });
+
+        return res.status(200).json({
+            message: ESTADISTICAS_MESSAGES.GASTO_STATS_RETRIEVED,
+            gastoChart: {
+                mode: chartRange.granularity,
+                gastos: gastosChart,
+            },
+            filter: { year, month },
+        });
+    } catch (error) {
+        console.error("Error en getGastoStats:", error);
+        return res.status(500).json({ message: ESTADISTICAS_ERRORS.SERVER_ERROR });
+    }
+};
+
 export const getResourceStats = async (req, res) => {
     try {
         const id_usuario = req.user?.id_usuario;
