@@ -990,6 +990,15 @@ export const getCompraStats = async (req, res) => {
         const rangeStart = dateRange?.[Op.between]?.[0];
         const rangeEnd = dateRange?.[Op.between]?.[1];
 
+        const dashboardFilters = parseDashboardFilters(req.query);
+        if (dashboardFilters.error) {
+            return res.status(400).json({ message: dashboardFilters.error });
+        }
+        const { year, month } = dashboardFilters;
+        const chartRange = getChartRangeFromFilter({ year, month });
+        const expectedPeriods = buildChartPeriods({ year, month, granularity: chartRange.granularity });
+        const truncateUnit = chartRange.granularity === "year" ? "year" : "month";
+
         const comprasPorDia = await sequelize.query(
             `SELECT DATE(c.fecha) as fecha, COUNT(*) as cantidad, COALESCE(SUM(c.importe_total), 0) as total
              FROM "Compra" c
@@ -1029,14 +1038,79 @@ export const getCompraStats = async (req, res) => {
             }
         );
 
-        return res.status(200).json({
-            message: ESTADISTICAS_MESSAGES.PURCHASE_STATS_RETRIEVED,
-            purchaseStats: {
-                comprasPorDia,
-                comprasPorEstado,
-                productosMasComprados,
-            },
-        });
+            const comprasPorPeriodo = await sequelize.query(
+                `SELECT DATE_TRUNC('${truncateUnit}', c.fecha)::DATE as periodo, COALESCE(SUM(c.importe_total), 0) as compras
+                 FROM "Compra" c
+                 WHERE c.id_negocio = :id_negocio
+                   AND c.estado = 'completada'
+                   AND c.fecha >= :startDate
+                   AND c.fecha < :endDate
+                 GROUP BY DATE_TRUNC('${truncateUnit}', c.fecha)::DATE
+                 ORDER BY periodo ASC`,
+                {
+                    replacements: {
+                        id_negocio,
+                        startDate: chartRange.startDate,
+                        endDate: chartRange.endDate,
+                    },
+                    type: sequelize.QueryTypes.SELECT,
+                }
+            );
+
+            const comprasMap = new Map(
+                comprasPorPeriodo.map((row) => [
+                    getPeriodKeyFromRow(row.periodo, chartRange.granularity),
+                    Number(row.compras) || 0,
+                ])
+            );
+
+            const compraChart = expectedPeriods.map((periodDate) => {
+                const periodKey = getPeriodKeyFromDate(periodDate, chartRange.granularity);
+                const compras = comprasMap.get(periodKey) || 0;
+                return {
+                    key: periodKey,
+                    label: getPeriodLabel(periodDate, chartRange.granularity),
+                    compras,
+                };
+            });
+
+            const proveedoresTop = await sequelize.query(
+                `SELECT p.id_proveedor, p.nombre, COUNT(DISTINCT c.id_compra) as cantidad, COALESCE(SUM(c.importe_total),0) as total
+                 FROM "Compra" c
+                 JOIN "CompraProducto" cp ON c.id_compra = cp.id_compra
+                 JOIN "Producto" pr ON cp.id_producto = pr.id_producto
+                 JOIN "Proveedor" p ON pr.id_proveedor = p.id_proveedor
+                 WHERE c.id_negocio = :id_negocio
+                   AND c.estado = 'completada'
+                   AND c.fecha >= :startDate
+                   AND c.fecha < :endDate
+                 GROUP BY p.id_proveedor, p.nombre
+                 ORDER BY cantidad DESC
+                 LIMIT 3`,
+                {
+                    replacements: {
+                        id_negocio,
+                        startDate: chartRange.startDate,
+                        endDate: chartRange.endDate,
+                    },
+                    type: sequelize.QueryTypes.SELECT,
+                }
+            );
+
+            return res.status(200).json({
+                message: ESTADISTICAS_MESSAGES.PURCHASE_STATS_RETRIEVED,
+                purchaseStats: {
+                    comprasPorDia,
+                    comprasPorEstado,
+                    productosMasComprados,
+                },
+                compraChart: {
+                    mode: chartRange.granularity,
+                    compras: compraChart,
+                },
+                proveedoresTop,
+                filter: { year, month },
+            });
     } catch (error) {
         console.error("Error en getCompraStats:", error);
         return res.status(500).json({ message: ESTADISTICAS_ERRORS.SERVER_ERROR });

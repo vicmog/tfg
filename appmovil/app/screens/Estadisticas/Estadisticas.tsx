@@ -101,9 +101,14 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
   const [servicesExpanded, setServicesExpanded] = useState<boolean>(false);
   const [resourcesExpanded, setResourcesExpanded] = useState<boolean>(false);
   const [gastosExpanded, setGastosExpanded] = useState<boolean>(false);
+  const [comprasExpanded, setComprasExpanded] = useState<boolean>(false);
   const [loadingGastos, setLoadingGastos] = useState(false);
   const [gastoError, setGastoError] = useState("");
   const [gastosChart, setGastosChart] = useState<any[]>([]);
+  const [loadingCompras, setLoadingCompras] = useState(false);
+  const [compraError, setCompraError] = useState("");
+  const [compraChart, setCompraChart] = useState<any[]>([]);
+  const [proveedoresTop, setProveedoresTop] = useState<any[]>([]);
 
   const yearOptions = useMemo<PickerOption[]>(() => {
     const years = Array.from({ length: 8 }, (_, index) => currentYear - 5 + index).reverse();
@@ -265,6 +270,30 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     }
   }, [negocio.id_negocio, selectedMonth, selectedYear]);
 
+  const loadCompraStats = useCallback(async () => {
+    setLoadingCompras(true);
+    setCompraError("");
+
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const url = API_ROUTES.estadisticasComprasChart(negocio.id_negocio, selectedYear, selectedMonth || undefined);
+      const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setCompraError(data.message || "No se pudieron cargar las estadísticas de compras");
+        return;
+      }
+
+      setCompraChart(data.compraChart?.compras || []);
+      setProveedoresTop(data.proveedoresTop || []);
+    } catch (e) {
+      setCompraError("Error de conexión al cargar compras");
+    } finally {
+      setLoadingCompras(false);
+    }
+  }, [negocio.id_negocio, selectedMonth, selectedYear]);
+
   
   
 
@@ -370,7 +399,8 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
       loadServiceStats();
       loadResourceStats();
       loadGastoStats();
-    }, [loadDashboard, loadProductStats, loadServiceStats, loadResourceStats, loadGastoStats])
+      loadCompraStats();
+    }, [loadDashboard, loadProductStats, loadServiceStats, loadResourceStats, loadGastoStats, loadCompraStats])
   );
 
   useEffect(() => {
@@ -379,7 +409,8 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     loadServiceStats();
     loadResourceStats();
     loadGastoStats();
-  }, [loadDashboard, loadProductStats, loadServiceStats, loadResourceStats, loadGastoStats]);
+    loadCompraStats();
+  }, [loadDashboard, loadProductStats, loadServiceStats, loadResourceStats, loadGastoStats, loadCompraStats]);
 
   const barData = useMemo(() => {
     return chartData.map((item) => ({
@@ -527,59 +558,6 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
           </View>
           <MaterialIcons name={productsExpanded ? "expand-less" : "expand-more"} size={26} color="#374151" />
         </TouchableOpacity>
-
-        <TouchableOpacity style={styles.collapsibleHeader} onPress={() => setGastosExpanded((v) => !v)}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.sectionTitle}>Gastos</Text>
-            <Text style={styles.sectionDescription}>Gastos del periodo seleccionado (últimos 5 periodos).</Text>
-          </View>
-          <MaterialIcons name={gastosExpanded ? "expand-less" : "expand-more"} size={26} color="#374151" />
-        </TouchableOpacity>
-
-        {gastosExpanded ? (
-          <View style={styles.chartCard}>
-            <View style={styles.chartHeader}>
-              <Text style={styles.chartTitle}>Gastos</Text>
-              <Text style={styles.chartSubtitle}>{selectedMonth ? "Últimos 5 meses" : "Últimos 5 años"}</Text>
-            </View>
-
-            {loadingGastos ? (
-              <View style={styles.chartLoading}>
-                <ActivityIndicator size="large" color="#0f766e" />
-              </View>
-            ) : gastoError ? (
-              <Text style={styles.errorText}>{gastoError}</Text>
-            ) : (
-              <>
-                <BarChart
-                  data={gastosChart.map((g) => ({ value: Number(g.gastos || 0), label: g.label }))}
-                  barWidth={24}
-                  spacing={18}
-                  roundedTop
-                  roundedBottom
-                  hideRules
-                  noOfSections={5}
-                  yAxisThickness={0}
-                  xAxisThickness={1}
-                  xAxisColor="#d1d5db"
-                  isAnimated
-                  disablePress
-                  yAxisTextStyle={styles.yAxisText}
-                  xAxisLabelTextStyle={styles.xAxisText}
-                />
-
-                <View style={styles.listContainer}>
-                  {gastosChart.map((g, idx) => (
-                    <View key={`gasto-${g.key ?? idx}`} style={styles.listItem}>
-                      <Text style={styles.listItemLabel}>{g.label}</Text>
-                      <Text style={styles.listItemValue}>{formatCurrency(Number(g.gastos || 0))}</Text>
-                    </View>
-                  ))}
-                </View>
-              </>
-            )}
-          </View>
-        ) : null}
 
         {productsExpanded ? (
           <>
@@ -839,6 +817,157 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                   </View>
                 ))}
               </View>
+            </View>
+          </>
+        ) : null}
+
+        <TouchableOpacity style={styles.collapsibleHeader} onPress={() => setGastosExpanded((v) => !v)}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sectionTitle}>Gastos</Text>
+            <Text style={styles.sectionDescription}>Gastos del periodo seleccionado (últimos 5 periodos).</Text>
+          </View>
+          <MaterialIcons name={gastosExpanded ? "expand-less" : "expand-more"} size={26} color="#374151" />
+        </TouchableOpacity>
+
+        {gastosExpanded ? (
+          <View style={styles.chartCard}>
+            <View style={styles.chartHeader}>
+              <Text style={styles.chartTitle}>Gastos</Text>
+              <Text style={styles.chartSubtitle}>{selectedMonth ? "Últimos 5 meses" : "Últimos 5 años"}</Text>
+            </View>
+
+            {loadingGastos ? (
+              <View style={styles.chartLoading}>
+                <ActivityIndicator size="large" color="#0f766e" />
+              </View>
+            ) : gastoError ? (
+              <Text style={styles.errorText}>{gastoError}</Text>
+            ) : (
+              <>
+                <BarChart
+                  data={gastosChart.map((g) => ({ value: Number(g.gastos || 0), label: g.label }))}
+                  barWidth={24}
+                  spacing={18}
+                  roundedTop
+                  roundedBottom
+                  hideRules
+                  noOfSections={5}
+                  yAxisThickness={0}
+                  xAxisThickness={1}
+                  xAxisColor="#d1d5db"
+                  isAnimated
+                  disablePress
+                  yAxisTextStyle={styles.yAxisText}
+                  xAxisLabelTextStyle={styles.xAxisText}
+                />
+
+                <View style={styles.listContainer}>
+                  {gastosChart.map((g, idx) => (
+                    <View key={`gasto-${g.key ?? idx}`} style={styles.listItem}>
+                      <Text style={styles.listItemLabel}>{g.label}</Text>
+                      <Text style={styles.listItemValue}>{formatCurrency(Number(g.gastos || 0))}</Text>
+                    </View>
+                  ))}
+                </View>
+              </>
+            )}
+          </View>
+        ) : null}
+
+        <TouchableOpacity style={styles.collapsibleHeader} onPress={() => setComprasExpanded((v) => !v)}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sectionTitle}>Compras</Text>
+            <Text style={styles.sectionDescription}>Gasto en compras y top 3 proveedores (periodo seleccionado).</Text>
+          </View>
+          <MaterialIcons name={comprasExpanded ? "expand-less" : "expand-more"} size={26} color="#374151" />
+        </TouchableOpacity>
+
+        {comprasExpanded ? (
+          <>
+            <View style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <Text style={styles.chartTitle}>Gasto en compras</Text>
+                <Text style={styles.chartSubtitle}>{selectedMonth ? "Últimos 5 meses" : "Últimos 5 años"}</Text>
+              </View>
+
+              {loadingCompras ? (
+                <View style={styles.chartLoading}>
+                  <ActivityIndicator size="large" color="#0f766e" />
+                </View>
+              ) : compraError ? (
+                <Text style={styles.errorText}>{compraError}</Text>
+              ) : (
+                <>
+                  <BarChart
+                    data={compraChart.map((c) => ({ value: Number(c.compras || 0), label: c.label }))}
+                    barWidth={24}
+                    spacing={18}
+                    roundedTop
+                    roundedBottom
+                    hideRules
+                    noOfSections={5}
+                    yAxisThickness={0}
+                    xAxisThickness={1}
+                    xAxisColor="#d1d5db"
+                    isAnimated
+                    disablePress
+                    yAxisTextStyle={styles.yAxisText}
+                    xAxisLabelTextStyle={styles.xAxisText}
+                  />
+
+                  <View style={styles.listContainer}>
+                    {compraChart.map((c, idx) => (
+                      <View key={`compra-${c.key ?? idx}`} style={styles.listItem}>
+                        <Text style={styles.listItemLabel}>{c.label}</Text>
+                        <Text style={styles.listItemValue}>{formatCurrency(Number(c.compras || 0))}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </>
+              )}
+            </View>
+
+            <View style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <Text style={styles.chartTitle}>Top 3 proveedores</Text>
+                <Text style={styles.chartSubtitle}>Proveedores con más compras en el periodo</Text>
+              </View>
+
+              {loadingCompras ? (
+                <View style={styles.chartLoading}>
+                  <ActivityIndicator size="large" color="#0f766e" />
+                </View>
+              ) : compraError ? (
+                <Text style={styles.errorText}>{compraError}</Text>
+              ) : (
+                <>
+                  <BarChart
+                    data={proveedoresTop.map((p) => ({ value: Number(p.cantidad || p.total || 0), label: p.nombre }))}
+                    barWidth={28}
+                    spacing={18}
+                    roundedTop
+                    roundedBottom
+                    hideRules
+                    noOfSections={5}
+                    yAxisThickness={0}
+                    xAxisThickness={1}
+                    xAxisColor="#d1d5db"
+                    isAnimated
+                    disablePress
+                    yAxisTextStyle={styles.yAxisText}
+                    xAxisLabelTextStyle={styles.xAxisText}
+                  />
+
+                  <View style={styles.listContainer}>
+                    {proveedoresTop.map((p, idx) => (
+                      <View key={`prov-${p.id_proveedor ?? idx}`} style={styles.listItem}>
+                        <Text style={styles.listItemLabel}>{idx + 1}. {p.nombre}</Text>
+                        <Text style={styles.listItemValue}>{Number(p.cantidad || 0)} compras — {formatCurrency(Number(p.total || 0))}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </>
+              )}
             </View>
           </>
         ) : null}

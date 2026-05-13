@@ -134,6 +134,12 @@ export const API_ROUTES = {
     if (month) params.append("month", String(month));
     return `${API_BASE_URL}${API_PREFIX}/estadisticas/gastos/${idNegocio}?${params.toString()}`;
   },
+  estadisticasComprasChart: (idNegocio: number, year?: number, month?: number) => {
+    const params = new URLSearchParams();
+    if (year) params.append("year", String(year));
+    if (month) params.append("month", String(month));
+    return `${API_BASE_URL}${API_PREFIX}/estadisticas/compras/${idNegocio}?${params.toString()}`;
+  },
   estadisticasRecursos: (idNegocio: number, filter?: string, startDate?: string, endDate?: string) => {
     const params = new URLSearchParams();
     if (filter) params.append("filter", filter);
