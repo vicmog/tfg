@@ -559,16 +559,16 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <MaterialIcons name="arrow-back" size={24} color="#1f2937" />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
+          <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Ventas</Text>
         {canManageVentas && (
           <TouchableOpacity
             onPress={handleOpenVentaModal}
-            style={styles.addButton}
+            style={styles.addPrimaryButton}
           >
-            <MaterialIcons name="add" size={24} color="#2563eb" />
+            <MaterialIcons name="add" size={20} color="#fff" />
           </TouchableOpacity>
         )}
       </View>
@@ -697,7 +697,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
       {}
       {loading ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#2563eb" />
+          <ActivityIndicator size="large" color="#1976D2" />
         </View>
       ) : filteredVentas.length === 0 ? (
         <View style={styles.emptyContainer}>
@@ -743,7 +743,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                         style={styles.editButton}
                         onPress={() => navigation.navigate("EditarVenta", { negocio, venta })}
                       >
-                        <MaterialIcons name="edit" size={18} color="#2563eb" />
+                        <MaterialIcons name="edit" size={18} color="#1976D2" />
                         <Text style={styles.editButtonText}>Editar</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
@@ -1002,15 +1002,15 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                 </View>
               ))}
 
-              <TouchableOpacity
-                style={styles.addItemButton}
-                onPress={handleAddItem}
-              >
-                <MaterialIcons name="add-circle-outline" size={20} color="#2563eb" />
-                <Text style={styles.addItemText}>
-                  Agregar {ventaType === "producto" ? "Producto" : "Servicio"}
-                </Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.addItemButton}
+                    onPress={handleAddItem}
+                  >
+                    <MaterialIcons name="add-circle-outline" size={20} color="#1976D2" />
+                    <Text style={styles.addItemText}>
+                      Agregar {ventaType === "producto" ? "Producto" : "Servicio"}
+                    </Text>
+                  </TouchableOpacity>
             </View>
 
             {}
@@ -1128,7 +1128,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
               <MaterialIcons
                 name={sendEmail ? "check-box" : "check-box-outline-blank"}
                 size={24}
-                color={sendEmail ? "#2563eb" : "#9ca3af"}
+                color={sendEmail ? "#1976D2" : "#9ca3af"}
               />
               <Text style={styles.checkboxLabel}>Enviar ticket al email</Text>
             </TouchableOpacity>
@@ -1419,7 +1419,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
+  container: { flex: 1, backgroundColor: "#f7fafc" },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1430,9 +1430,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#e5e7eb",
   },
+  iconButton: {
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: "#f0f7ff",
+    marginRight: 12,
+  },
   backButton: { padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: "600", color: "#1f2937" },
-  addButton: { padding: 8 },
+  headerTitle: { fontSize: 20, fontWeight: "700", color: "#0D47A1" },
+  addPrimaryButton: { paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#1976D2", borderRadius: 10 },
   feedbackBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -1493,7 +1499,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 4,
   },
-  amountText: { fontSize: 14, fontWeight: "600", color: "#0284c7" },
+  amountText: { fontSize: 14, fontWeight: "600", color: "#1976D2" },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   metaText: { fontSize: 12, color: "#6b7280" },
   modalContainer: { flex: 1, backgroundColor: "#fff" },
@@ -1528,7 +1534,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginRight: 8,
   },
-  clienteButtonActive: { backgroundColor: "#2563eb" },
+  clienteButtonActive: { backgroundColor: "#1976D2" },
   clienteButtonText: { fontSize: 14, color: "#6b7280" },
   clienteButtonTextActive: { color: "#fff" },
   emptyPickerText: { fontSize: 13, color: "#6b7280", paddingVertical: 8 },
@@ -1550,7 +1556,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#e5e7eb",
     borderRadius: 4,
   },
-  itemButtonActive: { backgroundColor: "#2563eb" },
+  itemButtonActive: { backgroundColor: "#1976D2" },
   itemButtonText: { fontSize: 12, color: "#6b7280" },
   itemButtonTextActive: { color: "#fff" },
   cantidadContainer: { flexDirection: "row", alignItems: "center", gap: 6 },
@@ -1576,7 +1582,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginTop: 8,
   },
-  addItemText: { fontSize: 14, color: "#2563eb", fontWeight: "500" },
+  addItemText: { fontSize: 14, color: "#1976D2", fontWeight: "500" },
   input: {
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -1598,7 +1604,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     paddingVertical: 12,
-    backgroundColor: "#2563eb",
+    backgroundColor: "#1976D2",
     borderRadius: 6,
     marginBottom: 20,
   },
@@ -1625,7 +1631,7 @@ const styles = StyleSheet.create({
   editButtonText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#2563eb",
+    color: "#1976D2",
   },
   deleteButton: {
     flex: 1,
@@ -1751,7 +1757,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   inlineDayCellSelected: {
-    backgroundColor: "#2563eb",
+    backgroundColor: "#1976D2",
   },
   inlineDayText: {
     fontSize: 13,
@@ -1767,7 +1773,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#e5e7eb",
-    backgroundColor: "#f9fafb",
+    backgroundColor: "#f7fafc",
   },
   filtersContent: {
     flexDirection: "row",

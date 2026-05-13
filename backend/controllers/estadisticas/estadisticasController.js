@@ -540,9 +540,6 @@ export const getReservaStats = async (req, res) => {
             req.params?.id_negocio,
             ESTADISTICAS_ERRORS.INVALID_NEGOCIO_ID
         );
-        const filterType = req.query?.filter || FILTER_TYPES.MONTH;
-        const startDate = req.query?.startDate;
-        const endDate = req.query?.endDate;
 
         if (!id_usuario) {
             return res.status(401).json({ message: ESTADISTICAS_ERRORS.USER_NOT_AUTHENTICATED });
@@ -557,54 +554,15 @@ export const getReservaStats = async (req, res) => {
             return res.status(403).json({ message: ESTADISTICAS_ERRORS.NO_ACCESS });
         }
 
+        const dashboardFilters = parseDashboardFilters(req.query);
+        if (dashboardFilters.error) {
+            return res.status(400).json({ message: dashboardFilters.error });
+        }
+
         const id_negocio = idNegocioResult.value;
-        const dateRange = getDateRange(filterType, startDate, endDate);
-        const rangeStart = dateRange?.[Op.between]?.[0];
-        const rangeEnd = dateRange?.[Op.between]?.[1];
+        const { year, month } = dashboardFilters;
 
-        const reservasPorDia = await sequelize.query(
-            `SELECT DATE(r.fecha_hora_inicio) as fecha, COUNT(*) as cantidad
-             FROM "Reserva" r
-             JOIN "Cliente" c ON r.id_cliente = c.id_cliente
-             WHERE c.id_negocio = :id_negocio AND r.fecha_hora_inicio BETWEEN :startDate AND :endDate
-             GROUP BY DATE(r.fecha_hora_inicio)
-             ORDER BY fecha ASC`,
-            {
-                replacements: {
-                    id_negocio,
-                    startDate: rangeStart,
-                    endDate: rangeEnd,
-                },
-                type: sequelize.QueryTypes.SELECT,
-            }
-        );
-
-        const reservasPorEstado = await sequelize.query(
-            `SELECT r.estado, COUNT(r.id_reserva) as cantidad
-             FROM "Reserva" r
-             JOIN "Cliente" c ON r.id_cliente = c.id_cliente
-             WHERE c.id_negocio = :id_negocio
-             GROUP BY r.estado
-             ORDER BY cantidad DESC`,
-            {
-                replacements: { id_negocio },
-                type: sequelize.QueryTypes.SELECT,
-            }
-        );
-
-        const horasConMasReservas = await sequelize.query(
-            `SELECT EXTRACT(HOUR FROM r.fecha_hora_inicio) as hora, COUNT(*) as cantidad
-             FROM "Reserva" r
-             JOIN "Cliente" c ON r.id_cliente = c.id_cliente
-             WHERE c.id_negocio = :id_negocio
-             GROUP BY EXTRACT(HOUR FROM r.fecha_hora_inicio)
-             ORDER BY cantidad DESC`,
-            {
-                replacements: { id_negocio },
-                type: sequelize.QueryTypes.SELECT,
-            }
-        );
-
+        // Top 3 servicios más reservados (total del negocio)
         const serviciosMasReservados = await sequelize.query(
             `SELECT s.id_servicio, s.nombre, COUNT(sr.id_servicio) as cantidad
              FROM "ServicioReserva" sr
@@ -614,20 +572,47 @@ export const getReservaStats = async (req, res) => {
              WHERE c.id_negocio = :id_negocio
              GROUP BY s.id_servicio, s.nombre
              ORDER BY cantidad DESC
-             LIMIT 10`,
+             LIMIT 3`,
             {
                 replacements: { id_negocio },
                 type: sequelize.QueryTypes.SELECT,
             }
         );
 
+        // Top 3 meses más reservados del año seleccionado
+        const mesesMasReservados = await sequelize.query(
+            `SELECT DATE_TRUNC('month', r.fecha_hora_inicio)::DATE as mes, 
+                    TO_CHAR(DATE_TRUNC('month', r.fecha_hora_inicio), 'Mon') as label,
+                    COUNT(r.id_reserva) as cantidad
+             FROM "Reserva" r
+             JOIN "Cliente" c ON r.id_cliente = c.id_cliente
+             WHERE c.id_negocio = :id_negocio
+               AND EXTRACT(YEAR FROM r.fecha_hora_inicio) = :year
+             GROUP BY DATE_TRUNC('month', r.fecha_hora_inicio)
+             ORDER BY cantidad DESC
+             LIMIT 3`,
+            {
+                replacements: { id_negocio, year },
+                type: sequelize.QueryTypes.SELECT,
+            }
+        );
+
+        // Mapear meses a formato consistente
+        const mesesFormateados = mesesMasReservados.map((row) => ({
+            key: row.mes,
+            label: row.label,
+            cantidad: Number(row.cantidad),
+        }));
+
         return res.status(200).json({
             message: ESTADISTICAS_MESSAGES.RESERVA_STATS_RETRIEVED,
             reservaStats: {
-                reservasPorDia,
-                reservasPorEstado,
-                horasConMasReservas,
                 serviciosMasReservados,
+                mesesMasReservados: mesesFormateados,
+            },
+            filter: {
+                year,
+                month,
             },
         });
     } catch (error) {

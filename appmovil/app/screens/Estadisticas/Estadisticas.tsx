@@ -116,6 +116,11 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
   const [clientesPorReservas, setClientesPorReservas] = useState<any[]>([]);
   const [clientesPorVentas, setClientesPorVentas] = useState<any[]>([]);
   const [clientesPorCanceladas, setClientesPorCanceladas] = useState<any[]>([]);
+  const [reservasExpanded, setReservasExpanded] = useState<boolean>(false);
+  const [loadingReservas, setLoadingReservas] = useState(false);
+  const [reservaError, setReservaError] = useState("");
+  const [serviciosMasReservados, setServiciosMasReservados] = useState<any[]>([]);
+  const [mesesMasReservados, setMesesMasReservados] = useState<any[]>([]);
 
   const yearOptions = useMemo<PickerOption[]>(() => {
     const years = Array.from({ length: 8 }, (_, index) => currentYear - 5 + index).reverse();
@@ -327,7 +332,29 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     }
   }, [negocio.id_negocio]);
 
-  
+  const loadReservaStats = useCallback(async () => {
+    setLoadingReservas(true);
+    setReservaError("");
+
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const url = API_ROUTES.estadisticasReservas(negocio.id_negocio, selectedYear, selectedMonth || undefined);
+      const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setReservaError(data.message || "No se pudieron cargar las estadísticas de reservas");
+        return;
+      }
+
+      setServiciosMasReservados(data.reservaStats?.serviciosMasReservados || []);
+      setMesesMasReservados(data.reservaStats?.mesesMasReservados || []);
+    } catch (e) {
+      setReservaError("Error de conexión al cargar reservas");
+    } finally {
+      setLoadingReservas(false);
+    }
+  }, [negocio.id_negocio, selectedMonth, selectedYear]);
 
   const loadServiceStats = useCallback(async () => {
     setLoadingServices(true);
@@ -433,7 +460,8 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
       loadGastoStats();
       loadCompraStats();
       loadClientStats();
-    }, [loadDashboard, loadProductStats, loadServiceStats, loadResourceStats, loadGastoStats, loadCompraStats, loadClientStats])
+        loadReservaStats();
+      }, [loadDashboard, loadProductStats, loadServiceStats, loadResourceStats, loadGastoStats, loadCompraStats, loadClientStats, loadReservaStats])
   );
 
   useEffect(() => {
@@ -444,7 +472,8 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     loadGastoStats();
     loadCompraStats();
     loadClientStats();
-  }, [loadDashboard, loadProductStats, loadServiceStats, loadResourceStats, loadGastoStats, loadCompraStats, loadClientStats]);
+      loadReservaStats();
+    }, [loadDashboard, loadProductStats, loadServiceStats, loadResourceStats, loadGastoStats, loadCompraStats, loadClientStats, loadReservaStats]);
 
   const barData = useMemo(() => {
     return chartData.map((item) => ({
@@ -466,8 +495,8 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <MaterialIcons name="arrow-back" size={24} color="#1f2937" />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
+          <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Estadísticas</Text>
         <View style={styles.headerSpacer} />
@@ -522,7 +551,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
           {loading ? (
             <View style={styles.chartLoading}>
-              <ActivityIndicator size="large" color="#0f766e" />
+              <ActivityIndicator size="large" color="#1976D2" />
             </View>
           ) : (
             <BarChart
@@ -603,7 +632,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
               {loadingProducts ? (
                 <View style={styles.chartLoading}>
-                  <ActivityIndicator size="large" color="#0f766e" />
+                  <ActivityIndicator size="large" color="#1976D2" />
                 </View>
               ) : (
                 <BarChart
@@ -642,7 +671,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
               {loadingProducts ? (
                 <View style={styles.chartLoading}>
-                  <ActivityIndicator size="large" color="#0f766e" />
+                  <ActivityIndicator size="large" color="#1976D2" />
                 </View>
               ) : (
                 <BarChart
@@ -693,7 +722,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
               {loadingServices ? (
                 <View style={styles.chartLoading}>
-                  <ActivityIndicator size="large" color="#0f766e" />
+                  <ActivityIndicator size="large" color="#1976D2" />
                 </View>
               ) : (
                 <BarChart
@@ -732,7 +761,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
               {loadingServices ? (
                 <View style={styles.chartLoading}>
-                  <ActivityIndicator size="large" color="#0f766e" />
+                  <ActivityIndicator size="large" color="#1976D2" />
                 </View>
               ) : (
                 <BarChart
@@ -783,7 +812,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
               {loadingResources ? (
                 <View style={styles.chartLoading}>
-                  <ActivityIndicator size="large" color="#0f766e" />
+                  <ActivityIndicator size="large" color="#1976D2" />
                 </View>
               ) : (
                 <BarChart
@@ -822,7 +851,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
               {loadingResources ? (
                 <View style={styles.chartLoading}>
-                  <ActivityIndicator size="large" color="#0f766e" />
+                  <ActivityIndicator size="large" color="#1976D2" />
                 </View>
               ) : (
                 <BarChart
@@ -870,11 +899,11 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
               <Text style={styles.chartSubtitle}>{selectedMonth ? "Últimos 5 meses" : "Últimos 5 años"}</Text>
             </View>
 
-            {loadingGastos ? (
-              <View style={styles.chartLoading}>
-                <ActivityIndicator size="large" color="#0f766e" />
-              </View>
-            ) : gastoError ? (
+              {loadingGastos ? (
+                <View style={styles.chartLoading}>
+                  <ActivityIndicator size="large" color="#1976D2" />
+                </View>
+              ) : gastoError ? (
               <Text style={styles.errorText}>{gastoError}</Text>
             ) : (
               <>
@@ -926,7 +955,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
               {loadingCompras ? (
                 <View style={styles.chartLoading}>
-                  <ActivityIndicator size="large" color="#0f766e" />
+                  <ActivityIndicator size="large" color="#1976D2" />
                 </View>
               ) : compraError ? (
                 <Text style={styles.errorText}>{compraError}</Text>
@@ -969,7 +998,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
               {loadingCompras ? (
                 <View style={styles.chartLoading}>
-                  <ActivityIndicator size="large" color="#0f766e" />
+                  <ActivityIndicator size="large" color="#1976D2" />
                 </View>
               ) : compraError ? (
                 <Text style={styles.errorText}>{compraError}</Text>
@@ -1024,7 +1053,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
               {loadingClientes ? (
                 <View style={styles.chartLoading}>
-                  <ActivityIndicator size="large" color="#0f766e" />
+                  <ActivityIndicator size="large" color="#1976D2" />
                 </View>
               ) : clienteError ? (
                 <Text style={styles.errorText}>{clienteError}</Text>
@@ -1067,7 +1096,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
               {loadingClientes ? (
                 <View style={styles.chartLoading}>
-                  <ActivityIndicator size="large" color="#0f766e" />
+                  <ActivityIndicator size="large" color="#1976D2" />
                 </View>
               ) : clienteError ? (
                 <Text style={styles.errorText}>{clienteError}</Text>
@@ -1110,7 +1139,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
               {loadingClientes ? (
                 <View style={styles.chartLoading}>
-                  <ActivityIndicator size="large" color="#0f766e" />
+                  <ActivityIndicator size="large" color="#1976D2" />
                 </View>
               ) : clienteError ? (
                 <Text style={styles.errorText}>{clienteError}</Text>
@@ -1153,7 +1182,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
               {loadingClientes ? (
                 <View style={styles.chartLoading}>
-                  <ActivityIndicator size="large" color="#0f766e" />
+                  <ActivityIndicator size="large" color="#1976D2" />
                 </View>
               ) : clienteError ? (
                 <Text style={styles.errorText}>{clienteError}</Text>
@@ -1189,6 +1218,104 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
             </View>
           </>
         ) : null}
+
+          <TouchableOpacity style={styles.collapsibleHeader} onPress={() => setReservasExpanded((v) => !v)}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.sectionTitle}>Reservas</Text>
+              <Text style={styles.sectionDescription}>Servicios más reservados y meses más activos del año.</Text>
+            </View>
+            <MaterialIcons name={reservasExpanded ? "expand-less" : "expand-more"} size={26} color="#374151" />
+          </TouchableOpacity>
+
+          {reservasExpanded ? (
+            <>
+              <View style={styles.chartCard}>
+                <View style={styles.chartHeader}>
+                  <Text style={styles.chartTitle}>Top 3 servicios más reservados</Text>
+                  <Text style={styles.chartSubtitle}>Total en el negocio</Text>
+                </View>
+
+                {loadingReservas ? (
+                  <View style={styles.chartLoading}>
+                    <ActivityIndicator size="large" color="#1976D2" />
+                  </View>
+                ) : reservaError ? (
+                  <Text style={styles.errorText}>{reservaError}</Text>
+                ) : (
+                  <>
+                    <BarChart
+                      data={serviciosMasReservados.map((s) => ({ value: Number(s.cantidad || 0), label: s.nombre }))}
+                      barWidth={28}
+                      spacing={18}
+                      roundedTop
+                      roundedBottom
+                      hideRules
+                      noOfSections={5}
+                      yAxisThickness={0}
+                      xAxisThickness={1}
+                      xAxisColor="#d1d5db"
+                      isAnimated
+                      disablePress
+                      yAxisTextStyle={styles.yAxisText}
+                      xAxisLabelTextStyle={styles.xAxisText}
+                    />
+
+                    <View style={styles.listContainer}>
+                      {serviciosMasReservados.map((s, idx) => (
+                        <View key={`srv-${s.id_servicio ?? idx}`} style={styles.listItem}>
+                          <Text style={styles.listItemLabel}>{idx + 1}. {s.nombre}</Text>
+                          <Text style={styles.listItemValue}>{Number(s.cantidad || 0)} reservas</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </>
+                )}
+              </View>
+
+              <View style={styles.chartCard}>
+                <View style={styles.chartHeader}>
+                  <Text style={styles.chartTitle}>Top 3 meses más reservados</Text>
+                  <Text style={styles.chartSubtitle}>Año seleccionado</Text>
+                </View>
+
+                {loadingReservas ? (
+                  <View style={styles.chartLoading}>
+                    <ActivityIndicator size="large" color="#1976D2" />
+                  </View>
+                ) : reservaError ? (
+                  <Text style={styles.errorText}>{reservaError}</Text>
+                ) : (
+                  <>
+                    <BarChart
+                      data={mesesMasReservados.map((m) => ({ value: Number(m.cantidad || 0), label: m.label }))}
+                      barWidth={28}
+                      spacing={18}
+                      roundedTop
+                      roundedBottom
+                      hideRules
+                      noOfSections={5}
+                      yAxisThickness={0}
+                      xAxisThickness={1}
+                      xAxisColor="#d1d5db"
+                      isAnimated
+                      disablePress
+                      yAxisTextStyle={styles.yAxisText}
+                      xAxisLabelTextStyle={styles.xAxisText}
+                    />
+
+                    <View style={styles.listContainer}>
+                      {mesesMasReservados.map((m, idx) => (
+                        <View key={`mes-${m.key ?? idx}`} style={styles.listItem}>
+                          <Text style={styles.listItemLabel}>{idx + 1}. {m.label}</Text>
+                          <Text style={styles.listItemValue}>{Number(m.cantidad || 0)} reservas</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </>
+                )}
+              </View>
+            </>
+          ) : null}
       </ScrollView>
 
       <Modal transparent visible={activePicker !== null} animationType="fade">
@@ -1219,7 +1346,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9fafb",
+    backgroundColor: "#f7fafc",
   },
   header: {
     flexDirection: "row",
@@ -1238,9 +1365,15 @@ const styles = StyleSheet.create({
     width: 40,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1f2937",
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#0D47A1",
+  },
+  iconButton: {
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: "#f0f7ff",
+    marginRight: 12,
   },
   content: {
     flex: 1,
@@ -1272,7 +1405,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 8,
-    minHeight: 56,
+    minHeight: 48,
     justifyContent: "center",
   },
   filterChipGrow: {
@@ -1289,7 +1422,7 @@ const styles = StyleSheet.create({
   filterValue: {
     marginTop: 2,
     fontSize: 13,
-    color: "#0f766e",
+    color: "#1976D2",
     fontWeight: "700",
   },
   summaryCard: {
@@ -1297,8 +1430,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#ecfeff",
     borderWidth: 1,
     borderColor: "#a5f3fc",
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: 12,
+    padding: 12,
   },
   summaryTitle: {
     fontSize: 13,
@@ -1313,10 +1446,10 @@ const styles = StyleSheet.create({
   chartCard: {
     marginTop: 12,
     backgroundColor: "#fff",
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    padding: 16,
+    padding: 12,
   },
   chartHeader: {
     marginBottom: 10,
@@ -1364,7 +1497,7 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     fontSize: 13,
     marginLeft: 8,
-    width: 56,
+    width: 72,
     textAlign: "right",
   },
   yAxisText: {
@@ -1408,7 +1541,7 @@ const styles = StyleSheet.create({
     color: "#111827",
   },
   metricPositive: {
-    color: "#166534",
+    color: "#16a34a",
   },
   metricNegative: {
     color: "#b91c1c",
@@ -1425,8 +1558,8 @@ const styles = StyleSheet.create({
     maxWidth: 420,
     maxHeight: "75%",
     backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 16,
+    borderRadius: 12,
+    padding: 12,
     borderWidth: 1,
     borderColor: "#e5e7eb",
   },
