@@ -88,6 +88,13 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [productError, setProductError] = useState("");
   const [productosMasVendidos, setProductosMasVendidos] = useState<any[]>([]);
+  const [productosMenosVendidos, setProductosMenosVendidos] = useState<any[]>([]);
+  const [loadingServices, setLoadingServices] = useState(false);
+  const [serviceError, setServiceError] = useState("");
+  const [serviciosMasVendidos, setServiciosMasVendidos] = useState<any[]>([]);
+  const [serviciosMenosVendidos, setServiciosMenosVendidos] = useState<any[]>([]);
+  const [productsExpanded, setProductsExpanded] = useState<boolean>(false);
+  const [servicesExpanded, setServicesExpanded] = useState<boolean>(false);
 
   const yearOptions = useMemo<PickerOption[]>(() => {
     const years = Array.from({ length: 8 }, (_, index) => currentYear - 5 + index).reverse();
@@ -226,10 +233,36 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     }
   }, [negocio.id_negocio, selectedDay, selectedMonth, selectedYear]);
 
+  const loadServiceStats = useCallback(async () => {
+    setLoadingServices(true);
+    setServiceError("");
+
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const { start, end } = buildRangeForProducts(selectedYear, selectedMonth, selectedDay);
+      const url = API_ROUTES.estadisticasServicios(negocio.id_negocio, undefined, start, end);
+      const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setServiceError(data.message || "No se pudieron cargar las estadísticas de servicios");
+        return;
+      }
+
+      setServiciosMasVendidos(data.serviceStats?.serviciosMasVendidos || []);
+      setServiciosMenosVendidos(data.serviceStats?.serviciosMenosVendidos || []);
+    } catch (e) {
+      setServiceError("Error de conexión al cargar servicios");
+    } finally {
+      setLoadingServices(false);
+    }
+  }, [negocio.id_negocio, selectedDay, selectedMonth, selectedYear]);
+
   useFocusEffect(
     useCallback(() => {
       loadDashboard();
       loadProductStats();
+      loadServiceStats();
     }, [loadDashboard])
   );
 
@@ -268,6 +301,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
       }
 
       setProductosMasVendidos(data.productStats?.productosMasVendidos || []);
+      setProductosMenosVendidos(data.productStats?.productosMenosVendidos || []);
     } catch (e) {
       setProductError("Error de conexión al cargar productos");
     } finally {
@@ -414,68 +448,185 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
           </View>
         ) : null}
 
-        <Text style={styles.sectionTitle}>Productos</Text>
-        <Text style={styles.sectionDescription}>Top 5 productos más vendidos y menos vendidos (periodo seleccionado).</Text>
-
-        <View style={styles.chartCard}>
-          <View style={styles.chartHeader}>
-            <Text style={styles.chartTitle}>Top 5 más vendidos</Text>
-            <Text style={styles.chartSubtitle}>Periodo seleccionado</Text>
+        <TouchableOpacity style={styles.collapsibleHeader} onPress={() => setProductsExpanded((v) => !v)}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sectionTitle}>Productos</Text>
+            <Text style={styles.sectionDescription}>Top 5 productos más vendidos y menos vendidos (periodo seleccionado).</Text>
           </View>
+          <MaterialIcons name={productsExpanded ? "expand-less" : "expand-more"} size={26} color="#374151" />
+        </TouchableOpacity>
 
-          {loadingProducts ? (
-            <View style={styles.chartLoading}>
-              <ActivityIndicator size="large" color="#0f766e" />
+        {productsExpanded ? (
+          <>
+            <View style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <Text style={styles.chartTitle}>Top 5 más vendidos</Text>
+                <Text style={styles.chartSubtitle}>Periodo seleccionado</Text>
+              </View>
+
+              {loadingProducts ? (
+                <View style={styles.chartLoading}>
+                  <ActivityIndicator size="large" color="#0f766e" />
+                </View>
+              ) : (
+                <BarChart
+                  data={productosMasVendidos.slice(0, 5).map((p) => ({ value: Number(p.cantidad_vendida || p.cantidad || 0), label: p.nombre }))}
+                  barWidth={24}
+                  spacing={18}
+                  roundedTop
+                  roundedBottom
+                  hideRules
+                  noOfSections={5}
+                  yAxisThickness={0}
+                  xAxisThickness={1}
+                  xAxisColor="#d1d5db"
+                  isAnimated
+                  disablePress
+                  yAxisTextStyle={styles.yAxisText}
+                  xAxisLabelTextStyle={styles.xAxisText}
+                />
+              )}
+
+              <View style={styles.listContainer}>
+                {productosMasVendidos.slice(0, 5).map((p, idx) => (
+                  <View key={`more-${p.id_producto ?? idx}`} style={styles.listItem}>
+                    <Text style={styles.listItemLabel}>{idx + 1}. {p.nombre}</Text>
+                    <Text style={styles.listItemValue}>{Number(p.cantidad_vendida || p.cantidad || 0)}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
-          ) : (
-            <BarChart
-              data={productosMasVendidos.slice(0, 5).map((p) => ({ value: Number(p.cantidad_vendida || p.cantidad || 0), label: p.nombre }))}
-              barWidth={24}
-              spacing={18}
-              roundedTop
-              roundedBottom
-              hideRules
-              noOfSections={5}
-              yAxisThickness={0}
-              xAxisThickness={1}
-              xAxisColor="#d1d5db"
-              isAnimated
-              disablePress
-              yAxisTextStyle={styles.yAxisText}
-              xAxisLabelTextStyle={styles.xAxisText}
-            />
-          )}
-        </View>
 
-        <View style={styles.chartCard}>
-          <View style={styles.chartHeader}>
-            <Text style={styles.chartTitle}>Top 5 menos vendidos</Text>
-            <Text style={styles.chartSubtitle}>Periodo seleccionado</Text>
+            <View style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <Text style={styles.chartTitle}>Top 5 menos vendidos</Text>
+                <Text style={styles.chartSubtitle}>Periodo seleccionado</Text>
+              </View>
+
+              {loadingProducts ? (
+                <View style={styles.chartLoading}>
+                  <ActivityIndicator size="large" color="#0f766e" />
+                </View>
+              ) : (
+                <BarChart
+                  data={productosMenosVendidos.slice(0, 5).map((p) => ({ value: Number(p.cantidad_vendida || p.cantidad || 0), label: p.nombre }))}
+                  barWidth={24}
+                  spacing={18}
+                  roundedTop
+                  roundedBottom
+                  hideRules
+                  noOfSections={5}
+                  yAxisThickness={0}
+                  xAxisThickness={1}
+                  xAxisColor="#d1d5db"
+                  isAnimated
+                  disablePress
+                  yAxisTextStyle={styles.yAxisText}
+                  xAxisLabelTextStyle={styles.xAxisText}
+                />
+              )}
+
+              <View style={styles.listContainer}>
+                {productosMenosVendidos.slice(0, 5).map((p, idx) => (
+                  <View key={`less-${p.id_producto ?? idx}`} style={styles.listItem}>
+                    <Text style={styles.listItemLabel}>{idx + 1}. {p.nombre}</Text>
+                    <Text style={styles.listItemValue}>{Number(p.cantidad_vendida || p.cantidad || 0)}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </>
+        ) : null}
+
+        <TouchableOpacity style={styles.collapsibleHeader} onPress={() => setServicesExpanded((v) => !v)}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sectionTitle}>Servicios</Text>
+            <Text style={styles.sectionDescription}>Top 5 servicios vendidos (ventas directas).</Text>
           </View>
+          <MaterialIcons name={servicesExpanded ? "expand-less" : "expand-more"} size={26} color="#374151" />
+        </TouchableOpacity>
 
-          {loadingProducts ? (
-            <View style={styles.chartLoading}>
-              <ActivityIndicator size="large" color="#0f766e" />
+        {servicesExpanded ? (
+          <>
+            <View style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <Text style={styles.chartTitle}>Top 5 servicios más vendidos</Text>
+                <Text style={styles.chartSubtitle}>Periodo seleccionado</Text>
+              </View>
+
+              {loadingServices ? (
+                <View style={styles.chartLoading}>
+                  <ActivityIndicator size="large" color="#0f766e" />
+                </View>
+              ) : (
+                <BarChart
+                  data={serviciosMasVendidos.slice(0, 5).map((s) => ({ value: Number(s.cantidad_ventas || 0), label: s.nombre }))}
+                  barWidth={24}
+                  spacing={18}
+                  roundedTop
+                  roundedBottom
+                  hideRules
+                  noOfSections={5}
+                  yAxisThickness={0}
+                  xAxisThickness={1}
+                  xAxisColor="#d1d5db"
+                  isAnimated
+                  disablePress
+                  yAxisTextStyle={styles.yAxisText}
+                  xAxisLabelTextStyle={styles.xAxisText}
+                />
+              )}
+
+              <View style={styles.listContainer}>
+                {serviciosMasVendidos.slice(0, 5).map((s, idx) => (
+                  <View key={`svc-more-${s.id_servicio ?? idx}`} style={styles.listItem}>
+                    <Text style={styles.listItemLabel}>{idx + 1}. {s.nombre}</Text>
+                    <Text style={styles.listItemValue}>{Number(s.cantidad_ventas || 0)}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
-          ) : (
-            <BarChart
-              data={[...productosMasVendidos].reverse().slice(0, 5).map((p) => ({ value: Number(p.cantidad_vendida || p.cantidad || 0), label: p.nombre }))}
-              barWidth={24}
-              spacing={18}
-              roundedTop
-              roundedBottom
-              hideRules
-              noOfSections={5}
-              yAxisThickness={0}
-              xAxisThickness={1}
-              xAxisColor="#d1d5db"
-              isAnimated
-              disablePress
-              yAxisTextStyle={styles.yAxisText}
-              xAxisLabelTextStyle={styles.xAxisText}
-            />
-          )}
-        </View>
+
+            <View style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <Text style={styles.chartTitle}>Top 5 servicios menos vendidos</Text>
+                <Text style={styles.chartSubtitle}>Periodo seleccionado</Text>
+              </View>
+
+              {loadingServices ? (
+                <View style={styles.chartLoading}>
+                  <ActivityIndicator size="large" color="#0f766e" />
+                </View>
+              ) : (
+                <BarChart
+                  data={serviciosMenosVendidos.slice(0, 5).map((s) => ({ value: Number(s.cantidad_ventas || 0), label: s.nombre }))}
+                  barWidth={24}
+                  spacing={18}
+                  roundedTop
+                  roundedBottom
+                  hideRules
+                  noOfSections={5}
+                  yAxisThickness={0}
+                  xAxisThickness={1}
+                  xAxisColor="#d1d5db"
+                  isAnimated
+                  disablePress
+                  yAxisTextStyle={styles.yAxisText}
+                  xAxisLabelTextStyle={styles.xAxisText}
+                />
+              )}
+
+              <View style={styles.listContainer}>
+                {serviciosMenosVendidos.slice(0, 5).map((s, idx) => (
+                  <View key={`svc-less-${s.id_servicio ?? idx}`} style={styles.listItem}>
+                    <Text style={styles.listItemLabel}>{idx + 1}. {s.nombre}</Text>
+                    <Text style={styles.listItemValue}>{Number(s.cantidad_ventas || 0)}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </>
+        ) : null}
       </ScrollView>
 
       <Modal transparent visible={activePicker !== null} animationType="fade">
@@ -618,10 +769,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#6b7280",
   },
+  collapsibleHeader: {
+    marginTop: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
   chartLoading: {
     height: 220,
     alignItems: "center",
     justifyContent: "center",
+  },
+  listContainer: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
+    paddingTop: 10,
+    gap: 8,
+  },
+  listItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  listItemLabel: {
+    color: "#111827",
+    fontSize: 13,
+    flex: 1,
+  },
+  listItemValue: {
+    color: "#6b7280",
+    fontSize: 13,
+    marginLeft: 8,
+    width: 56,
+    textAlign: "right",
   },
   yAxisText: {
     color: "#6b7280",

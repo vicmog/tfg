@@ -748,14 +748,20 @@ export const getServiceStats = async (req, res) => {
         const rangeStart = dateRange?.[Op.between]?.[0];
         const rangeEnd = dateRange?.[Op.between]?.[1];
 
-        const serviciosMasReservados = await sequelize.query(
-            `SELECT s.id_servicio, s.nombre, COUNT(sr.id_servicio) as cantidad_reservas
-             FROM "ServicioReserva" sr
-             JOIN "Reserva" r ON sr.id_reserva = r.id_reserva
-             JOIN "Servicio" s ON sr.id_servicio = s.id_servicio
-             WHERE s.id_negocio = :id_negocio AND r.fecha_hora_inicio BETWEEN :startDate AND :endDate
+        const serviciosMasVendidos = await sequelize.query(
+            `SELECT s.id_servicio, s.nombre, COUNT(vs.id_servicio) as cantidad_ventas, SUM(s.precio) as facturacion_total
+             FROM "VentaServicio" vs
+             JOIN "Venta" v ON vs.id_venta = v.id_venta
+             JOIN "Servicio" s ON vs.id_servicio = s.id_servicio
+             JOIN "Cliente" c ON v.id_cliente = c.id_cliente
+             WHERE c.id_negocio = :id_negocio AND v.fecha BETWEEN :startDate AND :endDate
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM "ServicioReserva" sr
+                    WHERE sr.id_servicio = s.id_servicio
+                )
              GROUP BY s.id_servicio, s.nombre
-             ORDER BY cantidad_reservas DESC
+             ORDER BY cantidad_ventas DESC
              LIMIT 15`,
             {
                 replacements: { id_negocio, startDate: rangeStart, endDate: rangeEnd },
@@ -763,32 +769,20 @@ export const getServiceStats = async (req, res) => {
             }
         );
 
-        const serviciosConMayorFacturacion = await sequelize.query(
+        const serviciosMenosVendidos = await sequelize.query(
             `SELECT s.id_servicio, s.nombre, COUNT(vs.id_servicio) as cantidad_ventas, SUM(s.precio) as facturacion_total
              FROM "VentaServicio" vs
              JOIN "Venta" v ON vs.id_venta = v.id_venta
              JOIN "Servicio" s ON vs.id_servicio = s.id_servicio
-             WHERE s.id_negocio = :id_negocio AND v.fecha BETWEEN :startDate AND :endDate
+             JOIN "Cliente" c ON v.id_cliente = c.id_cliente
+             WHERE c.id_negocio = :id_negocio AND v.fecha BETWEEN :startDate AND :endDate
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM "ServicioReserva" sr
+                    WHERE sr.id_servicio = s.id_servicio
+                )
              GROUP BY s.id_servicio, s.nombre
-             ORDER BY facturacion_total DESC
-             LIMIT 15`,
-            {
-                replacements: {
-                    id_negocio,
-                    startDate: rangeStart,
-                    endDate: rangeEnd,
-                },
-                type: sequelize.QueryTypes.SELECT,
-            }
-        );
-
-        const duracionMediaServicios = await sequelize.query(
-            `SELECT s.id_servicio, s.nombre, AVG(s.duracion) as duracion_promedio, COUNT(r.id_reserva) as total_reservas
-             FROM "ServicioReserva" sr
-             JOIN "Reserva" r ON sr.id_reserva = r.id_reserva
-             JOIN "Servicio" s ON sr.id_servicio = s.id_servicio
-             WHERE s.id_negocio = :id_negocio AND r.fecha_hora_inicio BETWEEN :startDate AND :endDate
-             GROUP BY s.id_servicio, s.nombre
+             ORDER BY cantidad_ventas ASC
              LIMIT 15`,
             {
                 replacements: { id_negocio, startDate: rangeStart, endDate: rangeEnd },
@@ -799,9 +793,8 @@ export const getServiceStats = async (req, res) => {
         return res.status(200).json({
             message: ESTADISTICAS_MESSAGES.SERVICE_STATS_RETRIEVED,
             serviceStats: {
-                serviciosMasReservados,
-                serviciosConMayorFacturacion,
-                duracionMediaServicios,
+                serviciosMasVendidos,
+                serviciosMenosVendidos,
             },
         });
     } catch (error) {
