@@ -1116,3 +1116,105 @@ export const getCompraStats = async (req, res) => {
         return res.status(500).json({ message: ESTADISTICAS_ERRORS.SERVER_ERROR });
     }
 };
+
+export const getClientStats = async (req, res) => {
+    try {
+        const id_usuario = req.user?.id_usuario;
+        const idNegocioResult = normalizeIntegerId(
+            req.params?.id_negocio,
+            ESTADISTICAS_ERRORS.INVALID_NEGOCIO_ID
+        );
+
+        if (!id_usuario) {
+            return res.status(401).json({ message: ESTADISTICAS_ERRORS.USER_NOT_AUTHENTICATED });
+        }
+
+        if (idNegocioResult.error) {
+            return res.status(400).json({ message: idNegocioResult.error });
+        }
+
+        const hasAccess = await hasAccessToNegocio(id_usuario, idNegocioResult.value);
+        if (!hasAccess) {
+            return res.status(403).json({ message: ESTADISTICAS_ERRORS.NO_ACCESS });
+        }
+
+        const id_negocio = idNegocioResult.value;
+
+        // Top 3 clientes por dinero gastado (ventas + reservas)
+        const clientesPorGasto = await sequelize.query(
+            `SELECT c.id_cliente, c.nombre, c.apellido1,
+                    COALESCE(SUM(v.precio_total), 0) as ventas_total,
+                    COALESCE(SUM(s.precio), 0) as reservas_total,
+                    COALESCE(SUM(v.precio_total), 0) + COALESCE(SUM(s.precio), 0) as total_gastado
+             FROM "Cliente" c
+             LEFT JOIN "Venta" v ON c.id_cliente = v.id_cliente
+             LEFT JOIN "Reserva" r ON c.id_cliente = r.id_cliente
+             LEFT JOIN "ServicioReserva" sr ON r.id_reserva = sr.id_reserva
+             LEFT JOIN "Servicio" s ON sr.id_servicio = s.id_servicio
+             WHERE c.id_negocio = :id_negocio
+             GROUP BY c.id_cliente, c.nombre, c.apellido1
+             ORDER BY total_gastado DESC
+             LIMIT 3`,
+            {
+                replacements: { id_negocio },
+                type: sequelize.QueryTypes.SELECT,
+            }
+        );
+
+        const clientesPorReservas = await sequelize.query(
+            `SELECT c.id_cliente, c.nombre, c.apellido1, COUNT(r.id_reserva) as num_reservas
+             FROM "Cliente" c
+             JOIN "Reserva" r ON c.id_cliente = r.id_cliente
+             WHERE c.id_negocio = :id_negocio
+             GROUP BY c.id_cliente, c.nombre, c.apellido1
+             ORDER BY num_reservas DESC
+             LIMIT 3`,
+            {
+                replacements: { id_negocio },
+                type: sequelize.QueryTypes.SELECT,
+            }
+        );
+
+        const clientesPorVentas = await sequelize.query(
+            `SELECT c.id_cliente, c.nombre, c.apellido1, COUNT(vp.id_producto) as num_productos_vendidos
+             FROM "Cliente" c
+             JOIN "Venta" v ON c.id_cliente = v.id_cliente
+             JOIN "VentaProducto" vp ON v.id_venta = vp.id_venta
+             WHERE c.id_negocio = :id_negocio
+             GROUP BY c.id_cliente, c.nombre, c.apellido1
+             ORDER BY num_productos_vendidos DESC
+             LIMIT 3`,
+            {
+                replacements: { id_negocio },
+                type: sequelize.QueryTypes.SELECT,
+            }
+        );
+
+        const clientesPorCanceladas = await sequelize.query(
+            `SELECT c.id_cliente, c.nombre, c.apellido1, COUNT(r.id_reserva) as num_canceladas
+             FROM "Cliente" c
+             JOIN "Reserva" r ON c.id_cliente = r.id_cliente
+             WHERE c.id_negocio = :id_negocio AND r.estado = 'cancelada'
+             GROUP BY c.id_cliente, c.nombre, c.apellido1
+             ORDER BY num_canceladas DESC
+             LIMIT 3`,
+            {
+                replacements: { id_negocio },
+                type: sequelize.QueryTypes.SELECT,
+            }
+        );
+
+        return res.status(200).json({
+            message: "Client stats retrieved successfully",
+            clientStats: {
+                clientesPorGasto,
+                clientesPorReservas,
+                clientesPorVentas,
+                clientesPorCanceladas,
+            },
+        });
+    } catch (error) {
+        console.error("Error en getClientStats:", error);
+        return res.status(500).json({ message: ESTADISTICAS_ERRORS.SERVER_ERROR });
+    }
+};

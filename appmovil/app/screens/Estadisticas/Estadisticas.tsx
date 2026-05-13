@@ -102,6 +102,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
   const [resourcesExpanded, setResourcesExpanded] = useState<boolean>(false);
   const [gastosExpanded, setGastosExpanded] = useState<boolean>(false);
   const [comprasExpanded, setComprasExpanded] = useState<boolean>(false);
+  const [clientesExpanded, setClientesExpanded] = useState<boolean>(false);
   const [loadingGastos, setLoadingGastos] = useState(false);
   const [gastoError, setGastoError] = useState("");
   const [gastosChart, setGastosChart] = useState<any[]>([]);
@@ -109,6 +110,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
   const [compraError, setCompraError] = useState("");
   const [compraChart, setCompraChart] = useState<any[]>([]);
   const [proveedoresTop, setProveedoresTop] = useState<any[]>([]);
+  const [loadingClientes, setLoadingClientes] = useState(false);
+  const [clienteError, setClienteError] = useState("");
+  const [clientesPorGasto, setClientesPorGasto] = useState<any[]>([]);
+  const [clientesPorReservas, setClientesPorReservas] = useState<any[]>([]);
+  const [clientesPorVentas, setClientesPorVentas] = useState<any[]>([]);
+  const [clientesPorCanceladas, setClientesPorCanceladas] = useState<any[]>([]);
 
   const yearOptions = useMemo<PickerOption[]>(() => {
     const years = Array.from({ length: 8 }, (_, index) => currentYear - 5 + index).reverse();
@@ -294,7 +301,32 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     }
   }, [negocio.id_negocio, selectedMonth, selectedYear]);
 
-  
+  const loadClientStats = useCallback(async () => {
+    setLoadingClientes(true);
+    setClienteError("");
+
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const url = API_ROUTES.estadisticasClientes(negocio.id_negocio);
+      const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setClienteError(data.message || "No se pudieron cargar las estadísticas de clientes");
+        return;
+      }
+
+      setClientesPorGasto(data.clientStats?.clientesPorGasto || []);
+      setClientesPorReservas(data.clientStats?.clientesPorReservas || []);
+      setClientesPorVentas(data.clientStats?.clientesPorVentas || []);
+      setClientesPorCanceladas(data.clientStats?.clientesPorCanceladas || []);
+    } catch (e) {
+      setClienteError("Error de conexión al cargar clientes");
+    } finally {
+      setLoadingClientes(false);
+    }
+  }, [negocio.id_negocio]);
+
   
 
   const loadServiceStats = useCallback(async () => {
@@ -400,7 +432,8 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
       loadResourceStats();
       loadGastoStats();
       loadCompraStats();
-    }, [loadDashboard, loadProductStats, loadServiceStats, loadResourceStats, loadGastoStats, loadCompraStats])
+      loadClientStats();
+    }, [loadDashboard, loadProductStats, loadServiceStats, loadResourceStats, loadGastoStats, loadCompraStats, loadClientStats])
   );
 
   useEffect(() => {
@@ -410,7 +443,8 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     loadResourceStats();
     loadGastoStats();
     loadCompraStats();
-  }, [loadDashboard, loadProductStats, loadServiceStats, loadResourceStats, loadGastoStats, loadCompraStats]);
+    loadClientStats();
+  }, [loadDashboard, loadProductStats, loadServiceStats, loadResourceStats, loadGastoStats, loadCompraStats, loadClientStats]);
 
   const barData = useMemo(() => {
     return chartData.map((item) => ({
@@ -963,6 +997,190 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                       <View key={`prov-${p.id_proveedor ?? idx}`} style={styles.listItem}>
                         <Text style={styles.listItemLabel}>{idx + 1}. {p.nombre}</Text>
                         <Text style={styles.listItemValue}>{Number(p.cantidad || 0)} compras — {formatCurrency(Number(p.total || 0))}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </>
+              )}
+            </View>
+          </>
+        ) : null}
+
+        <TouchableOpacity style={styles.collapsibleHeader} onPress={() => setClientesExpanded((v) => !v)}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sectionTitle}>Clientes</Text>
+            <Text style={styles.sectionDescription}>Análisis de clientes: gasto, reservas, ventas y cancelaciones.</Text>
+          </View>
+          <MaterialIcons name={clientesExpanded ? "expand-less" : "expand-more"} size={26} color="#374151" />
+        </TouchableOpacity>
+
+        {clientesExpanded ? (
+          <>
+            <View style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <Text style={styles.chartTitle}>Top 3 clientes por gasto</Text>
+                <Text style={styles.chartSubtitle}>Dinero total gastado (ventas + reservas)</Text>
+              </View>
+
+              {loadingClientes ? (
+                <View style={styles.chartLoading}>
+                  <ActivityIndicator size="large" color="#0f766e" />
+                </View>
+              ) : clienteError ? (
+                <Text style={styles.errorText}>{clienteError}</Text>
+              ) : (
+                <>
+                  <BarChart
+                    data={clientesPorGasto.map((c) => ({ value: Number(c.total_gastado || 0), label: `${c.nombre}` }))}
+                    barWidth={28}
+                    spacing={18}
+                    roundedTop
+                    roundedBottom
+                    hideRules
+                    noOfSections={5}
+                    yAxisThickness={0}
+                    xAxisThickness={1}
+                    xAxisColor="#d1d5db"
+                    isAnimated
+                    disablePress
+                    yAxisTextStyle={styles.yAxisText}
+                    xAxisLabelTextStyle={styles.xAxisText}
+                  />
+
+                  <View style={styles.listContainer}>
+                    {clientesPorGasto.map((c, idx) => (
+                      <View key={`gasto-${c.id_cliente ?? idx}`} style={styles.listItem}>
+                        <Text style={styles.listItemLabel}>{idx + 1}. {c.nombre} {c.apellido1}</Text>
+                        <Text style={styles.listItemValue}>{formatCurrency(Number(c.total_gastado || 0))}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </>
+              )}
+            </View>
+
+            <View style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <Text style={styles.chartTitle}>Top 3 clientes por reservas</Text>
+                <Text style={styles.chartSubtitle}>Número de reservas realizadas</Text>
+              </View>
+
+              {loadingClientes ? (
+                <View style={styles.chartLoading}>
+                  <ActivityIndicator size="large" color="#0f766e" />
+                </View>
+              ) : clienteError ? (
+                <Text style={styles.errorText}>{clienteError}</Text>
+              ) : (
+                <>
+                  <BarChart
+                    data={clientesPorReservas.map((c) => ({ value: Number(c.num_reservas || 0), label: `${c.nombre}` }))}
+                    barWidth={28}
+                    spacing={18}
+                    roundedTop
+                    roundedBottom
+                    hideRules
+                    noOfSections={5}
+                    yAxisThickness={0}
+                    xAxisThickness={1}
+                    xAxisColor="#d1d5db"
+                    isAnimated
+                    disablePress
+                    yAxisTextStyle={styles.yAxisText}
+                    xAxisLabelTextStyle={styles.xAxisText}
+                  />
+
+                  <View style={styles.listContainer}>
+                    {clientesPorReservas.map((c, idx) => (
+                      <View key={`res-${c.id_cliente ?? idx}`} style={styles.listItem}>
+                        <Text style={styles.listItemLabel}>{idx + 1}. {c.nombre} {c.apellido1}</Text>
+                        <Text style={styles.listItemValue}>{Number(c.num_reservas || 0)} reservas</Text>
+                      </View>
+                    ))}
+                  </View>
+                </>
+              )}
+            </View>
+
+            <View style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <Text style={styles.chartTitle}>Top 3 clientes por ventas</Text>
+                <Text style={styles.chartSubtitle}>Número de productos comprados</Text>
+              </View>
+
+              {loadingClientes ? (
+                <View style={styles.chartLoading}>
+                  <ActivityIndicator size="large" color="#0f766e" />
+                </View>
+              ) : clienteError ? (
+                <Text style={styles.errorText}>{clienteError}</Text>
+              ) : (
+                <>
+                  <BarChart
+                    data={clientesPorVentas.map((c) => ({ value: Number(c.num_productos_vendidos || 0), label: `${c.nombre}` }))}
+                    barWidth={28}
+                    spacing={18}
+                    roundedTop
+                    roundedBottom
+                    hideRules
+                    noOfSections={5}
+                    yAxisThickness={0}
+                    xAxisThickness={1}
+                    xAxisColor="#d1d5db"
+                    isAnimated
+                    disablePress
+                    yAxisTextStyle={styles.yAxisText}
+                    xAxisLabelTextStyle={styles.xAxisText}
+                  />
+
+                  <View style={styles.listContainer}>
+                    {clientesPorVentas.map((c, idx) => (
+                      <View key={`vent-${c.id_cliente ?? idx}`} style={styles.listItem}>
+                        <Text style={styles.listItemLabel}>{idx + 1}. {c.nombre} {c.apellido1}</Text>
+                        <Text style={styles.listItemValue}>{Number(c.num_productos_vendidos || 0)} productos</Text>
+                      </View>
+                    ))}
+                  </View>
+                </>
+              )}
+            </View>
+
+            <View style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <Text style={styles.chartTitle}>Top 3 clientes por cancelaciones</Text>
+                <Text style={styles.chartSubtitle}>Número de reservas canceladas</Text>
+              </View>
+
+              {loadingClientes ? (
+                <View style={styles.chartLoading}>
+                  <ActivityIndicator size="large" color="#0f766e" />
+                </View>
+              ) : clienteError ? (
+                <Text style={styles.errorText}>{clienteError}</Text>
+              ) : (
+                <>
+                  <BarChart
+                    data={clientesPorCanceladas.map((c) => ({ value: Number(c.num_canceladas || 0), label: `${c.nombre}` }))}
+                    barWidth={28}
+                    spacing={18}
+                    roundedTop
+                    roundedBottom
+                    hideRules
+                    noOfSections={5}
+                    yAxisThickness={0}
+                    xAxisThickness={1}
+                    xAxisColor="#d1d5db"
+                    isAnimated
+                    disablePress
+                    yAxisTextStyle={styles.yAxisText}
+                    xAxisLabelTextStyle={styles.xAxisText}
+                  />
+
+                  <View style={styles.listContainer}>
+                    {clientesPorCanceladas.map((c, idx) => (
+                      <View key={`canc-${c.id_cliente ?? idx}`} style={styles.listItem}>
+                        <Text style={styles.listItemLabel}>{idx + 1}. {c.nombre} {c.apellido1}</Text>
+                        <Text style={styles.listItemValue}>{Number(c.num_canceladas || 0)} canceladas</Text>
                       </View>
                     ))}
                   </View>

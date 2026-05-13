@@ -140,6 +140,9 @@ export const API_ROUTES = {
     if (month) params.append("month", String(month));
     return `${API_BASE_URL}${API_PREFIX}/estadisticas/compras/${idNegocio}?${params.toString()}`;
   },
+  estadisticasClientes: (idNegocio: number) => {
+    return `${API_BASE_URL}${API_PREFIX}/estadisticas/clientes/${idNegocio}`;
+  },
   estadisticasRecursos: (idNegocio: number, filter?: string, startDate?: string, endDate?: string) => {
     const params = new URLSearchParams();
     if (filter) params.append("filter", filter);
