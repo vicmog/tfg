@@ -93,8 +93,13 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
   const [serviceError, setServiceError] = useState("");
   const [serviciosMasVendidos, setServiciosMasVendidos] = useState<any[]>([]);
   const [serviciosMenosVendidos, setServiciosMenosVendidos] = useState<any[]>([]);
+  const [loadingResources, setLoadingResources] = useState(false);
+  const [resourceError, setResourceError] = useState("");
+  const [recursosMasUsados, setRecursosMasUsados] = useState<any[]>([]);
+  const [recursosMenosUsados, setRecursosMenosUsados] = useState<any[]>([]);
   const [productsExpanded, setProductsExpanded] = useState<boolean>(false);
   const [servicesExpanded, setServicesExpanded] = useState<boolean>(false);
+  const [resourcesExpanded, setResourcesExpanded] = useState<boolean>(false);
 
   const yearOptions = useMemo<PickerOption[]>(() => {
     const years = Array.from({ length: 8 }, (_, index) => currentYear - 5 + index).reverse();
@@ -263,6 +268,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
       loadDashboard();
       loadProductStats();
       loadServiceStats();
+      loadResourceStats();
     }, [loadDashboard])
   );
 
@@ -306,6 +312,31 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
       setProductError("Error de conexión al cargar productos");
     } finally {
       setLoadingProducts(false);
+    }
+  }, [negocio.id_negocio, selectedDay, selectedMonth, selectedYear]);
+
+  const loadResourceStats = useCallback(async () => {
+    setLoadingResources(true);
+    setResourceError("");
+
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const { start, end } = buildRangeForProducts(selectedYear, selectedMonth, selectedDay);
+      const url = API_ROUTES.estadisticasRecursos(negocio.id_negocio, undefined, start, end);
+      const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setResourceError(data.message || "No se pudieron cargar las estadísticas de recursos");
+        return;
+      }
+
+      setRecursosMasUsados(data.resourceStats?.recursosMasUsados || []);
+      setRecursosMenosUsados(data.resourceStats?.recursosMenosUsados || []);
+    } catch (e) {
+      setResourceError("Error de conexión al cargar recursos");
+    } finally {
+      setLoadingResources(false);
     }
   }, [negocio.id_negocio, selectedDay, selectedMonth, selectedYear]);
 
@@ -621,6 +652,96 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                   <View key={`svc-less-${s.id_servicio ?? idx}`} style={styles.listItem}>
                     <Text style={styles.listItemLabel}>{idx + 1}. {s.nombre}</Text>
                     <Text style={styles.listItemValue}>{Number(s.cantidad_ventas || 0)}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </>
+        ) : null}
+
+        <TouchableOpacity style={styles.collapsibleHeader} onPress={() => setResourcesExpanded((v) => !v)}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sectionTitle}>Recursos</Text>
+            <Text style={styles.sectionDescription}>Recursos más y menos utilizados (periodo seleccionado).</Text>
+          </View>
+          <MaterialIcons name={resourcesExpanded ? "expand-less" : "expand-more"} size={26} color="#374151" />
+        </TouchableOpacity>
+
+        {resourcesExpanded ? (
+          <>
+            <View style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <Text style={styles.chartTitle}>Top 3 recursos más usados</Text>
+                <Text style={styles.chartSubtitle}>Periodo seleccionado</Text>
+              </View>
+
+              {loadingResources ? (
+                <View style={styles.chartLoading}>
+                  <ActivityIndicator size="large" color="#0f766e" />
+                </View>
+              ) : (
+                <BarChart
+                  data={recursosMasUsados.slice(0, 3).map((r) => ({ value: Number(r.cantidad || 0), label: r.nombre }))}
+                  barWidth={24}
+                  spacing={18}
+                  roundedTop
+                  roundedBottom
+                  hideRules
+                  noOfSections={5}
+                  yAxisThickness={0}
+                  xAxisThickness={1}
+                  xAxisColor="#d1d5db"
+                  isAnimated
+                  disablePress
+                  yAxisTextStyle={styles.yAxisText}
+                  xAxisLabelTextStyle={styles.xAxisText}
+                />
+              )}
+
+              <View style={styles.listContainer}>
+                {recursosMasUsados.slice(0, 3).map((r, idx) => (
+                  <View key={`res-more-${r.id_recurso ?? idx}`} style={styles.listItem}>
+                    <Text style={styles.listItemLabel}>{idx + 1}. {r.nombre}</Text>
+                    <Text style={styles.listItemValue}>{Number(r.cantidad || 0)}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <Text style={styles.chartTitle}>Top 3 recursos menos usados</Text>
+                <Text style={styles.chartSubtitle}>Periodo seleccionado</Text>
+              </View>
+
+              {loadingResources ? (
+                <View style={styles.chartLoading}>
+                  <ActivityIndicator size="large" color="#0f766e" />
+                </View>
+              ) : (
+                <BarChart
+                  data={recursosMenosUsados.slice(0, 3).map((r) => ({ value: Number(r.cantidad || 0), label: r.nombre }))}
+                  barWidth={24}
+                  spacing={18}
+                  roundedTop
+                  roundedBottom
+                  hideRules
+                  noOfSections={5}
+                  yAxisThickness={0}
+                  xAxisThickness={1}
+                  xAxisColor="#d1d5db"
+                  isAnimated
+                  disablePress
+                  yAxisTextStyle={styles.yAxisText}
+                  xAxisLabelTextStyle={styles.xAxisText}
+                />
+              )}
+
+              <View style={styles.listContainer}>
+                {recursosMenosUsados.slice(0, 3).map((r, idx) => (
+                  <View key={`res-less-${r.id_recurso ?? idx}`} style={styles.listItem}>
+                    <Text style={styles.listItemLabel}>{idx + 1}. {r.nombre}</Text>
+                    <Text style={styles.listItemValue}>{Number(r.cantidad || 0)}</Text>
                   </View>
                 ))}
               </View>

@@ -15,6 +15,7 @@ export const ESTADISTICAS_MESSAGES = {
     RESERVA_STATS_RETRIEVED: "Estadísticas de reservas obtenidas correctamente",
     PRODUCT_STATS_RETRIEVED: "Estadísticas de productos obtenidas correctamente",
     SERVICE_STATS_RETRIEVED: "Estadísticas de servicios obtenidas correctamente",
+    RESOURCE_STATS_RETRIEVED: "Estadísticas de recursos obtenidas correctamente",
     PURCHASE_STATS_RETRIEVED: "Estadísticas de compras obtenidas correctamente",
 };
 

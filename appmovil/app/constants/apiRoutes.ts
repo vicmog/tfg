@@ -128,6 +128,13 @@ export const API_ROUTES = {
     if (endDate) params.append("endDate", endDate);
     return `${API_BASE_URL}${API_PREFIX}/estadisticas/servicios/${idNegocio}?${params.toString()}`;
   },
+  estadisticasRecursos: (idNegocio: number, filter?: string, startDate?: string, endDate?: string) => {
+    const params = new URLSearchParams();
+    if (filter) params.append("filter", filter);
+    if (startDate) params.append("startDate", startDate);
+    if (endDate) params.append("endDate", endDate);
+    return `${API_BASE_URL}${API_PREFIX}/estadisticas/recursos/${idNegocio}?${params.toString()}`;
+  },
   estadisticasCompras: (idNegocio: number, filter?: string, startDate?: string, endDate?: string) => {
     const params = new URLSearchParams();
     if (filter) params.append("filter", filter);

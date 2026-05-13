@@ -4,6 +4,7 @@ import { VentaServicio } from "../../models/VentaServicio.js";
 import { Reserva } from "../../models/Reserva.js";
 import { Producto } from "../../models/Producto.js";
 import { Servicio } from "../../models/Servicio.js";
+import { Recurso } from "../../models/Recurso.js";
 import { Compra } from "../../models/Compra.js";
 import { Gasto } from "../../models/Gasto.js";
 import { Cliente } from "../../models/Cliente.js";
@@ -799,6 +800,80 @@ export const getServiceStats = async (req, res) => {
         });
     } catch (error) {
         console.error("Error en getServiceStats:", error);
+        return res.status(500).json({ message: ESTADISTICAS_ERRORS.SERVER_ERROR });
+    }
+};
+
+export const getResourceStats = async (req, res) => {
+    try {
+        const id_usuario = req.user?.id_usuario;
+        const idNegocioResult = normalizeIntegerId(
+            req.params?.id_negocio,
+            ESTADISTICAS_ERRORS.INVALID_NEGOCIO_ID
+        );
+        const filterType = req.query?.filter || FILTER_TYPES.MONTH;
+        const startDate = req.query?.startDate;
+        const endDate = req.query?.endDate;
+
+        if (!id_usuario) {
+            return res.status(401).json({ message: ESTADISTICAS_ERRORS.USER_NOT_AUTHENTICATED });
+        }
+
+        if (idNegocioResult.error) {
+            return res.status(400).json({ message: idNegocioResult.error });
+        }
+
+        const hasAccess = await hasAccessToNegocio(id_usuario, idNegocioResult.value);
+        if (!hasAccess) {
+            return res.status(403).json({ message: ESTADISTICAS_ERRORS.NO_ACCESS });
+        }
+
+        const id_negocio = idNegocioResult.value;
+        const dateRange = getDateRange(filterType, startDate, endDate);
+        const rangeStart = dateRange?.[Op.between]?.[0];
+        const rangeEnd = dateRange?.[Op.between]?.[1];
+
+        const recursosMasUsados = await sequelize.query(
+            `SELECT rc.id_recurso, rc.nombre, COUNT(r.id_reserva) as cantidad
+             FROM "Reserva" r
+             JOIN "Cliente" c ON r.id_cliente = c.id_cliente
+             JOIN "Recurso" rc ON r.id_recurso = rc.id_recurso
+             WHERE c.id_negocio = :id_negocio AND rc.id_negocio = :id_negocio
+               AND r.fecha_hora_inicio BETWEEN :startDate AND :endDate
+             GROUP BY rc.id_recurso, rc.nombre
+             ORDER BY cantidad DESC
+             LIMIT 3`,
+            {
+                replacements: { id_negocio, startDate: rangeStart, endDate: rangeEnd },
+                type: sequelize.QueryTypes.SELECT,
+            }
+        );
+
+        const recursosMenosUsados = await sequelize.query(
+            `SELECT rc.id_recurso, rc.nombre, COUNT(r.id_reserva) as cantidad
+             FROM "Reserva" r
+             JOIN "Cliente" c ON r.id_cliente = c.id_cliente
+             JOIN "Recurso" rc ON r.id_recurso = rc.id_recurso
+             WHERE c.id_negocio = :id_negocio AND rc.id_negocio = :id_negocio
+               AND r.fecha_hora_inicio BETWEEN :startDate AND :endDate
+             GROUP BY rc.id_recurso, rc.nombre
+             ORDER BY cantidad ASC
+             LIMIT 3`,
+            {
+                replacements: { id_negocio, startDate: rangeStart, endDate: rangeEnd },
+                type: sequelize.QueryTypes.SELECT,
+            }
+        );
+
+        return res.status(200).json({
+            message: ESTADISTICAS_MESSAGES.RESOURCE_STATS_RETRIEVED,
+            resourceStats: {
+                recursosMasUsados,
+                recursosMenosUsados,
+            },
+        });
+    } catch (error) {
+        console.error("Error en getResourceStats:", error);
         return res.status(500).json({ message: ESTADISTICAS_ERRORS.SERVER_ERROR });
     }
 };
