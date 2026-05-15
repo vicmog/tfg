@@ -32,6 +32,7 @@ import { EditarVenta } from "./screens/Ventas";
 import CrearPlantilla from "./screens/CrearPlantilla/CrearPlantilla";
 import GestionPlantillas from "./screens/GestionPlantillas/GestionPlantillas";
 import EditarPlantilla from "./screens/EditarPlantilla/EditarPlantilla";
+import { Estadisticas } from "./screens/Estadisticas";
 import { Negocio, Plantilla, Producto, Reserva, TipoGasto, Venta } from "./screens/types";
 
 export type NavigationScreenList = {
@@ -64,6 +65,7 @@ export type NavigationScreenList = {
   TipoGastoDetail: { negocio: Negocio; tipoGasto: TipoGasto };
   Ventas: { negocio: Negocio };
   EditarVenta: { negocio: Negocio; venta: Venta };
+  Estadisticas: { negocio: Negocio };
   GestionPlantillas: undefined;
   CrearPlantilla: undefined;
   EditarPlantilla: { plantilla: Plantilla };
@@ -114,6 +116,7 @@ const App: React.FC = () => {
           <Stack.Screen name="Gastos" component={Gastos} />
           <Stack.Screen name="Ventas" component={Ventas} />
           <Stack.Screen name="EditarVenta" component={EditarVenta} />
+          <Stack.Screen name="Estadisticas" component={Estadisticas} />
           <Stack.Screen name="TipoGastoDetail" component={TipoGastoDetail} />
           <Stack.Screen name="GestionPlantillas" component={GestionPlantillas} />
           <Stack.Screen name="CrearPlantilla" component={CrearPlantilla} />

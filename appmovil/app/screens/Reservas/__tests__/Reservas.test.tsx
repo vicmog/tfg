@@ -232,7 +232,7 @@ describe("Reservas", () => {
             })
             .mockResolvedValueOnce({
                 ok: true,
-                json: async () => ({ message: "Reserva completada correctamente" }),
+                json: async () => ({ message: "Caja realizada" }),
             })
             .mockResolvedValueOnce({ ok: true, json: async () => ({ clientes: [] }) })
             .mockResolvedValueOnce({ ok: true, json: async () => ({ recursos: [] }) })
@@ -245,15 +245,13 @@ describe("Reservas", () => {
             expect(getByTestId("reserva-item-12")).toBeTruthy();
         });
 
-        fireEvent.press(getByTestId("reserva-item-12"));
-        fireEvent.press(getByTestId("reserva-detail-complete-button"));
-        fireEvent.press(getByTestId("reserva-confirm-yes"));
+        fireEvent.press(getByTestId("reservas-hacer-caja-button"));
 
         await waitFor(() => {
             expect(fetch).toHaveBeenCalledWith(
-                API_ROUTES.completeReservaById(12),
+                API_ROUTES.reservasHacerCaja(1),
                 expect.objectContaining({
-                    method: "PATCH",
+                    method: "POST",
                     headers: expect.objectContaining({ Authorization: "Bearer mock-token" }),
                 })
             );

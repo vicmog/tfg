@@ -97,6 +97,9 @@ import {
     TODAY_BUTTON_TEXT,
     FILTER_ALL_TEXT,
     serviciosByNegocioRoute,
+    reservasHacerCajaRoute,
+    HACER_CAJA_BUTTON,
+    HACER_CAJA_SUCCESS,
     SUCCESS_MESSAGE,
     CLOSING_HOUR,
     INTEGER_REGEX,
@@ -107,6 +110,7 @@ import {
     TIMELINE_LANE_WIDTH,
     TIMELINE_PIXELS_PER_MINUTE,
     WEEK_LABELS,
+    CONFIRM_HACER_CAJA_QUESTION,
 } from "./constants";
 import { ReservasProps } from "./types";
 
@@ -236,6 +240,8 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [hacerCajaLoading, setHacerCajaLoading] = useState(false);
+    const [hacerCajaConfirmVisible, setHacerCajaConfirmVisible] = useState(false);
 
     const [formModalVisible, setFormModalVisible] = useState(false);
     const [clientePickerVisible, setClientePickerVisible] = useState(false);
@@ -801,6 +807,37 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
         }
     };
 
+    const handleHacerCaja = async () => {
+        setError("");
+        setSuccess("");
+        setHacerCajaLoading(true);
+
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await fetch(reservasHacerCajaRoute(negocio.id_negocio), {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                setError(data.message || DEFAULT_CREATE_ERROR);
+                return;
+            }
+
+            setSuccess(data.message || HACER_CAJA_SUCCESS);
+            await fetchData();
+        } catch (err) {
+            setError(CONNECTION_ERROR);
+        } finally {
+            setHacerCajaLoading(false);
+        }
+    };
+
     const monthTitle = calendarCursor.toLocaleDateString("es-ES", {
         month: "long",
         year: "numeric",
@@ -970,6 +1007,54 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                 <View style={[styles.timelineLegendDot, styles.timelineLegendDotCompleted]} />
                                 <Text style={styles.timelineLegendText}>{STATUS_COMPLETED_LABEL}</Text>
                             </View>
+                            <TouchableOpacity
+                                style={[styles.hacerCajaLegendButton, hacerCajaLoading && styles.saveButtonDisabled]}
+                                onPress={() => setHacerCajaConfirmVisible(true)}
+                                disabled={hacerCajaLoading}
+                                testID="reservas-hacer-caja-button"
+                            >
+                                {hacerCajaLoading ? <ActivityIndicator size="small" color="#fff" /> : <MaterialIcons name="payments" size={16} color="#fff" />}
+                                <Text style={styles.hacerCajaLegendText}>{HACER_CAJA_BUTTON}</Text>
+                            </TouchableOpacity>
+
+                            <Modal
+                                visible={hacerCajaConfirmVisible}
+                                transparent
+                                animationType="fade"
+                                onRequestClose={() => setHacerCajaConfirmVisible(false)}
+                                testID="reservas-hacer-caja-confirm-modal"
+                            >
+                                <View style={styles.modalBackdrop}>
+                                    <View style={styles.modalCard}>
+                                        <View style={styles.modalHeader}>
+                                            <Text style={styles.modalTitle}>{CONFIRM_ACTION_TITLE}</Text>
+                                            <TouchableOpacity onPress={() => setHacerCajaConfirmVisible(false)} disabled={hacerCajaLoading}>
+                                                <MaterialIcons name="close" size={22} color="#6b7280" />
+                                            </TouchableOpacity>
+                                        </View>
+                                        <Text style={styles.detailLine}>{CONFIRM_HACER_CAJA_QUESTION}</Text>
+                                        <View style={styles.confirmActionsRow}>
+                                            <TouchableOpacity
+                                                style={[styles.confirmActionButton, styles.confirmActionCancelButton]}
+                                                onPress={() => setHacerCajaConfirmVisible(false)}
+                                                disabled={hacerCajaLoading}
+                                                testID="reservas-hacer-caja-confirm-no"
+                                            >
+                                                <Text style={styles.confirmActionButtonText}>{CONFIRM_NO_BUTTON}</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={[styles.confirmActionButton, styles.confirmActionAcceptButton]}
+                                                onPress={async () => { setHacerCajaConfirmVisible(false); await handleHacerCaja(); }}
+                                                disabled={hacerCajaLoading}
+                                                testID="reservas-hacer-caja-confirm-yes"
+                                            >
+                                                {hacerCajaLoading ? <ActivityIndicator size="small" color="#fff" /> : null}
+                                                <Text style={styles.confirmActionButtonText}>{CONFIRM_YES_BUTTON}</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                </View>
+                            </Modal>
                         </View>
 
                         <ScrollView
@@ -1067,6 +1152,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                     ) : (
                                         timelineEvents.map(({ reserva, top, height, laneIndex }) => {
                                             const recurso = recursoById.get(reserva.id_recurso);
+                                            const cliente = clienteById.get(reserva.id_cliente);
                                             const statusKey = getReservaStatusKey(reserva.estado);
                                             const isCancelled = statusKey === "cancelled";
                                             const isCompleted = statusKey === "completed";
@@ -1099,7 +1185,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                                         ]}
                                                         numberOfLines={1}
                                                     >
-                                                        {recurso?.nombre || `#${reserva.id_recurso}`}
+                                                        {cliente ? formatClienteName(cliente) : `#${reserva.id_cliente}`}
                                                     </Text>
                                                     {isCancelled ? <Text style={styles.timelineEventState}>{STATUS_CANCELLED_LABEL}</Text> : null}
                                                     {isCompleted ? <Text style={styles.timelineEventStateCompleted}>{STATUS_COMPLETED_LABEL}</Text> : null}
@@ -1304,18 +1390,6 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                     <MaterialIcons name="edit" size={18} color="#fff" />
                                     <Text style={styles.detailActionButtonText}>{DETAIL_EDIT_BUTTON}</Text>
                                 </TouchableOpacity>
-
-                                {!isCancelled && !isCompleted ? (
-                                    <TouchableOpacity
-                                        style={[styles.detailActionButton, styles.completeReservaButton]}
-                                        onPress={() => handleOpenConfirmAction("complete", selectedReservaDetail)}
-                                        testID="reserva-detail-complete-button"
-                                    >
-                                        <MaterialIcons name="check-circle" size={18} color="#fff" />
-                                        <Text style={styles.detailActionButtonText}>{DETAIL_COMPLETE_BUTTON}</Text>
-                                    </TouchableOpacity>
-                                ) : null}
-
                                 {!isCancelled && !isCompleted ? (
                                     <TouchableOpacity
                                         style={[styles.detailActionButton, styles.cancelReservaButton]}
@@ -1555,6 +1629,30 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         paddingHorizontal: 10,
         paddingVertical: 8,
+    },
+    hacerCajaButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#0ea5e9",
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        marginRight: 8,
+    },
+    hacerCajaLegendButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#0ea5e9",
+        borderRadius: 8,
+        paddingHorizontal: 8,
+        paddingVertical: 6,
+        marginLeft: 12,
+    },
+    hacerCajaLegendText: {
+        color: "#fff",
+        fontWeight: "700",
+        fontSize: 12,
+        marginLeft: 6,
     },
     addButtonText: {
         color: "#fff",
