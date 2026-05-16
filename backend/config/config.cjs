@@ -1,29 +1,38 @@
 require('dotenv').config();
 
+const commonConfig = {
+  dialect: "postgres"
+};
+
 module.exports = {
   development: {
-    username: process.env.POSTGRES_USER,
-    password: process.env.POSTGRES_PASSWORD,
-    database: process.env.POSTGRES_DB,
-    host: process.env.POSTGRES_HOST,
-    dialect: "postgres"
+    ...(process.env.DATABASE_URL 
+      ? { use_env_variable: "DATABASE_URL" }
+      : {
+          username: process.env.POSTGRES_USER,
+          password: process.env.POSTGRES_PASSWORD,
+          database: process.env.POSTGRES_DB,
+          host: process.env.POSTGRES_HOST
+        }
+    ),
+    ...commonConfig
   },
   test: {
     username: process.env.POSTGRES_USER,
     password: process.env.POSTGRES_PASSWORD,
     database: process.env.POSTGRES_DB_TEST,
     host: process.env.POSTGRES_HOST,
-    dialect: "postgres"
+    ...commonConfig
   },
   production: {
     use_env_variable: "DATABASE_URL",
-    dialect: "postgres",
     ssl: true,
     dialectOptions: {
       ssl: {
         require: true,
         rejectUnauthorized: false
       }
-    }
+    },
+    ...commonConfig
   }
 };
