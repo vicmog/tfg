@@ -1,60 +1,55 @@
 require('dotenv').config();
 
-const commonConfig = {
-  dialect: "postgres"
-};
-
 // Para Railway: construir DATABASE_URL desde variables individuales
-const getDatabaseUrl = () => {
-  if (process.env.DATABASE_URL) {
-    return process.env.DATABASE_URL;
+const getDatabaseConfig = () => {
+  const databaseUrl = process.env.DATABASE_URL;
+  
+  // Si existe DATABASE_URL, usarla
+  if (databaseUrl) {
+    return { url: databaseUrl };
   }
   
   // Railway proporciona estas variables
   if (process.env.PGUSER && process.env.POSTGRES_PASSWORD && process.env.RAILWAY_PRIVATE_DOMAIN && process.env.PGDATABASE) {
-    return `postgresql://${process.env.PGUSER}:${process.env.POSTGRES_PASSWORD}@${process.env.RAILWAY_PRIVATE_DOMAIN}:5432/${process.env.PGDATABASE}`;
+    return {
+      username: process.env.PGUSER,
+      password: process.env.POSTGRES_PASSWORD,
+      database: process.env.PGDATABASE,
+      host: process.env.RAILWAY_PRIVATE_DOMAIN,
+      port: 5432
+    };
   }
   
-  return undefined;
+  // Fallback a variables locales
+  return {
+    username: process.env.POSTGRES_USER,
+    password: process.env.POSTGRES_PASSWORD,
+    database: process.env.POSTGRES_DB,
+    host: process.env.POSTGRES_HOST
+  };
 };
 
 module.exports = {
   development: {
-    ...(getDatabaseUrl() 
-      ? { url: getDatabaseUrl() }
-      : {
-          username: process.env.POSTGRES_USER,
-          password: process.env.POSTGRES_PASSWORD,
-          database: process.env.POSTGRES_DB,
-          host: process.env.POSTGRES_HOST
-        }
-    ),
-    ...commonConfig
+    ...getDatabaseConfig(),
+    dialect: "postgres"
   },
   test: {
     username: process.env.POSTGRES_USER,
     password: process.env.POSTGRES_PASSWORD,
     database: process.env.POSTGRES_DB_TEST,
     host: process.env.POSTGRES_HOST,
-    ...commonConfig
+    dialect: "postgres"
   },
   production: {
-    ...(getDatabaseUrl() 
-      ? { url: getDatabaseUrl() }
-      : {
-          username: process.env.POSTGRES_USER,
-          password: process.env.POSTGRES_PASSWORD,
-          database: process.env.POSTGRES_DB,
-          host: process.env.POSTGRES_HOST
-        }
-    ),
+    ...getDatabaseConfig(),
+    dialect: "postgres",
     ssl: true,
     dialectOptions: {
       ssl: {
         require: true,
         rejectUnauthorized: false
       }
-    },
-    ...commonConfig
+    }
   }
 };
