@@ -1,34 +1,46 @@
 import React, { useState, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
 import { MaterialIcons } from '@expo/vector-icons';
-import { Modulo, Negocio } from "../types";
+import { Ajuste, Modulo, Negocio } from "../types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
-import { MODULOS, negocioByIdRoute } from "./constants";
+import { ajustesByNegocioRoute, MODULOS, MODULO_TO_AJUSTE_FIELD, negocioByIdRoute } from "./constants";
 import { NegocioDetailProps } from "./types";
 
 const NegocioDetail: React.FC<NegocioDetailProps> = ({ route, navigation }) => {
     const { negocio: negocioInicial } = route.params;
     const [negocio, setNegocio] = useState<Negocio>(negocioInicial);
+    const [ajuste, setAjuste] = useState<Ajuste | null>(null);
     const [loading, setLoading] = useState(false);
 
     useFocusEffect(
         useCallback(() => {
-            const fetchNegocio = async () => {
+            const fetchNegocioYAjustes = async () => {
                 setLoading(true);
                 try {
                     const token = await AsyncStorage.getItem("token");
-                    const response = await fetch(
-                        negocioByIdRoute(negocioInicial.id_negocio),
-                        {
+
+                    const [negocioResponse, ajusteResponse] = await Promise.all([
+                        fetch(negocioByIdRoute(negocioInicial.id_negocio), {
                             headers: {
                                 Authorization: `Bearer ${token}`,
                             },
-                        }
-                    );
-                    if (response.ok) {
-                        const data = await response.json();
+                        }),
+                        fetch(ajustesByNegocioRoute(negocioInicial.id_negocio), {
+                            headers: {
+                                Authorization: `Bearer ${token}`,
+                            },
+                        }),
+                    ]);
+
+                    if (negocioResponse.ok) {
+                        const data = await negocioResponse.json();
                         setNegocio(data.negocio);
+                    }
+
+                    if (ajusteResponse.ok) {
+                        const data = await ajusteResponse.json();
+                        setAjuste(data.ajuste || null);
                     }
                 } catch (error) {
                     console.error("Error al obtener negocio:", error);
@@ -36,9 +48,20 @@ const NegocioDetail: React.FC<NegocioDetailProps> = ({ route, navigation }) => {
                     setLoading(false);
                 }
             };
-            fetchNegocio();
+            fetchNegocioYAjustes();
         }, [negocioInicial.id_negocio])
     );
+
+    const isModuloEnabled = (moduloId: Modulo["id"]) => {
+        if (!ajuste) {
+            return true;
+        }
+
+        const ajusteField = MODULO_TO_AJUSTE_FIELD[moduloId];
+        return Boolean(ajuste[ajusteField]);
+    };
+
+    const modulosVisibles = MODULOS.filter((modulo) => isModuloEnabled(modulo.id));
 
     const handleModuloPress = (modulo: Modulo) => {
         if (modulo.id === "clientes") {
@@ -158,7 +181,7 @@ const NegocioDetail: React.FC<NegocioDetailProps> = ({ route, navigation }) => {
                         <TouchableOpacity
                             style={styles.editModulesButton}
                             onPress={() => {
-                                console.log("Editar Modulos");
+                                navigation.navigate("AjustesModulos", { negocio });
                             }}
                             testID="edit-modules-button"
                         >
@@ -170,7 +193,7 @@ const NegocioDetail: React.FC<NegocioDetailProps> = ({ route, navigation }) => {
             </View>
 
             <ScrollView contentContainerStyle={styles.modulosContainer}>
-                {MODULOS.map((modulo) => (
+                {modulosVisibles.map((modulo) => (
                     <TouchableOpacity
                         key={modulo.id}
                         style={styles.moduloCard}
@@ -183,6 +206,9 @@ const NegocioDetail: React.FC<NegocioDetailProps> = ({ route, navigation }) => {
                         <Text style={styles.moduloText}>{modulo.nombre}</Text>
                     </TouchableOpacity>
                 ))}
+                {modulosVisibles.length === 0 ? (
+                    <Text style={styles.emptyModulesText}>No hay grupos de modulos activos para este negocio.</Text>
+                ) : null}
             </ScrollView>
         </View>
     );
@@ -291,5 +317,13 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: "#374151",
         textAlign: "center",
+    },
+    emptyModulesText: {
+        width: "100%",
+        textAlign: "center",
+        color: "#6b7280",
+        fontSize: 15,
+        marginTop: 24,
+        paddingHorizontal: 16,
     },
 });

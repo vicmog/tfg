@@ -7,6 +7,7 @@ import { ServicioPlantilla } from "../../../models/ServicioPlantilla.js";
 import { RecursoPlantilla } from "../../../models/RecursoPlantilla.js";
 import { Servicio } from "../../../models/Servicio.js";
 import { Recurso } from "../../../models/Recurso.js";
+import { Ajuste } from "../../../models/Ajuste.js";
 import { Op } from "sequelize";
 import { buildRes } from "./data.js";
 
@@ -18,10 +19,12 @@ jest.mock("../../../models/ServicioPlantilla.js");
 jest.mock("../../../models/RecursoPlantilla.js");
 jest.mock("../../../models/Servicio.js");
 jest.mock("../../../models/Recurso.js");
+jest.mock("../../../models/Ajuste.js");
 
 describe("NegocioController Unit Tests", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (Ajuste.create).mockResolvedValue({});
   });
 
   describe("createNegocio", () => {

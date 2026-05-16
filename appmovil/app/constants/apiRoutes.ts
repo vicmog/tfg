@@ -12,6 +12,7 @@ export const API_ROUTES = {
   updatePlantillaById: (idPlantilla: number) => `${API_BASE_URL}${API_PREFIX}/plantillas/${idPlantilla}`,
   deletePlantillaById: (idPlantilla: number) => `${API_BASE_URL}${API_PREFIX}/plantillas/${idPlantilla}`,
   negocioById: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/negocios/${idNegocio}`,
+  ajustesByNegocio: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/ajustes/${idNegocio}`,
   negocioUsersById: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/negocios/users/${idNegocio}`,
   putNegocioUserRoleById: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/negocios/users/${idNegocio}`,
   deleteNegocioUserById: (idNegocio: number) => `${API_BASE_URL}${API_PREFIX}/negocios/users/${idNegocio}`,

@@ -6,6 +6,7 @@ import { ServicioPlantilla } from "../../models/ServicioPlantilla.js";
 import { RecursoPlantilla } from "../../models/RecursoPlantilla.js";
 import { Servicio } from "../../models/Servicio.js";
 import { Recurso } from "../../models/Recurso.js";
+import { Ajuste } from "../../models/Ajuste.js";
 import { Op, fn, col, where } from "sequelize";
 import {
     DEFAULT_ADMIN_USER_ID,
@@ -54,6 +55,10 @@ export const createNegocio = async (req, res) => {
             nombre: nombre.trim(),
             CIF: CIF.trim(),
             id_plantilla: plantillaId
+        });
+
+        await Ajuste.create({
+            id_negocio: negocio.id_negocio,
         });
 
         await UsuarioNegocio.create({

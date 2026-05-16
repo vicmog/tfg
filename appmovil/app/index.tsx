@@ -11,6 +11,7 @@ import CrearNegocio from "./screens/CrearNegocio/CrearNegocio";
 import NegocioDetail from "./screens/NegocioDetail/NegocioDetail";
 import NegocioSettings from "./screens/NegocioSettings/NegocioSettings";
 import NegocioUsers from "./screens/NegocioUsers/NegocioUsers";
+import AjustesModulos from "./screens/AjustesModulos/AjustesModulos";
 import Clientes from "./screens/Clientes/Clientes";
 import Empleados from "./screens/Empleados/Empleados";
 import Servicios from "./screens/Servicios/Servicios";
@@ -47,6 +48,7 @@ export type NavigationScreenList = {
   NegocioDetail: { negocio: Negocio };
   NegocioSettings: { negocio: Negocio };
   NegocioUsers: { negocio: Negocio };
+  AjustesModulos: { negocio: Negocio };
   Clientes: { negocio: Negocio };
   Empleados: { negocio: Negocio };
   Servicios: { negocio: Negocio };
@@ -99,6 +101,7 @@ const App: React.FC = () => {
           <Stack.Screen name="NegocioDetail" component={NegocioDetail} />
           <Stack.Screen name="NegocioSettings" component={NegocioSettings} />
           <Stack.Screen name="NegocioUsers" component={NegocioUsers} />
+          <Stack.Screen name="AjustesModulos" component={AjustesModulos} />
           <Stack.Screen name="Clientes" component={Clientes} />
           <Stack.Screen name="Empleados" component={Empleados} />
           <Stack.Screen name="Servicios" component={Servicios} />
