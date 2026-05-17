@@ -431,6 +431,12 @@ describe("CompraController Unit Tests", () => {
 
     it("deberia marcar compra como completada al actualizar cantidades", async () => {
         const updateMock = jest.fn().mockImplementation(async (payload) => ({ ...payload }));
+        const incrementMock = jest.fn().mockResolvedValue(undefined);
+
+        const productosConIncrement = mockProductos.map((p) => ({
+            ...p,
+            increment: incrementMock,
+        }));
 
         Compra.findOne.mockResolvedValue({
             id_compra: 50,
@@ -439,7 +445,7 @@ describe("CompraController Unit Tests", () => {
             update: updateMock,
         });
         UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioJefe);
-        Producto.findAll.mockResolvedValue(mockProductos);
+        Producto.findAll.mockResolvedValue(productosConIncrement);
         Proveedor.findAll.mockResolvedValue(mockProveedores);
 
         const { res } = buildRes();
