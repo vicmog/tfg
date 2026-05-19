@@ -259,17 +259,18 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "flex-start",
         justifyContent: "space-between",
-        gap: 12,
+        gap: 10,
     },
     heroBody: {
         marginTop: 14,
     },
     headerActions: {
+        flex: 1,
         flexDirection: "row",
         alignItems: "center",
         flexWrap: "wrap",
         justifyContent: "flex-end",
-        gap: 8,
+        gap: 6,
     },
     iconButton: {
         width: 40,
@@ -314,14 +315,15 @@ const styles = StyleSheet.create({
     },
     actionChip: {
         minHeight: 36,
-        paddingHorizontal: 12,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
         borderRadius: 999,
         backgroundColor: "#f8fafc",
         borderWidth: 1,
         borderColor: "#e2e8f0",
         flexDirection: "row",
         alignItems: "center",
-        gap: 6,
+        gap: 5,
     },
     actionChipText: {
         color: "#334155",
