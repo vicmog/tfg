@@ -390,18 +390,21 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity style={styles.iconButton} onPress={() => navigation.goBack()} testID="tipo-gasto-detail-back-button">
-                    <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
-                </TouchableOpacity>
-                <View style={styles.headerTextWrap}>
-                    <Text style={styles.title}>{currentTipoGasto.nombre_tipo}</Text>
-                    <Text style={styles.subtitle}>Gastos de esta categoria</Text>
+            <View style={styles.heroCard}>
+                <View style={styles.heroTopRow}>
+                    <TouchableOpacity style={styles.heroBackButton} onPress={() => navigation.goBack()} testID="tipo-gasto-detail-back-button">
+                        <MaterialIcons name="arrow-back" size={24} color="#0f172a" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.addButton} onPress={handleOpenModal} testID="toggle-gasto-form-button">
+                        <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 6 }} />
+                        <Text style={styles.addButtonText}>Añadir gasto</Text>
+                    </TouchableOpacity>
                 </View>
-                <TouchableOpacity style={styles.addButton} onPress={handleOpenModal} testID="toggle-gasto-form-button">
-                    <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 6 }} />
-                    <Text style={styles.addButtonText}>Añadir gasto</Text>
-                </TouchableOpacity>
+
+                <View style={styles.heroBody}>
+                    <Text style={styles.title}>{currentTipoGasto.nombre_tipo}</Text>
+                    <Text style={styles.subtitle}>Gastos de esta categoría · {gastos.length} registros</Text>
+                </View>
             </View>
 
             <View style={styles.searchContainer}>
@@ -432,19 +435,21 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
             <Modal
                 visible={modalVisible}
                 transparent
-                animationType="slide"
+                animationType={editingGasto ? "slide" : "none"}
                 onRequestClose={handleCloseModal}
                 testID="gasto-form-modal"
             >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalCard}>
+                <View style={[styles.modalOverlay, editingGasto && styles.modalOverlayBottom]}>
+                    <View style={[styles.modalCard, editingGasto && styles.modalCardBottom]}>
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>
                                 {editingGasto ? "Editar gasto" : `Añadir gasto en ${currentTipoGasto.nombre_tipo}`}
                             </Text>
-                            <TouchableOpacity onPress={handleCloseModal} testID="close-gasto-form-button">
-                                <MaterialIcons name="close" size={22} color="#6b7280" />
-                            </TouchableOpacity>
+                            {!editingGasto ? (
+                                <TouchableOpacity onPress={handleCloseModal} testID="close-gasto-form-button">
+                                    <MaterialIcons name="close" size={22} color="#6b7280" />
+                                </TouchableOpacity>
+                            ) : null}
                         </View>
 
                         <TextInput
@@ -537,18 +542,43 @@ const TipoGastoDetail: React.FC<TipoGastoDetailProps> = ({ route, navigation }) 
 
                         {modalError ? <Text style={styles.modalErrorText} testID="gasto-error-message">{modalError}</Text> : null}
 
-                        <TouchableOpacity
-                            style={styles.primaryButton}
-                            onPress={handleSaveGasto}
-                            disabled={savingGasto || updatingGasto}
-                            testID="gasto-save-button"
-                        >
-                            {savingGasto || updatingGasto ? (
-                                <ActivityIndicator color="#fff" />
-                            ) : (
-                                <Text style={styles.primaryButtonText}>{editingGasto ? "Guardar cambios" : "Registrar gasto"}</Text>
-                            )}
-                        </TouchableOpacity>
+                        {editingGasto ? (
+                            <View style={styles.modalActionRow}>
+                                <TouchableOpacity
+                                    style={styles.primaryButton}
+                                    onPress={handleSaveGasto}
+                                    disabled={savingGasto || updatingGasto}
+                                    testID="gasto-save-button"
+                                >
+                                    {savingGasto || updatingGasto ? (
+                                        <ActivityIndicator color="#fff" />
+                                    ) : (
+                                        <Text style={styles.primaryButtonText}>Guardar cambios</Text>
+                                    )}
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.secondaryButton}
+                                    onPress={handleCloseModal}
+                                    disabled={savingGasto || updatingGasto}
+                                    testID="gasto-close-button"
+                                >
+                                    <Text style={styles.secondaryButtonText}>Cerrar</Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : (
+                            <TouchableOpacity
+                                style={styles.primaryButton}
+                                onPress={handleSaveGasto}
+                                disabled={savingGasto || updatingGasto}
+                                testID="gasto-save-button"
+                            >
+                                {savingGasto || updatingGasto ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : (
+                                    <Text style={styles.primaryButtonText}>{editingGasto ? "Guardar cambios" : "Registrar gasto"}</Text>
+                                )}
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </View>
             </Modal>
@@ -642,8 +672,40 @@ export default TipoGastoDetail;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f7fafc",
-        paddingTop: 8,
+        backgroundColor: "#f3f6fb",
+        paddingTop: 12,
+    },
+    heroCard: {
+        marginHorizontal: 16,
+        marginBottom: 12,
+        padding: 16,
+        borderRadius: 20,
+        backgroundColor: "#fff",
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 18,
+        elevation: 4,
+    },
+    heroTopRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
+    },
+    heroBody: {
+        marginTop: 14,
+        marginBottom: 6,
+    },
+    heroBackButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: "#eef4ff",
+        alignItems: "center",
+        justifyContent: "center",
     },
     header: {
         flexDirection: "row",
@@ -666,12 +728,12 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 20,
         fontWeight: "700",
-        color: "#0D47A1",
+        color: "#0f172a",
     },
     addButton: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#1976D2",
+        backgroundColor: "#1d4ed8",
         paddingHorizontal: 12,
         paddingVertical: 10,
         borderRadius: 10,
@@ -682,9 +744,10 @@ const styles = StyleSheet.create({
         fontSize: 13,
     },
     subtitle: {
-        marginTop: 2,
-        color: "#6b7280",
-        fontSize: 13,
+        marginTop: 6,
+        color: "#64748b",
+        fontSize: 14,
+        fontWeight: "500",
     },
     searchContainer: {
         marginTop: 12,
@@ -780,15 +843,40 @@ const styles = StyleSheet.create({
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: "rgba(17,24,39,0.45)",
+        backgroundColor: "rgba(15, 23, 42, 0.42)",
         justifyContent: "center",
-        padding: 20,
+        alignItems: "center",
+        paddingHorizontal: 12,
+    },
+    modalOverlayBottom: {
+        justifyContent: "flex-end",
+        alignItems: "stretch",
+        paddingHorizontal: 0,
     },
     modalCard: {
         backgroundColor: "#fff",
-        borderRadius: 16,
-        padding: 16,
-        gap: 10,
+        borderRadius: 20,
+        marginHorizontal: 12,
+        padding: 18,
+        width: "90%",
+        maxWidth: 420,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 18,
+        elevation: 4,
+        gap: 12,
+    },
+    modalCardBottom: {
+        borderTopLeftRadius: 18,
+        borderTopRightRadius: 18,
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
+        width: "100%",
+        padding: 18,
+        maxHeight: "78%",
     },
     modalHeader: {
         flexDirection: "row",
@@ -796,15 +884,35 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
     },
     modalTitle: {
-        fontSize: 16,
-        fontWeight: "700",
-        color: "#111827",
+        fontSize: 20,
+        fontWeight: "800",
+        color: "#0f172a",
     },
     modalErrorText: {
-        color: "#b91c1c",
-        backgroundColor: "#fef2f2",
+        color: "#dc2626",
+        fontWeight: "600",
+        marginBottom: 12,
+        fontSize: 14,
+    },
+    modalActionRow: {
+        marginTop: 16,
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 10,
+    },
+    secondaryButton: {
+        paddingHorizontal: 16,
+        paddingVertical: 12,
         borderRadius: 10,
-        padding: 10,
+        backgroundColor: "#f3f4f6",
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    secondaryButtonText: {
+        color: "#374151",
+        fontWeight: "700",
     },
     webCalendarCard: {
         borderWidth: 1,
@@ -880,12 +988,12 @@ const styles = StyleSheet.create({
     },
     listCard: {
         backgroundColor: "#fff",
-        borderRadius: 12,
+        borderRadius: 18,
         borderWidth: 1,
         borderColor: "#e5e7eb",
         padding: 14,
         flexDirection: "row",
-        alignItems: "flex-start",
+        alignItems: "center",
         justifyContent: "space-between",
         gap: 10,
     },
@@ -900,9 +1008,9 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     listTitle: {
-        fontSize: 15,
-        fontWeight: "700",
-        color: "#111827",
+        fontSize: 16,
+        fontWeight: "800",
+        color: "#0f172a",
         flex: 1,
     },
     amountBadge: {
@@ -920,7 +1028,7 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     listMeta: {
-        color: "#6b7280",
+        color: "#475569",
         fontSize: 13,
     },
     listAmount: {

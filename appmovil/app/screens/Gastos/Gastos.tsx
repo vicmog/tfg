@@ -222,15 +222,25 @@ const Gastos: React.FC<GastosProps> = ({ route, navigation }) => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity style={styles.iconButton} onPress={() => navigation.goBack()} testID="gastos-back-button">
-                    <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
-                </TouchableOpacity>
-                <Text style={styles.title}>Gastos</Text>
-                <TouchableOpacity style={styles.addButton} onPress={handleOpenModal} testID="toggle-tipo-gasto-form-button">
-                    <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 6 }} />
-                    <Text style={styles.addButtonText}>Añadir tipo</Text>
-                </TouchableOpacity>
+                <View style={styles.heroCard}>
+                <View style={styles.heroTopRow}>
+                    <TouchableOpacity style={styles.iconButton} onPress={() => navigation.goBack()} testID="gastos-back-button">
+                        <MaterialIcons name="arrow-back" size={24} color="#0f172a" />
+                    </TouchableOpacity>
+
+                    {canManageGastos ? (
+                        <TouchableOpacity style={styles.addButton} onPress={handleOpenModal} testID="toggle-tipo-gasto-form-button">
+                            <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 6 }} />
+                            <Text style={styles.addButtonText}>Añadir tipo</Text>
+                        </TouchableOpacity>
+                    ) : null}
+                </View>
+
+                <View style={styles.heroBody}>
+                    <Text style={styles.title}>Gastos</Text>
+                    <Text style={styles.subtitle}>{normalizedRole === 'admin' ? 'Administrador' : normalizedRole === 'jefe' ? 'Jefe' : 'Trabajador'} · {tiposGasto.length} tipos</Text>
+                </View>
+
             </View>
 
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -239,19 +249,21 @@ const Gastos: React.FC<GastosProps> = ({ route, navigation }) => {
             <Modal
                 visible={modalVisible}
                 transparent
-                animationType="slide"
+                animationType={editingTipoGasto ? "slide" : "none"}
                 onRequestClose={handleCloseModal}
                 testID="tipo-gasto-form-modal"
             >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalCard}>
+                <View style={[styles.modalOverlay, editingTipoGasto && styles.modalOverlayBottom]}>
+                    <View style={[styles.modalCard, editingTipoGasto && styles.modalCardBottom]}>
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>
                                 {editingTipoGasto ? "Editar tipo de gasto" : "Crear tipo de gasto"}
                             </Text>
-                            <TouchableOpacity onPress={handleCloseModal} testID="close-tipo-gasto-form-button">
-                                <MaterialIcons name="close" size={22} color="#6b7280" />
-                            </TouchableOpacity>
+                            {!editingTipoGasto ? (
+                                <TouchableOpacity onPress={handleCloseModal} testID="close-tipo-gasto-form-button">
+                                    <MaterialIcons name="close" size={22} color="#6b7280" />
+                                </TouchableOpacity>
+                            ) : null}
                         </View>
 
                         <TextInput
@@ -264,18 +276,43 @@ const Gastos: React.FC<GastosProps> = ({ route, navigation }) => {
 
                         {modalError ? <Text style={styles.modalErrorText} testID="tipo-gasto-error-message">{modalError}</Text> : null}
 
-                        <TouchableOpacity
-                            style={styles.primaryButton}
-                            onPress={handleSaveTipoGasto}
-                            disabled={savingTipo || updatingTipo}
-                            testID="tipo-gasto-save-button"
-                        >
-                            {savingTipo || updatingTipo ? (
-                                <ActivityIndicator color="#fff" />
-                            ) : (
-                                <Text style={styles.primaryButtonText}>{editingTipoGasto ? "Guardar cambios" : "Crear tipo"}</Text>
-                            )}
-                        </TouchableOpacity>
+                        {editingTipoGasto ? (
+                            <View style={styles.modalActionRow}>
+                                <TouchableOpacity
+                                    style={styles.primaryButton}
+                                    onPress={handleSaveTipoGasto}
+                                    disabled={savingTipo || updatingTipo}
+                                    testID="tipo-gasto-save-button"
+                                >
+                                    {savingTipo || updatingTipo ? (
+                                        <ActivityIndicator color="#fff" />
+                                    ) : (
+                                        <Text style={styles.primaryButtonText}>Guardar cambios</Text>
+                                    )}
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.secondaryButton}
+                                    onPress={handleCloseModal}
+                                    disabled={savingTipo || updatingTipo}
+                                    testID="tipo-gasto-close-button"
+                                >
+                                    <Text style={styles.secondaryButtonText}>Cerrar</Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : (
+                            <TouchableOpacity
+                                style={styles.primaryButton}
+                                onPress={handleSaveTipoGasto}
+                                disabled={savingTipo || updatingTipo}
+                                testID="tipo-gasto-save-button"
+                            >
+                                {savingTipo || updatingTipo ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : (
+                                    <Text style={styles.primaryButtonText}>Crear tipo</Text>
+                                )}
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </View>
             </Modal>
@@ -286,7 +323,9 @@ const Gastos: React.FC<GastosProps> = ({ route, navigation }) => {
                 </View>
 
                 {loading ? (
-                    <ActivityIndicator color="#1976D2" />
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color="#1976D2" />
+                    </View>
                 ) : tiposGasto.length === 0 ? (
                     <Text style={styles.emptyText}>Aun no hay tipos de gasto creados</Text>
                 ) : (
@@ -294,12 +333,17 @@ const Gastos: React.FC<GastosProps> = ({ route, navigation }) => {
                         <View key={tipo.id_tipo_gasto}>
                             <View style={styles.listCard}>
                                 <TouchableOpacity
-                                    style={styles.typeCardContent}
+                                    style={styles.typeCardRow}
                                     onPress={() => navigation.navigate("TipoGastoDetail", { negocio, tipoGasto: tipo })}
                                     testID={`tipo-gasto-card-${tipo.id_tipo_gasto}`}
                                 >
-                                    <Text style={styles.listTitle}>{tipo.nombre_tipo}</Text>
-                                    <Text style={styles.listMeta}>Toca para abrir y añadir gastos</Text>
+                                    <View style={styles.typeIcon}>
+                                        <Text style={styles.typeIconText}>{(tipo.nombre_tipo || "?").charAt(0).toUpperCase()}</Text>
+                                    </View>
+                                    <View style={styles.typeCardContent}>
+                                        <Text style={styles.listTitle}>{tipo.nombre_tipo}</Text>
+                                        <Text style={styles.listMeta}>Toca para abrir y añadir gastos</Text>
+                                    </View>
                                 </TouchableOpacity>
 
                                 {canManageGastos ? (
@@ -365,8 +409,32 @@ export default Gastos;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f7fafc",
-        paddingTop: 10,
+        backgroundColor: "#f3f6fb",
+        paddingTop: 12,
+    },
+    heroCard: {
+        marginHorizontal: 16,
+        marginBottom: 12,
+        padding: 16,
+        borderRadius: 20,
+        backgroundColor: "#fff",
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 18,
+        elevation: 4,
+    },
+    heroTopRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
+    },
+    heroBody: {
+        marginTop: 14,
+        marginBottom: 14,
     },
     header: {
         flexDirection: "row",
@@ -384,22 +452,29 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     title: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#0D47A1",
+        fontSize: 24,
+        fontWeight: "800",
+        color: "#0f172a",
+        letterSpacing: -0.3,
         flex: 1,
+    },
+    subtitle: {
+        marginTop: 6,
+        color: "#64748b",
+        fontSize: 14,
+        fontWeight: "500",
     },
     addButton: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#1976D2",
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        borderRadius: 10,
+        backgroundColor: "#1d4ed8",
+        paddingHorizontal: 14,
+        paddingVertical: 9,
+        borderRadius: 999,
     },
     addButtonText: {
         color: "#fff",
-        fontWeight: "700",
+        fontWeight: "600",
         fontSize: 13,
     },
     content: {
@@ -408,23 +483,26 @@ const styles = StyleSheet.create({
         paddingBottom: 28,
     },
     input: {
-        backgroundColor: "#fff",
-        borderRadius: 10,
         borderWidth: 1,
-        borderColor: "#d1d5db",
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        borderColor: "#e5e7eb",
+        borderRadius: 12,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        marginBottom: 12,
+        backgroundColor: "#fafbfc",
+        color: "#0f172a",
+        fontSize: 15,
     },
     primaryButton: {
-        backgroundColor: "#1976D2",
+        backgroundColor: "#1d4ed8",
+        borderRadius: 12,
+        paddingHorizontal: 16,
         paddingVertical: 12,
-        borderRadius: 10,
         alignItems: "center",
     },
     primaryButtonText: {
         color: "#fff",
         fontWeight: "700",
-        fontSize: 15,
     },
     sectionHeader: {
         marginTop: 4,
@@ -434,41 +512,67 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         color: "#111827",
     },
+    typeCardRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        flex: 1,
+    },
     typeCardContent: {
         flex: 1,
-        gap: 3,
+        gap: 4,
     },
     listCard: {
         backgroundColor: "#fff",
-        borderRadius: 12,
+        borderRadius: 18,
+        padding: 12,
+        marginBottom: 10,
         borderWidth: 1,
         borderColor: "#e5e7eb",
-        padding: 14,
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         gap: 8,
     },
     listTitle: {
-        fontSize: 15,
-        fontWeight: "700",
-        color: "#111827",
+        fontSize: 16,
+        fontWeight: "800",
+        color: "#0f172a",
     },
     listMeta: {
-        color: "#374151",
+        color: "#64748b",
         fontSize: 13,
+        marginTop: 2,
+    },
+    typeIcon: {
+        width: 44,
+        height: 44,
+        borderRadius: 999,
+        backgroundColor: "#eef2ff",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    typeIconText: {
+        color: "#3730a3",
+        fontWeight: "800",
+        fontSize: 18,
     },
     deleteIconButton: {
-        width: 36,
         height: 36,
+        width: 36,
         borderRadius: 999,
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "#dc2626",
     },
     editIconButton: {
-        width: 36,
         height: 36,
+        width: 36,
         borderRadius: 999,
         alignItems: "center",
         justifyContent: "center",
@@ -480,44 +584,111 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     errorText: {
-        color: "#b91c1c",
-        fontWeight: "600",
-        marginHorizontal: 16,
-        marginTop: 8,
+        marginHorizontal: 12,
+        backgroundColor: "#fef2f2",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#fecaca",
+        padding: 12,
+        marginBottom: 12,
+        color: "#dc2626",
+        fontWeight: "500",
+        fontSize: 14,
     },
     successText: {
-        color: "#166534",
-        fontWeight: "600",
-        marginHorizontal: 16,
-        marginTop: 8,
+        marginHorizontal: 12,
+        backgroundColor: "#f0fdf4",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#bbf7d0",
+        padding: 12,
+        marginBottom: 12,
+        color: "#16a34a",
+        fontWeight: "500",
+        fontSize: 14,
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: "rgba(17,24,39,0.45)",
+        backgroundColor: "rgba(15, 23, 42, 0.42)",
         justifyContent: "center",
-        padding: 20,
+        alignItems: "center",
+        paddingHorizontal: 12,
+    },
+    modalOverlayBottom: {
+        justifyContent: "flex-end",
+        alignItems: "stretch",
+        paddingHorizontal: 0,
     },
     modalCard: {
         backgroundColor: "#fff",
-        borderRadius: 16,
-        padding: 16,
+        borderRadius: 20,
+        marginHorizontal: 12,
+        padding: 18,
+        width: "90%",
+        maxWidth: 420,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 18,
+        elevation: 4,
         gap: 12,
+    },
+    modalCardBottom: {
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
+        width: "100%",
+        maxWidth: undefined,
+        marginHorizontal: 0,
+        borderWidth: 1,
+        borderBottomWidth: 0,
+        borderColor: "#e5e7eb",
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        elevation: 0,
+        padding: 18,
+        maxHeight: "78%",
     },
     modalHeader: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
+        marginBottom: 8,
     },
     modalTitle: {
-        fontSize: 16,
-        fontWeight: "700",
-        color: "#111827",
+        color: "#0f172a",
+        fontSize: 20,
+        fontWeight: "800",
     },
     modalErrorText: {
-        color: "#b91c1c",
-        backgroundColor: "#fef2f2",
-        borderRadius: 10,
-        padding: 10,
+        color: "#dc2626",
+        fontWeight: "600",
+        marginBottom: 12,
+        fontSize: 14,
+    },
+    modalActionRow: {
+        marginTop: 16,
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 10,
+    },
+    secondaryButton: {
+        backgroundColor: "#f3f4f6",
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+    },
+    secondaryButtonText: {
+        color: "#374151",
+        fontWeight: "600",
     },
     webCalendarCard: {
         borderWidth: 1,
@@ -578,49 +749,55 @@ const styles = StyleSheet.create({
     webCalendarDayTextSelected: {
         color: "#fff",
     },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingVertical: 40,
+    },
     confirmBox: {
-        marginTop: 8,
-        backgroundColor: "#fff7ed",
+        marginTop: 10,
         borderWidth: 1,
-        borderColor: "#fed7aa",
-        borderRadius: 10,
-        padding: 12,
-        gap: 10,
+        borderColor: "#fecaca",
+        backgroundColor: "#fff1f2",
+        borderRadius: 8,
+        padding: 10,
     },
     confirmTitle: {
+        color: "#03045E",
         fontWeight: "700",
-        color: "#9a3412",
+        marginBottom: 4,
     },
     confirmMessage: {
-        color: "#7c2d12",
+        color: "#03045E",
+        marginBottom: 8,
     },
     confirmActions: {
         flexDirection: "row",
-        gap: 10,
         justifyContent: "flex-end",
     },
     confirmCancelButton: {
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderRadius: 10,
-        backgroundColor: "#e5e7eb",
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        marginRight: 8,
     },
     confirmCancelText: {
-        fontWeight: "700",
-        color: "#374151",
+        color: "#6b7280",
+        fontWeight: "600",
     },
     confirmDeleteButton: {
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderRadius: 10,
         backgroundColor: "#dc2626",
+        borderRadius: 6,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
     },
     confirmDeleteText: {
-        fontWeight: "700",
         color: "#fff",
+        fontWeight: "700",
     },
     emptyText: {
-        color: "#6b7280",
-        fontStyle: "italic",
+        textAlign: "center",
+        color: "#64748b",
+        marginTop: 40,
     },
 });
