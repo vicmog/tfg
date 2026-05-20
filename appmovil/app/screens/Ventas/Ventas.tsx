@@ -557,20 +557,22 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
-          <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Ventas</Text>
-        {canManageVentas && (
-          <TouchableOpacity
-            onPress={handleOpenVentaModal}
-            style={styles.addPrimaryButton}
-          >
-            <MaterialIcons name="add" size={20} color="#fff" />
+      <View style={styles.heroCard}>
+        <View style={styles.heroTopRow}>
+          <TouchableOpacity style={styles.heroBackButton} onPress={() => navigation.goBack()}>
+            <MaterialIcons name="arrow-back" size={24} color="#0f172a" />
           </TouchableOpacity>
-        )}
+          {canManageVentas && (
+            <TouchableOpacity style={styles.addButton} onPress={handleOpenVentaModal}>
+              <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 6 }} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={styles.heroBody}>
+          <Text style={styles.headerTitle}>Ventas</Text>
+          <Text style={styles.subtitle}>{normalizedRole === 'admin' ? 'Administrador' : normalizedRole === 'jefe' ? 'Jefe' : 'Trabajador'} · {ventas.length} ventas</Text>
+        </View>
       </View>
 
       {/* Error Box */}
@@ -790,17 +792,16 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
       )}
 
       {}
-      <Modal visible={modalVisible} animationType="slide">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={handleCloseVentaModal}>
-              <MaterialIcons name="close" size={24} color="#1f2937" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>
-              Nueva Venta
-            </Text>
-            <View style={{ width: 24 }} />
-          </View>
+      <Modal visible={modalVisible} transparent animationType="none" onRequestClose={handleCloseVentaModal}>
+        <View style={[styles.modalOverlay, styles.modalOverlayBottom]}>
+          <View style={[styles.modalCard, styles.modalCardBottom]}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={handleCloseVentaModal}>
+                <MaterialIcons name="close" size={22} color="#6b7280" />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Nueva Venta</Text>
+              <View style={{ width: 24 }} />
+            </View>
 
           {modalError ? (
             <View style={[styles.feedbackBox, styles.modalError]}>
@@ -1153,21 +1154,24 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
             </TouchableOpacity>
           </ScrollView>
         </View>
+      </View>
       </Modal>
 
       {/* View Venta Modal */}
       <Modal
         visible={viewVentaModalVisible}
+        transparent
         animationType="slide"
         onRequestClose={handleCloseViewVentaModal}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Detalles de Venta</Text>
-            <TouchableOpacity onPress={handleCloseViewVentaModal}>
-              <MaterialIcons name="close" size={28} color="#1f2937" />
-            </TouchableOpacity>
-          </View>
+        <View style={[styles.modalOverlay, styles.modalOverlayBottom]}>
+          <View style={[styles.modalCard, styles.modalCardBottom]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Detalles de Venta</Text>
+              <TouchableOpacity onPress={handleCloseViewVentaModal}>
+                <MaterialIcons name="close" size={22} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
 
           {viewVentaLoading ? (
             <View style={styles.centerContainer}>
@@ -1277,6 +1281,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
             </ScrollView>
           ) : null}
         </View>
+      </View>
       </Modal>
 
       {datePickerVisible && editingWhichDate && (
@@ -1437,8 +1442,99 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   backButton: { padding: 8 },
-  headerTitle: { fontSize: 20, fontWeight: "700", color: "#0D47A1" },
-  addPrimaryButton: { paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#1976D2", borderRadius: 10 },
+  headerTitle: { fontSize: 24, fontWeight: "800", color: "#0f172a", letterSpacing: -0.3 },
+  addPrimaryButton: { paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#1d4ed8", borderRadius: 10 },
+  heroCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 4,
+  },
+  heroTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  heroBody: {
+    marginTop: 14,
+    marginBottom: 14,
+  },
+  heroBackButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#eef4ff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1d4ed8",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  subtitle: {
+    marginTop: 6,
+    color: "#64748b",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.42)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 12,
+  },
+  modalOverlayBottom: {
+    justifyContent: "flex-end",
+    alignItems: "stretch",
+    paddingHorizontal: 0,
+  },
+  modalCard: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    marginHorizontal: 12,
+    padding: 18,
+    width: "90%",
+    maxWidth: 720,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 4,
+    gap: 12,
+  },
+  modalCardBottom: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    width: "100%",
+    maxWidth: undefined,
+    marginHorizontal: 0,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: "#e5e7eb",
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+    padding: 18,
+    maxHeight: "78%",
+  },
   feedbackBox: {
     flexDirection: "row",
     alignItems: "center",
