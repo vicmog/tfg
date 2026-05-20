@@ -565,6 +565,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
           {canManageVentas && (
             <TouchableOpacity style={styles.addButton} onPress={handleOpenVentaModal}>
               <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 6 }} />
+              <Text style={styles.addButtonText}>Añadir Venta</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -1157,7 +1158,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
       </View>
       </Modal>
 
-      {/* View Venta Modal */}
+      {}
       <Modal
         visible={viewVentaModalVisible}
         transparent
@@ -1186,7 +1187,6 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                 </View>
               ) : null}
 
-              {/* Cliente Info */}
               <View style={styles.detailSection}>
                 <Text style={styles.detailSectionTitle}>Cliente</Text>
                 <View style={styles.detailCard}>
@@ -1199,7 +1199,6 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                 </View>
               </View>
 
-              {/* Fecha Info */}
               <View style={styles.detailSection}>
                 <Text style={styles.detailSectionTitle}>Fecha</Text>
                 <View style={styles.detailCard}>
@@ -1210,7 +1209,6 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                 </View>
               </View>
 
-              {/* Precio Total */}
               <View style={styles.detailSection}>
                 <Text style={styles.detailSectionTitle}>Precio Total</Text>
                 <View style={[styles.detailCard, styles.priceCard]}>
@@ -1218,7 +1216,6 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                 </View>
               </View>
 
-              {/* Tipo y Estado */}
               <View style={styles.detailSection}>
                 <Text style={styles.detailSectionTitle}>Información</Text>
                 <View style={styles.detailCard}>
@@ -1241,7 +1238,6 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                 </View>
               </View>
 
-              {}
               <View style={styles.detailSection}>
                 <Text style={styles.detailSectionTitle}>
                   {selectedVenta.tipo === "producto" ? "Productos" : "Servicios"}
@@ -1271,7 +1267,6 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                 </View>
               </View>
 
-              {/* Close Button */}
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={handleCloseViewVentaModal}
@@ -1446,6 +1441,7 @@ const styles = StyleSheet.create({
   addPrimaryButton: { paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#1d4ed8", borderRadius: 10 },
   heroCard: {
     marginHorizontal: 16,
+    marginTop: 18,
     marginBottom: 12,
     padding: 16,
     borderRadius: 20,
@@ -1484,6 +1480,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
   },
+  addButtonText: { color: "#fff", fontSize: 14, fontWeight: "600", marginLeft: 6 },
   subtitle: {
     marginTop: 6,
     color: "#64748b",
@@ -1498,7 +1495,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   modalOverlayBottom: {
-    justifyContent: "flex-end",
+    justifyContent: "flex-start",
     alignItems: "stretch",
     paddingHorizontal: 0,
   },
@@ -1519,21 +1516,21 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   modalCardBottom: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     width: "100%",
     maxWidth: undefined,
     marginHorizontal: 0,
-    borderWidth: 1,
-    borderBottomWidth: 0,
+    borderWidth: 0,
     borderColor: "#e5e7eb",
     shadowOpacity: 0,
     shadowRadius: 0,
     elevation: 0,
     padding: 18,
-    maxHeight: "78%",
+    height: "100%",
+    paddingTop: 40,
   },
   feedbackBox: {
     flexDirection: "row",
