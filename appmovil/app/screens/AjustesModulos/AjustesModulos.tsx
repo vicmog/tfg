@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View, Platform, StatusBar } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
@@ -112,16 +112,20 @@ const AjustesModulos: React.FC<AjustesModulosProps> = ({ route, navigation }) =>
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity
-                    style={styles.iconButton}
-                    onPress={() => navigation.goBack()}
-                    testID="ajustes-modulos-back-button"
-                >
-                    <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
-                </TouchableOpacity>
-                <View style={styles.headerTextWrap}>
-                    <Text style={styles.title}>Activacion por grupos</Text>
+            <View style={styles.heroCard}>
+                <View style={styles.heroTopRow}>
+                    <TouchableOpacity
+                        style={styles.heroBackButton}
+                        onPress={() => navigation.goBack()}
+                        testID="ajustes-modulos-back-button"
+                    >
+                        <MaterialIcons name="arrow-back" size={20} color="#0f172a" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.actionButton} onPress={() => {}} testID="ajustes-action-button" />
+                </View>
+
+                <View style={styles.heroBody}>
+                    <Text style={styles.title}>Activación por grupos</Text>
                     <Text style={styles.subtitle}>{negocio.nombre}</Text>
                 </View>
             </View>
@@ -193,43 +197,63 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#f7fafc",
     },
-    header: {
+    heroCard: {
+        marginHorizontal: 16,
+        marginBottom: 12,
+        padding: 16,
+        paddingTop: Platform.OS === "android" ? (StatusBar.currentHeight || 24) + 12 : 32,
+        borderRadius: 20,
+        backgroundColor: "#fff",
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 18,
+        elevation: 4,
+    },
+    heroTopRow: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 16,
-        paddingTop: 14,
-        paddingBottom: 12,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#e5e7eb",
+        justifyContent: "space-between",
     },
-    iconButton: {
-        padding: 10,
-        borderRadius: 8,
-        backgroundColor: "#f0f7ff",
-        marginRight: 12,
+    heroBackButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: "#eef4ff",
+        alignItems: "center",
+        justifyContent: "center",
     },
-    headerTextWrap: {
-        flex: 1,
+    actionButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 999,
+        backgroundColor: "transparent",
+    },
+    heroBody: {
+        marginTop: 14,
+        marginBottom: 6,
     },
     title: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#0D47A1",
+        fontSize: 22,
+        fontWeight: "800",
+        color: "#0f172a",
+        letterSpacing: -0.3,
     },
     subtitle: {
-        marginTop: 2,
+        marginTop: 6,
         fontSize: 13,
-        color: "#6b7280",
+        color: "#64748b",
     },
     infoBox: {
         marginTop: 12,
         marginHorizontal: 14,
         padding: 12,
         borderRadius: 10,
-        backgroundColor: "#eaf3ff",
+        backgroundColor: "#f8fafc",
         borderWidth: 1,
-        borderColor: "#cfe2ff",
+        borderColor: "#eef2ff",
     },
     infoTitle: {
         fontSize: 14,
@@ -266,11 +290,16 @@ const styles = StyleSheet.create({
     },
     groupCard: {
         backgroundColor: "#fff",
-        borderRadius: 12,
-        padding: 14,
+        borderRadius: 16,
+        padding: 16,
         marginBottom: 12,
         borderWidth: 1,
         borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
+        elevation: 3,
     },
     groupHeaderRow: {
         flexDirection: "row",
@@ -304,14 +333,16 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     moduleChip: {
-        paddingHorizontal: 10,
-        paddingVertical: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
         borderRadius: 999,
-        backgroundColor: "#f3f4f6",
+        backgroundColor: "#f1f5f9",
+        borderWidth: 1,
+        borderColor: "#e6eef8",
     },
     moduleChipText: {
-        color: "#374151",
-        fontSize: 12,
-        fontWeight: "600",
+        color: "#0f172a",
+        fontSize: 13,
+        fontWeight: "700",
     },
 });
