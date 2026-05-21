@@ -993,14 +993,22 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                         style={styles.cantidadInput}
                         keyboardType="number-pad"
                         placeholder="1"
-                        value={`${item.cantidad || 1}`}
-                        onChangeText={(text) =>
+                        value={item.cantidad != null ? String(item.cantidad) : ""}
+                        onChangeText={(text) => {
+                          const parsed = parseInt(text, 10);
                           handleUpdateItem(
                             index,
                             "cantidad",
-                            text ? parseInt(text) : 1
-                          )
-                        }
+                            Number.isFinite(parsed) ? parsed : undefined
+                          );
+                        }}
+                        onBlur={() => {
+                          const current = selectedItems[index];
+                          const val = current?.cantidad;
+                          if (!Number.isFinite(val) || val <= 0) {
+                            handleUpdateItem(index, "cantidad", 1);
+                          }
+                        }}
                       />
                     </View>
                   )}
