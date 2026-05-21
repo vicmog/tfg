@@ -87,6 +87,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalError, setModalError] = useState("");
   const [searchVentasClienteText, setSearchVentasClienteText] = useState("");
+  const [filtersExpanded, setFiltersExpanded] = useState(true);
   const [fechaDesde, setFechaDesde] = useState<string>("");
   const [fechaHasta, setFechaHasta] = useState<string>("");
   const [editingWhichDate, setEditingWhichDate] = useState<"desde" | "hasta" | null>(null);
@@ -299,6 +300,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
   };
 
   const handleClearFilters = () => {
+    setVentaType("producto");
     setSearchVentasClienteText("");
     setFechaDesde("");
     setFechaHasta("");
@@ -573,6 +575,22 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
         <View style={styles.heroBody}>
           <Text style={styles.headerTitle}>Ventas</Text>
           <Text style={styles.subtitle}>{normalizedRole === 'admin' ? 'Administrador' : normalizedRole === 'jefe' ? 'Jefe' : 'Trabajador'} · {ventas.length} ventas</Text>
+
+          <View style={styles.heroSearchBox}>
+            <MaterialIcons name="search" size={20} color="#64748b" />
+            <TextInput
+              style={styles.heroSearchInput}
+              placeholder="Buscar por cliente..."
+              value={searchVentasClienteText}
+              onChangeText={setSearchVentasClienteText}
+              placeholderTextColor="#94a3b8"
+            />
+            {searchVentasClienteText ? (
+              <TouchableOpacity onPress={() => setSearchVentasClienteText("")} style={styles.heroSearchClearButton}>
+                <MaterialIcons name="close" size={18} color="#64748b" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
         </View>
       </View>
 
@@ -592,110 +610,102 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
         </View>
       ) : null}
 
-      {/* Toggle */}
-      <View style={styles.toggleContainer}>
-        <TouchableOpacity
-          style={[styles.toggleButton, ventaType === "producto" && styles.toggleButtonActive]}
-          onPress={() => setVentaType("producto")}
-        >
-          <Text
-            style={[
-              styles.toggleText,
-              ventaType === "producto" && styles.toggleTextActive,
-            ]}
-          >
-            Productos
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.toggleButton, ventaType === "servicio" && styles.toggleButtonActive]}
-          onPress={() => setVentaType("servicio")}
-        >
-          <Text
-            style={[
-              styles.toggleText,
-              ventaType === "servicio" && styles.toggleTextActive,
-            ]}
-          >
-            Servicios
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filtersContainer}
-        contentContainerStyle={styles.filtersContent}
-      >
-        {}
-        <View style={styles.filterSection}>
-          <View style={styles.searchBox}>
-            <MaterialIcons name="search" size={18} color="#6b7280" />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Buscar por cliente..."
-              value={searchVentasClienteText}
-              onChangeText={setSearchVentasClienteText}
-              placeholderTextColor="#9ca3af"
-            />
+      <View style={styles.filterCard}>
+        <TouchableOpacity style={styles.filterHeader} onPress={() => setFiltersExpanded((value) => !value)}>
+          <View style={styles.filterHeaderLeft}>
+            <View style={styles.filterHeaderIcon}>
+              <MaterialIcons name="tune" size={18} color="#ffffff" />
+            </View>
+            <View>
+              <Text style={styles.filterTitle}>Filtros</Text>
+              <Text style={styles.filterSubtitle}>Producto o servicio y rango de fechas</Text>
+            </View>
           </View>
-        </View>
-
-        {}
-        <TouchableOpacity
-          style={[styles.filterButton, fechaDesde && styles.filterButtonActive]}
-          onPress={() => {
-            const date = fechaDesde ? new Date(fechaDesde) : new Date();
-            setDatePickerCursor(date);
-            setEditingWhichDate("desde");
-            setDatePickerVisible(true);
-          }}
-        >
-          <MaterialIcons name="date-range" size={16} color={fechaDesde ? "#fff" : "#6b7280"} />
-          <Text style={[styles.filterButtonText, fechaDesde && styles.filterButtonTextActive]}>
-            {fechaDesde ? toDateOnlyDisplay(fechaDesde) : "Desde"}
-          </Text>
-          {fechaDesde && (
-            <TouchableOpacity onPress={() => setFechaDesde("")}>
-              <MaterialIcons name="close" size={14} color="#fff" />
-            </TouchableOpacity>
-          )}
+          <MaterialIcons name={filtersExpanded ? "expand-less" : "expand-more"} size={26} color="#475569" />
         </TouchableOpacity>
 
-        {}
-        <TouchableOpacity
-          style={[styles.filterButton, fechaHasta && styles.filterButtonActive]}
-          onPress={() => {
-            const date = fechaHasta ? new Date(fechaHasta) : new Date();
-            setDatePickerCursor(date);
-            setEditingWhichDate("hasta");
-            setDatePickerVisible(true);
-          }}
-        >
-          <MaterialIcons name="date-range" size={16} color={fechaHasta ? "#fff" : "#6b7280"} />
-          <Text style={[styles.filterButtonText, fechaHasta && styles.filterButtonTextActive]}>
-            {fechaHasta ? toDateOnlyDisplay(fechaHasta) : "Hasta"}
-          </Text>
-          {fechaHasta && (
-            <TouchableOpacity onPress={() => setFechaHasta("")}>
-              <MaterialIcons name="close" size={14} color="#fff" />
-            </TouchableOpacity>
-          )}
-        </TouchableOpacity>
+        {filtersExpanded ? (
+          <View style={styles.filterBody}>
+            <View style={styles.toggleContainer}>
+              <TouchableOpacity
+                style={[styles.toggleButton, ventaType === "producto" && styles.toggleButtonActive]}
+                onPress={() => setVentaType("producto")}
+              >
+                <Text
+                  style={[
+                    styles.toggleText,
+                    ventaType === "producto" && styles.toggleTextActive,
+                  ]}
+                >
+                  Productos
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.toggleButton, ventaType === "servicio" && styles.toggleButtonActive]}
+                onPress={() => setVentaType("servicio")}
+              >
+                <Text
+                  style={[
+                    styles.toggleText,
+                    ventaType === "servicio" && styles.toggleTextActive,
+                  ]}
+                >
+                  Servicios
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-        {}
-        {(searchVentasClienteText || fechaDesde || fechaHasta) && (
-          <TouchableOpacity
-            style={styles.filterClearButton}
-            onPress={handleClearFilters}
-          >
-            <MaterialIcons name="clear-all" size={16} color="#6b7280" />
-            <Text style={styles.filterClearText}>{REESTRABLERCER_FILTROS}</Text>
-          </TouchableOpacity>
-        )}
-      </ScrollView>
+            <View style={styles.dateFilterRow}>
+              <TouchableOpacity
+                style={[styles.filterButton, fechaDesde && styles.filterButtonActive]}
+                onPress={() => {
+                  const date = fechaDesde ? new Date(fechaDesde) : new Date();
+                  setDatePickerCursor(date);
+                  setEditingWhichDate("desde");
+                  setDatePickerVisible(true);
+                }}
+              >
+                <MaterialIcons name="date-range" size={16} color={fechaDesde ? "#fff" : "#64748b"} />
+                <Text style={[styles.filterButtonText, fechaDesde && styles.filterButtonTextActive]}>
+                  {fechaDesde ? toDateOnlyDisplay(fechaDesde) : "Desde"}
+                </Text>
+                {fechaDesde && (
+                  <TouchableOpacity onPress={() => setFechaDesde("")}>
+                    <MaterialIcons name="close" size={14} color="#fff" />
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.filterButton, fechaHasta && styles.filterButtonActive]}
+                onPress={() => {
+                  const date = fechaHasta ? new Date(fechaHasta) : new Date();
+                  setDatePickerCursor(date);
+                  setEditingWhichDate("hasta");
+                  setDatePickerVisible(true);
+                }}
+              >
+                <MaterialIcons name="date-range" size={16} color={fechaHasta ? "#fff" : "#64748b"} />
+                <Text style={[styles.filterButtonText, fechaHasta && styles.filterButtonTextActive]}>
+                  {fechaHasta ? toDateOnlyDisplay(fechaHasta) : "Hasta"}
+                </Text>
+                {fechaHasta && (
+                  <TouchableOpacity onPress={() => setFechaHasta("")}>
+                    <MaterialIcons name="close" size={14} color="#fff" />
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {(ventaType !== "producto" || fechaDesde || fechaHasta) && (
+              <TouchableOpacity style={styles.filterClearButton} onPress={handleClearFilters}>
+                <MaterialIcons name="clear-all" size={16} color="#64748b" />
+                <Text style={styles.filterClearText}>{REESTRABLERCER_FILTROS}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : null}
+      </View>
 
       {}
       {loading ? (
@@ -1464,6 +1474,32 @@ const styles = StyleSheet.create({
     marginTop: 14,
     marginBottom: 14,
   },
+  heroSearchBox: {
+    marginTop: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  heroSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: "#0f172a",
+    paddingVertical: 0,
+  },
+  heroSearchClearButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 999,
+    backgroundColor: "#e2e8f0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   heroBackButton: {
     width: 40,
     height: 40,
@@ -1562,6 +1598,56 @@ const styles = StyleSheet.create({
   toggleButtonActive: { backgroundColor: "#2563eb" },
   toggleText: { fontSize: 14, color: "#6b7280", fontWeight: "500" },
   toggleTextActive: { color: "#fff" },
+  filterCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
+  },
+  filterHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  filterHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+    minWidth: 0,
+  },
+  filterHeaderIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: "#1976D2",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  filterTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#0f172a",
+  },
+  filterSubtitle: {
+    marginTop: 2,
+    fontSize: 12,
+    color: "#64748b",
+  },
+  filterBody: {
+    marginTop: 14,
+    gap: 12,
+  },
   centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   emptyContainer: {
     flex: 1,
@@ -1618,6 +1704,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   label: { fontSize: 14, fontWeight: "600", color: "#1f2937", marginTop: 12, marginBottom: 8 },
+  dateFilterRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
   pickerContainer: { marginBottom: 12 },
   clienteList: { flexGrow: 0 },
   clienteButton: {
