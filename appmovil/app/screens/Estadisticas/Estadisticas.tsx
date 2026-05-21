@@ -209,6 +209,8 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     .join("/");
 
   const pickerOptions = activePicker === "year" ? yearOptions : activePicker === "month" ? monthOptions : dayOptions;
+  const selectedPickerValue =
+    activePicker === "year" ? selectedYear : activePicker === "month" ? selectedMonth : selectedDay;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("es-ES", {
@@ -503,42 +505,72 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        <Text style={styles.sectionTitle}>Resumen General</Text>
-        <Text style={styles.sectionDescription}>Mes requiere año y día requiere mes + año.</Text>
+        <View style={styles.filterCard}>
+          <View style={styles.filterCardHeader}>
+            <View style={styles.filterCardTitleRow}>
+              <View style={styles.filterCardIcon}>
+                <MaterialIcons name="tune" size={18} color="#ffffff" />
+              </View>
+              <View>
+                <Text style={styles.sectionTitle}>Filtros</Text>
+              </View>
+            </View>
 
-        <View style={styles.filtersRow}>
-          <Pressable
-            style={[styles.filterChip, styles.filterChipGrow]}
-            onPress={() => setActivePicker("year")}
-            testID="estadisticas-filter-year"
-          >
-            <Text style={styles.filterLabel}>Año</Text>
-            <Text style={styles.filterValue}>{yearLabel}</Text>
-          </Pressable>
+            <View style={styles.filterActiveBadge}>
+              <Text style={styles.filterActiveBadgeText}>Periodo activo</Text>
+            </View>
+          </View>
 
-          <Pressable
-            style={[styles.filterChip, styles.filterChipGrow]}
-            onPress={() => setActivePicker("month")}
-            testID="estadisticas-filter-month"
-          >
-            <Text style={styles.filterLabel}>Mes</Text>
-            <Text style={styles.filterValue}>{monthLabel}</Text>
-          </Pressable>
+          <View style={styles.filtersRow}>
+            <Pressable
+              style={[
+                styles.filterChip,
+                styles.filterChipGrow,
+                activePicker === "year" && styles.filterChipActive,
+              ]}
+              onPress={() => setActivePicker("year")}
+              testID="estadisticas-filter-year"
+            >
+              <View style={styles.filterChipTopRow}>
+                <MaterialIcons name="event" size={16} color={activePicker === "year" ? "#0f172a" : "#6b7280"} />
+                <Text style={[styles.filterBadge, activePicker === "year" && styles.filterBadgeActive]}>Año</Text>
+              </View>
+              <Text style={styles.filterValue}>{yearLabel}</Text>
+            </Pressable>
 
-          <Pressable
-            style={[styles.filterChip, !selectedMonth && styles.filterCardDisabled]}
-            onPress={() => selectedMonth && setActivePicker("day")}
-            disabled={!selectedMonth}
-            testID="estadisticas-filter-day"
-          >
-            <Text style={styles.filterLabel}>Día</Text>
-            <Text style={styles.filterValue}>{dayLabel}</Text>
-          </Pressable>
-        </View>
+            <Pressable
+              style={[
+                styles.filterChip,
+                styles.filterChipGrow,
+                activePicker === "month" && styles.filterChipActive,
+              ]}
+              onPress={() => setActivePicker("month")}
+              testID="estadisticas-filter-month"
+            >
+              <View style={styles.filterChipTopRow}>
+                <MaterialIcons name="date-range" size={16} color={activePicker === "month" ? "#0f172a" : "#6b7280"} />
+                <Text style={[styles.filterBadge, activePicker === "month" && styles.filterBadgeActive]}>Mes</Text>
+              </View>
+              <Text style={styles.filterValue}>{monthLabel}</Text>
+            </Pressable>
 
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Periodo activo</Text>
-          <Text style={styles.summaryValue}>{summary || "Sin especificar"}</Text>
+            <Pressable
+              style={[
+                styles.filterChip,
+                !selectedMonth && styles.filterCardDisabled,
+                activePicker === "day" && styles.filterChipActive,
+              ]}
+              onPress={() => selectedMonth && setActivePicker("day")}
+              disabled={!selectedMonth}
+              testID="estadisticas-filter-day"
+            >
+              <View style={styles.filterChipTopRow}>
+                <MaterialIcons name="today" size={16} color={selectedMonth ? (activePicker === "day" ? "#0f172a" : "#6b7280") : "#9ca3af"} />
+                <Text style={[styles.filterBadge, activePicker === "day" && styles.filterBadgeActive]}>Día</Text>
+              </View>
+              <Text style={styles.filterValue}>{dayLabel}</Text>
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.chartCard}>
@@ -1329,10 +1361,15 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
               {pickerOptions.map((option) => (
                 <Pressable
                   key={`${activePicker}-${option.label}`}
-                  style={styles.modalOption}
+                  style={[styles.modalOption, option.value === selectedPickerValue && styles.modalOptionSelected]}
                   onPress={() => selectOption(option.value)}
                 >
-                  <Text style={styles.modalOptionText}>{option.label}</Text>
+                  <View style={styles.modalOptionRow}>
+                    <Text style={styles.modalOptionText}>{option.label}</Text>
+                    {option.value === selectedPickerValue ? (
+                      <MaterialIcons name="check" size={18} color="#1976D2" />
+                    ) : null}
+                  </View>
                 </Pressable>
               ))}
             </ScrollView>
@@ -1387,6 +1424,113 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
     gap: 14,
   },
+  heroCard: {
+    borderRadius: 24,
+    padding: 18,
+    backgroundColor: "#0f172a",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 4,
+  },
+  heroTopRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 14,
+  },
+  heroIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: "#1976D2",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroTextBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
+  heroTitle: {
+    fontSize: 28,
+    lineHeight: 32,
+    color: "#ffffff",
+    fontWeight: "800",
+  },
+  heroDescription: {
+    color: "#cbd5e1",
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 8,
+  },
+  heroMetaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 16,
+  },
+  heroMetaPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255,255,255,0.92)",
+    borderRadius: 999,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+  },
+  heroMetaText: {
+    color: "#0f172a",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  filterCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  filterCardHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  filterCardTitleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    flex: 1,
+    minWidth: 0,
+  },
+  filterCardIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: "#1976D2",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+  },
+  filterActiveBadge: {
+    backgroundColor: "#eff6ff",
+    borderColor: "#bfdbfe",
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    flexShrink: 0,
+  },
+  filterActiveBadgeText: {
+    color: "#1d4ed8",
+    fontSize: 12,
+    fontWeight: "700",
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
@@ -1404,13 +1548,14 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   filterChip: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#f8fafc",
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     minHeight: 48,
     justifyContent: "center",
-    borderWidth: 0,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,
@@ -1420,8 +1565,29 @@ const styles = StyleSheet.create({
   filterChipGrow: {
     flex: 1,
   },
+  filterChipActive: {
+    backgroundColor: "#eff6ff",
+    borderColor: "#93c5fd",
+    shadowOpacity: 0.08,
+    elevation: 2,
+  },
   filterCardDisabled: {
     opacity: 0.5,
+  },
+  filterChipTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  filterBadge: {
+    fontSize: 11,
+    color: "#6b7280",
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  filterBadgeActive: {
+    color: "#1d4ed8",
   },
   filterLabel: {
     fontSize: 12,
@@ -1430,9 +1596,9 @@ const styles = StyleSheet.create({
   },
   filterValue: {
     marginTop: 2,
-    fontSize: 13,
+    fontSize: 14,
     color: "#0f172a",
-    fontWeight: "700",
+    fontWeight: "800",
   },
   summaryCard: {
     marginTop: 12,
@@ -1606,9 +1772,22 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#f3f4f6",
   },
+  modalOptionSelected: {
+    backgroundColor: "#eff6ff",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    marginHorizontal: -8,
+  },
+  modalOptionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
   modalOptionText: {
     fontSize: 15,
     color: "#1f2937",
+    flex: 1,
   },
 });
 
