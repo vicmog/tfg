@@ -63,7 +63,7 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
 
     const [productos, setProductos] = useState<Producto[]>([]);
     const [descuentos, setDescuentos] = useState<DescuentoWithProducto[]>([]);
-    const [searchText, setSearchText] = useState("");
+    
     const [selectedProductoId, setSelectedProductoId] = useState<number | null>(null);
     const [porcentaje, setPorcentaje] = useState("");
     const [fechaInicio, setFechaInicio] = useState("");
@@ -86,7 +86,6 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
 
     const handleCloseModal = useCallback(() => {
         setModalVisible(false);
-        setSearchText("");
         setSelectedProductoId(null);
         setPorcentaje("");
         setFechaInicio("");
@@ -103,20 +102,7 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
         }
     }, [modalVisible, handleCloseModal, handleOpenModal]);
 
-    const filteredProductos = useMemo(() => {
-        const query = searchText.trim().toLowerCase();
-
-        if (!query) {
-            return productos;
-        }
-
-        return productos.filter((producto) =>
-            producto.nombre.toLowerCase().includes(query)
-            || producto.referencia.toLowerCase().includes(query)
-            || producto.categoria.toLowerCase().includes(query)
-            || (producto.proveedor_nombre || "").toLowerCase().includes(query)
-        );
-    }, [productos, searchText]);
+    const filteredProductos = useMemo(() => productos, [productos]);
 
     const selectedProducto = useMemo(
         () => productos.find((producto) => producto.id_producto === selectedProductoId) || null,
@@ -281,7 +267,6 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
             setFechaInicio("");
             setFechaFin("");
             setSelectedProductoId(null);
-            setSearchText("");
             setConfirmDeleteDescuentoId(null);
             fetchDescuentos();
             setTimeout(() => {
@@ -361,18 +346,7 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
                     <Text style={styles.subtitle}>{roleLabel} · {descuentos.length} descuentos</Text>
                 </View>
 
-                <View style={styles.searchContainer}>
-                    <MaterialIcons name="search" size={20} color="#64748b" style={styles.searchIcon} />
-                    <TextInput
-                        placeholder={SEARCH_PRODUCT}
-                        placeholderTextColor="#94a3b8"
-                        value={searchText}
-                        onChangeText={setSearchText}
-                        style={styles.searchInput}
-                        autoCapitalize="none"
-                        testID="descuento-search-input"
-                    />
-                </View>
+                
             </View>
 
             <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -496,13 +470,7 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
                             </View>
                         ) : null}
 
-                        <TextInput
-                            style={styles.input}
-                            placeholder={SEARCH_PRODUCT}
-                            value={searchText}
-                            onChangeText={setSearchText}
-                            testID="descuentos-search-product-input"
-                        />
+                        
 
                         <View style={styles.productList} testID="descuentos-product-list">
                             {filteredProductos.map((producto) => (
