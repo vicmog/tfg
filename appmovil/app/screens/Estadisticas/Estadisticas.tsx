@@ -220,6 +220,40 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     }).format(value);
   };
 
+  const buildBarData = <T,>(
+    items: T[],
+    valueGetter: (item: T) => number,
+    labelGetter: (item: T, index: number) => string,
+    palette: string[]
+  ) => {
+    return items.map((item, index) => ({
+      value: valueGetter(item),
+      label: labelGetter(item, index),
+      frontColor: palette[index % palette.length],
+    }));
+  };
+
+  const getClientChartLabel = (client: { nombre?: string; apellido1?: string }) => {
+    const firstName = (client.nombre || "").trim().split(/\s+/)[0] || "Cliente";
+    const firstSurname = (client.apellido1 || "").trim();
+
+    if (!firstSurname) {
+      return firstName;
+    }
+
+    return `${firstName} ${firstSurname.charAt(0)}.`;
+  };
+
+  const chartPalettes = {
+    green: ["#22c55e", "#16a34a", "#15803d"],
+    red: ["#fb7185", "#ef4444", "#dc2626"],
+    blue: ["#60a5fa", "#3b82f6", "#2563eb"],
+    orange: ["#fbbf24", "#f59e0b", "#d97706"],
+    teal: ["#2dd4bf", "#14b8a6", "#0f766e"],
+    violet: ["#c084fc", "#a855f7", "#7c3aed"],
+    indigo: ["#818cf8", "#6366f1", "#4f46e5"],
+  };
+
   const loadDashboard = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -658,7 +692,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
           <>
             <View style={styles.chartCard}>
               <View style={styles.chartHeader}>
+                <View style={styles.chartHeaderTitleWrap}>
+                  <View style={[styles.chartIconWrap, styles.chartIconGreen]}>
+                    <MaterialIcons name="inventory-2" size={16} color="#ffffff" />
+                  </View>
                 <Text style={styles.chartTitle}>Top 5 más vendidos</Text>
+                </View>
                 <Text style={styles.chartSubtitle}>Periodo seleccionado</Text>
               </View>
 
@@ -668,7 +707,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                 </View>
               ) : (
                 <BarChart
-                  data={productosMasVendidos.slice(0, 5).map((p) => ({ value: Number(p.cantidad_vendida || p.cantidad || 0), label: p.nombre }))}
+                  data={buildBarData(
+                    productosMasVendidos.slice(0, 5),
+                    (p) => Number(p.cantidad_vendida || p.cantidad || 0),
+                    (p) => p.nombre,
+                    chartPalettes.green
+                  )}
                   barWidth={24}
                   spacing={18}
                   roundedTop
@@ -697,7 +741,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
             <View style={styles.chartCard}>
               <View style={styles.chartHeader}>
+                <View style={styles.chartHeaderTitleWrap}>
+                  <View style={[styles.chartIconWrap, styles.chartIconRed]}>
+                    <MaterialIcons name="inventory-2" size={16} color="#ffffff" />
+                  </View>
                 <Text style={styles.chartTitle}>Top 5 menos vendidos</Text>
+                </View>
                 <Text style={styles.chartSubtitle}>Periodo seleccionado</Text>
               </View>
 
@@ -707,7 +756,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                 </View>
               ) : (
                 <BarChart
-                  data={productosMenosVendidos.slice(0, 5).map((p) => ({ value: Number(p.cantidad_vendida || p.cantidad || 0), label: p.nombre }))}
+                  data={buildBarData(
+                    productosMenosVendidos.slice(0, 5),
+                    (p) => Number(p.cantidad_vendida || p.cantidad || 0),
+                    (p) => p.nombre,
+                    chartPalettes.red
+                  )}
                   barWidth={24}
                   spacing={18}
                   roundedTop
@@ -748,7 +802,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
           <>
             <View style={styles.chartCard}>
               <View style={styles.chartHeader}>
+                <View style={styles.chartHeaderTitleWrap}>
+                  <View style={[styles.chartIconWrap, styles.chartIconBlue]}>
+                    <MaterialIcons name="spa" size={16} color="#ffffff" />
+                  </View>
                 <Text style={styles.chartTitle}>Top 5 servicios más vendidos</Text>
+                </View>
                 <Text style={styles.chartSubtitle}>Periodo seleccionado</Text>
               </View>
 
@@ -758,7 +817,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                 </View>
               ) : (
                 <BarChart
-                  data={serviciosMasVendidos.slice(0, 5).map((s) => ({ value: Number(s.cantidad_ventas || 0), label: s.nombre }))}
+                  data={buildBarData(
+                    serviciosMasVendidos.slice(0, 5),
+                    (s) => Number(s.cantidad_ventas || 0),
+                    (s) => s.nombre,
+                    chartPalettes.blue
+                  )}
                   barWidth={24}
                   spacing={18}
                   roundedTop
@@ -787,7 +851,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
             <View style={styles.chartCard}>
               <View style={styles.chartHeader}>
+                <View style={styles.chartHeaderTitleWrap}>
+                  <View style={[styles.chartIconWrap, styles.chartIconOrange]}>
+                    <MaterialIcons name="spa" size={16} color="#ffffff" />
+                  </View>
                 <Text style={styles.chartTitle}>Top 5 servicios menos vendidos</Text>
+                </View>
                 <Text style={styles.chartSubtitle}>Periodo seleccionado</Text>
               </View>
 
@@ -797,7 +866,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                 </View>
               ) : (
                 <BarChart
-                  data={serviciosMenosVendidos.slice(0, 5).map((s) => ({ value: Number(s.cantidad_ventas || 0), label: s.nombre }))}
+                  data={buildBarData(
+                    serviciosMenosVendidos.slice(0, 5),
+                    (s) => Number(s.cantidad_ventas || 0),
+                    (s) => s.nombre,
+                    chartPalettes.orange
+                  )}
                   barWidth={24}
                   spacing={18}
                   roundedTop
@@ -838,7 +912,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
           <>
             <View style={styles.chartCard}>
               <View style={styles.chartHeader}>
+                <View style={styles.chartHeaderTitleWrap}>
+                  <View style={[styles.chartIconWrap, styles.chartIconTeal]}>
+                    <MaterialIcons name="build" size={16} color="#ffffff" />
+                  </View>
                 <Text style={styles.chartTitle}>Top 3 recursos más usados</Text>
+                </View>
                 <Text style={styles.chartSubtitle}>Periodo seleccionado</Text>
               </View>
 
@@ -848,7 +927,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                 </View>
               ) : (
                 <BarChart
-                  data={recursosMasUsados.slice(0, 3).map((r) => ({ value: Number(r.cantidad || 0), label: r.nombre }))}
+                  data={buildBarData(
+                    recursosMasUsados.slice(0, 3),
+                    (r) => Number(r.cantidad || 0),
+                    (r) => r.nombre,
+                    chartPalettes.teal
+                  )}
                   barWidth={24}
                   spacing={18}
                   roundedTop
@@ -877,7 +961,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
             <View style={styles.chartCard}>
               <View style={styles.chartHeader}>
+                <View style={styles.chartHeaderTitleWrap}>
+                  <View style={[styles.chartIconWrap, styles.chartIconViolet]}>
+                    <MaterialIcons name="build" size={16} color="#ffffff" />
+                  </View>
                 <Text style={styles.chartTitle}>Top 3 recursos menos usados</Text>
+                </View>
                 <Text style={styles.chartSubtitle}>Periodo seleccionado</Text>
               </View>
 
@@ -887,7 +976,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                 </View>
               ) : (
                 <BarChart
-                  data={recursosMenosUsados.slice(0, 3).map((r) => ({ value: Number(r.cantidad || 0), label: r.nombre }))}
+                  data={buildBarData(
+                    recursosMenosUsados.slice(0, 3),
+                    (r) => Number(r.cantidad || 0),
+                    (r) => r.nombre,
+                    chartPalettes.violet
+                  )}
                   barWidth={24}
                   spacing={18}
                   roundedTop
@@ -927,7 +1021,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
         {gastosExpanded ? (
           <View style={styles.chartCard}>
             <View style={styles.chartHeader}>
+              <View style={styles.chartHeaderTitleWrap}>
+                <View style={[styles.chartIconWrap, styles.chartIconRed]}>
+                  <MaterialIcons name="trending-down" size={16} color="#ffffff" />
+                </View>
               <Text style={styles.chartTitle}>Gastos</Text>
+              </View>
               <Text style={styles.chartSubtitle}>{selectedMonth ? "Últimos 5 meses" : "Últimos 5 años"}</Text>
             </View>
 
@@ -940,7 +1039,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
             ) : (
               <>
                 <BarChart
-                  data={gastosChart.map((g) => ({ value: Number(g.gastos || 0), label: g.label }))}
+                  data={buildBarData(
+                    gastosChart,
+                    (g) => Number(g.gastos || 0),
+                    (g) => g.label,
+                    chartPalettes.red
+                  )}
                   barWidth={24}
                   spacing={18}
                   roundedTop
@@ -981,7 +1085,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
           <>
             <View style={styles.chartCard}>
               <View style={styles.chartHeader}>
+                <View style={styles.chartHeaderTitleWrap}>
+                  <View style={[styles.chartIconWrap, styles.chartIconOrange]}>
+                    <MaterialIcons name="shopping-cart" size={16} color="#ffffff" />
+                  </View>
                 <Text style={styles.chartTitle}>Gasto en compras</Text>
+                </View>
                 <Text style={styles.chartSubtitle}>{selectedMonth ? "Últimos 5 meses" : "Últimos 5 años"}</Text>
               </View>
 
@@ -994,7 +1103,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
               ) : (
                 <>
                   <BarChart
-                    data={compraChart.map((c) => ({ value: Number(c.compras || 0), label: c.label }))}
+                    data={buildBarData(
+                      compraChart,
+                      (c) => Number(c.compras || 0),
+                      (c) => c.label,
+                      chartPalettes.orange
+                    )}
                     barWidth={24}
                     spacing={18}
                     roundedTop
@@ -1024,7 +1138,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
             <View style={styles.chartCard}>
               <View style={styles.chartHeader}>
+                <View style={styles.chartHeaderTitleWrap}>
+                  <View style={[styles.chartIconWrap, styles.chartIconGreen]}>
+                    <MaterialIcons name="local-shipping" size={16} color="#ffffff" />
+                  </View>
                 <Text style={styles.chartTitle}>Top 3 proveedores</Text>
+                </View>
                 <Text style={styles.chartSubtitle}>Proveedores con más compras en el periodo</Text>
               </View>
 
@@ -1037,7 +1156,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
               ) : (
                 <>
                   <BarChart
-                    data={proveedoresTop.map((p) => ({ value: Number(p.cantidad || p.total || 0), label: p.nombre }))}
+                    data={buildBarData(
+                      proveedoresTop,
+                      (p) => Number(p.cantidad || p.total || 0),
+                      (p) => p.nombre,
+                      chartPalettes.green
+                    )}
                     barWidth={28}
                     spacing={18}
                     roundedTop
@@ -1079,8 +1203,13 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
           <>
             <View style={styles.chartCard}>
               <View style={styles.chartHeader}>
+                <View style={styles.chartHeaderTitleWrap}>
+                  <View style={[styles.chartIconWrap, styles.chartIconIndigo]}>
+                    <MaterialIcons name="groups" size={16} color="#ffffff" />
+                  </View>
                 <Text style={styles.chartTitle}>Top 3 clientes por gasto</Text>
-                <Text style={styles.chartSubtitle}>Dinero total gastado (ventas + reservas)</Text>
+                </View>
+                <Text style={styles.chartSubtitle}>Dinero total gastado</Text>
               </View>
 
               {loadingClientes ? (
@@ -1092,7 +1221,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
               ) : (
                 <>
                   <BarChart
-                    data={clientesPorGasto.map((c) => ({ value: Number(c.total_gastado || 0), label: `${c.nombre}` }))}
+                    data={buildBarData(
+                      clientesPorGasto,
+                      (c) => Number(c.total_gastado || 0),
+                      (_c, index) => String(index + 1),
+                      chartPalettes.indigo
+                    )}
                     barWidth={28}
                     spacing={18}
                     roundedTop
@@ -1105,7 +1239,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                     isAnimated
                     disablePress
                     yAxisTextStyle={styles.yAxisText}
-                    xAxisLabelTextStyle={styles.xAxisText}
+                    xAxisLabelTextStyle={styles.clientXAxisText}
                   />
 
                   <View style={styles.listContainer}>
@@ -1135,7 +1269,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
               ) : (
                 <>
                   <BarChart
-                    data={clientesPorReservas.map((c) => ({ value: Number(c.num_reservas || 0), label: `${c.nombre}` }))}
+                    data={buildBarData(
+                      clientesPorReservas,
+                      (c) => Number(c.num_reservas || 0),
+                      (c) => getClientChartLabel(c),
+                      chartPalettes.blue
+                    )}
                     barWidth={28}
                     spacing={18}
                     roundedTop
@@ -1148,7 +1287,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                     isAnimated
                     disablePress
                     yAxisTextStyle={styles.yAxisText}
-                    xAxisLabelTextStyle={styles.xAxisText}
+                    xAxisLabelTextStyle={styles.clientXAxisText}
                   />
 
                   <View style={styles.listContainer}>
@@ -1178,7 +1317,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
               ) : (
                 <>
                   <BarChart
-                    data={clientesPorVentas.map((c) => ({ value: Number(c.num_productos_vendidos || 0), label: `${c.nombre}` }))}
+                    data={buildBarData(
+                      clientesPorVentas,
+                      (c) => Number(c.num_productos_vendidos || 0),
+                      (c) => getClientChartLabel(c),
+                      chartPalettes.teal
+                    )}
                     barWidth={28}
                     spacing={18}
                     roundedTop
@@ -1191,7 +1335,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                     isAnimated
                     disablePress
                     yAxisTextStyle={styles.yAxisText}
-                    xAxisLabelTextStyle={styles.xAxisText}
+                    xAxisLabelTextStyle={styles.clientXAxisText}
                   />
 
                   <View style={styles.listContainer}>
@@ -1221,7 +1365,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
               ) : (
                 <>
                   <BarChart
-                    data={clientesPorCanceladas.map((c) => ({ value: Number(c.num_canceladas || 0), label: `${c.nombre}` }))}
+                    data={buildBarData(
+                      clientesPorCanceladas,
+                      (c) => Number(c.num_canceladas || 0),
+                      (c) => getClientChartLabel(c),
+                      chartPalettes.orange
+                    )}
                     barWidth={28}
                     spacing={18}
                     roundedTop
@@ -1234,7 +1383,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                     isAnimated
                     disablePress
                     yAxisTextStyle={styles.yAxisText}
-                    xAxisLabelTextStyle={styles.xAxisText}
+                    xAxisLabelTextStyle={styles.clientXAxisText}
                   />
 
                   <View style={styles.listContainer}>
@@ -1263,7 +1412,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
             <>
               <View style={styles.chartCard}>
                 <View style={styles.chartHeader}>
+                  <View style={styles.chartHeaderTitleWrap}>
+                    <View style={[styles.chartIconWrap, styles.chartIconBlue]}>
+                      <MaterialIcons name="event-available" size={16} color="#ffffff" />
+                    </View>
                   <Text style={styles.chartTitle}>Top 3 servicios más reservados</Text>
+                  </View>
                   <Text style={styles.chartSubtitle}>Total en el negocio</Text>
                 </View>
 
@@ -1276,7 +1430,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                 ) : (
                   <>
                     <BarChart
-                      data={serviciosMasReservados.map((s) => ({ value: Number(s.cantidad || 0), label: s.nombre }))}
+                      data={buildBarData(
+                        serviciosMasReservados,
+                        (s) => Number(s.cantidad || 0),
+                        (s) => s.nombre,
+                        chartPalettes.blue
+                      )}
                       barWidth={28}
                       spacing={18}
                       roundedTop
@@ -1306,7 +1465,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
               <View style={styles.chartCard}>
                 <View style={styles.chartHeader}>
+                  <View style={styles.chartHeaderTitleWrap}>
+                    <View style={[styles.chartIconWrap, styles.chartIconViolet]}>
+                      <MaterialIcons name="calendar-today" size={16} color="#ffffff" />
+                    </View>
                   <Text style={styles.chartTitle}>Top 3 meses más reservados</Text>
+                  </View>
                   <Text style={styles.chartSubtitle}>Año seleccionado</Text>
                 </View>
 
@@ -1319,7 +1483,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                 ) : (
                   <>
                     <BarChart
-                      data={mesesMasReservados.map((m) => ({ value: Number(m.cantidad || 0), label: m.label }))}
+                      data={buildBarData(
+                        mesesMasReservados,
+                        (m) => Number(m.cantidad || 0),
+                        (m) => m.label,
+                        chartPalettes.violet
+                      )}
                       barWidth={28}
                       spacing={18}
                       roundedTop
@@ -1625,28 +1794,76 @@ const styles = StyleSheet.create({
   chartCard: {
     marginTop: 14,
     backgroundColor: "#ffffff",
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.04,
     shadowRadius: 12,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    overflow: "hidden",
   },
   chartHeader: {
     marginBottom: 12,
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 10,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eef2f7",
+  },
+  chartHeaderTitleWrap: {
+    flexDirection: "row",
     alignItems: "center",
+    gap: 10,
+    flex: 1,
+    minWidth: 0,
+  },
+  chartIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  chartIconGreen: {
+    backgroundColor: "#16a34a",
+  },
+  chartIconRed: {
+    backgroundColor: "#dc2626",
+  },
+  chartIconBlue: {
+    backgroundColor: "#2563eb",
+  },
+  chartIconOrange: {
+    backgroundColor: "#d97706",
+  },
+  chartIconTeal: {
+    backgroundColor: "#0f766e",
+  },
+  chartIconViolet: {
+    backgroundColor: "#7c3aed",
+  },
+  chartIconIndigo: {
+    backgroundColor: "#4f46e5",
   },
   chartTitle: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 17,
+    fontWeight: "800",
     color: "#0f172a",
+    flexShrink: 1,
   },
   chartSubtitle: {
     fontSize: 12,
     color: "#6b7280",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    fontWeight: "700",
+    textAlign: "right",
   },
   collapsibleHeader: {
     marginTop: 12,
@@ -1688,12 +1905,16 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   yAxisText: {
-    color: "#6b7280",
+    color: "#64748b",
     fontSize: 11,
   },
   xAxisText: {
-    color: "#6b7280",
+    color: "#64748b",
     fontSize: 11,
+  },
+  clientXAxisText: {
+    color: "#64748b",
+    fontSize: 9,
   },
   errorText: {
     color: "#b91c1c",
