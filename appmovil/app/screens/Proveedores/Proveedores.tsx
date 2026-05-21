@@ -883,8 +883,8 @@ const styles = StyleSheet.create({
         paddingRight: 10,
     },
     supplierName: {
-        fontWeight: "700",
-        color: "#0D47A1",
+        fontWeight: "800",
+        color: "#0f172a",
         fontSize: 16,
         marginBottom: 6,
     },
