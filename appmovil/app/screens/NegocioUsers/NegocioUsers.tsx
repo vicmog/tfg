@@ -389,7 +389,7 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
                 </View>
 
                 <View style={styles.heroBody}>
-                    <Text style={styles.title}>Gestión de empleados</Text>
+                    <Text style={styles.title}>Gestión de permisos</Text>
                     <Text style={styles.subtitle}>{NEGOCIO_LABEL} {negocio.nombre} · {usuarios.length} usuarios</Text>
                 </View>
             </View>

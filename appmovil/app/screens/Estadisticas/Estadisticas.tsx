@@ -1144,7 +1144,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                   </View>
                 <Text style={styles.chartTitle}>Top 3 proveedores</Text>
                 </View>
-                <Text style={styles.chartSubtitle}>Proveedores con más compras en el periodo</Text>
+                <Text style={styles.chartSubtitle}>Proveedores con más compras</Text>
               </View>
 
               {loadingCompras ? (

@@ -44,21 +44,33 @@ export type ModuloGrupo = {
 export const MODULO_GRUPOS: ModuloGrupo[] = [
   {
     id: "grupo_clientes_equipo",
-    nombre: "Clientes y equipo",
+    nombre: "Clientes y empleados",
     descripcion: "Gestion de clientes y personal del negocio.",
     modulos: ["clientes", "empleados"],
   },
   {
-    id: "grupo_servicios_agenda",
-    nombre: "Servicios y agenda",
-    descripcion: "Servicios, recursos y reservas van juntos para evitar agendas incompletas.",
-    modulos: ["servicios", "recursos", "reservas"],
+    id: "grupo_servicios",
+    nombre: "Servicios",
+    descripcion: "Activa el modulo de servicios de forma independiente.",
+    modulos: ["servicios"],
   },
   {
-    id: "grupo_catalogo_ventas",
-    nombre: "Catalogo, compras y ventas",
-    descripcion: "Productos, proveedores, compras, descuentos y ventas forman un bloque dependiente.",
-    modulos: ["productos", "proveedores", "compras", "descuentos", "ventas"],
+    id: "grupo_recursos_reservas",
+    nombre: "Recursos y reservas",
+    descripcion: "Recursos y reservas estan vinculados entre si.",
+    modulos: ["recursos", "reservas"],
+  },
+  {
+    id: "grupo_catalogo_compras",
+    nombre: "Inventario, compras y proveedores",
+    descripcion: "Productos, proveedores, compras y descuentos forman un bloque dependiente.",
+    modulos: ["productos", "proveedores", "compras", "descuentos"],
+  },
+  {
+    id: "grupo_ventas",
+    nombre: "Ventas",
+    descripcion: "Activa las ventas de forma independiente",
+    modulos: ["ventas"],
   },
   {
     id: "grupo_finanzas_analisis",
