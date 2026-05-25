@@ -1,6 +1,5 @@
 import React from "react";
 import { render, fireEvent, waitFor, act } from "@testing-library/react-native";
-import { Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NegocioUsers from "../NegocioUsers";
 import { API_ROUTES } from "@/app/constants/apiRoutes";
@@ -35,6 +34,7 @@ global.fetch = jest.fn();
 describe("NegocioUsers", () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        (fetch as jest.Mock).mockReset();
         (AsyncStorage.getItem as jest.Mock).mockImplementation((key: string) => {
             if (key === "token") {
                 return Promise.resolve("mock-token");
@@ -68,6 +68,7 @@ describe("NegocioUsers", () => {
         );
 
         await waitFor(() => {
+            expect(getByText("Gestión de permisos")).toBeTruthy();
             expect(getByText("Usuarios con acceso")).toBeTruthy();
         });
 
@@ -98,7 +99,7 @@ describe("NegocioUsers", () => {
             json: async () => ({ usuarios: [] }),
         });
 
-        const { getByTestId } = render(
+        const { getByTestId, getByText } = render(
             <NegocioUsers navigation={mockNavigation} route={mockRoute} />
         );
 
@@ -116,7 +117,7 @@ describe("NegocioUsers", () => {
             json: async () => ({ usuarios: [] }),
         });
 
-        const { getByTestId } = render(
+        const { getByTestId, getByText } = render(
             <NegocioUsers navigation={mockNavigation} route={mockRoute} />
         );
 
@@ -231,7 +232,7 @@ describe("NegocioUsers", () => {
                 }),
             });
 
-        const { getByTestId } = render(
+        const { getByTestId, getByText } = render(
             <NegocioUsers navigation={mockNavigation} route={mockRoute} />
         );
 
@@ -264,13 +265,6 @@ describe("NegocioUsers", () => {
     });
 
     it("permite eliminar acceso desde la lista y refresca usuarios", async () => {
-        const alertSpy = jest.spyOn(Alert, "alert").mockImplementation((title, message, buttons) => {
-            const confirmButton = (buttons as any[])?.find((button) => button?.style === "destructive");
-            if (confirmButton?.onPress) {
-                confirmButton.onPress();
-            }
-        });
-
         (fetch as jest.Mock)
             .mockResolvedValueOnce({
                 ok: true,
@@ -289,7 +283,7 @@ describe("NegocioUsers", () => {
                 json: async () => ({ usuarios: [] }),
             });
 
-        const { getByTestId } = render(
+        const { getByTestId, getByText } = render(
             <NegocioUsers navigation={mockNavigation} route={mockRoute} />
         );
 
@@ -298,6 +292,12 @@ describe("NegocioUsers", () => {
         });
 
         fireEvent.press(getByTestId("delete-access-button-10"));
+
+        await waitFor(() => {
+            expect(getByText("Eliminar permisos")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("confirm-delete-access-button"));
 
         await waitFor(() => {
             expect(fetch).toHaveBeenCalledWith(
@@ -317,12 +317,10 @@ describe("NegocioUsers", () => {
                 })
             );
         });
-
-        alertSpy.mockRestore();
     });
 
     it("no muestra botón eliminar para el usuario actual ni para admin", async () => {
-        (fetch as jest.Mock).mockResolvedValueOnce({
+        (fetch as jest.Mock).mockResolvedValue({
             ok: true,
             json: async () => ({
                 usuarios: [

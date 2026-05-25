@@ -1004,7 +1004,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                         }}
                         onBlur={() => {
                           const current = selectedItems[index];
-                          const val = current?.cantidad;
+                          const val = current?.cantidad ?? 1;
                           if (!Number.isFinite(val) || val <= 0) {
                             handleUpdateItem(index, "cantidad", 1);
                           }

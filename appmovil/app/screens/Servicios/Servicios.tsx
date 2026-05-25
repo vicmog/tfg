@@ -469,19 +469,17 @@ const Servicios: React.FC<ServiciosProps> = ({ route, navigation }) => {
                         <Text style={styles.subtitle}>{normalizedRole === ADMIN_ROLE ? "Administrador" : normalizedRole === JEFE_ROLE ? "Jefe" : "Trabajador"} · {servicios.length} servicios</Text>
                     </View>
 
-                    {canManageServicios ? (
-                        <View style={styles.searchContainer}>
-                            <MaterialIcons name="search" size={20} color="#64748b" style={styles.searchIcon} />
-                            <TextInput
-                                style={styles.searchInput}
-                                placeholder="Buscar por nombre o descripción..."
-                                value={searchQuery}
-                                onChangeText={handleSearchChange}
-                                testID="servicio-search-input"
-                                placeholderTextColor="#94a3b8"
-                            />
-                        </View>
-                    ) : null}
+                    <View style={styles.searchContainer}>
+                        <MaterialIcons name="search" size={20} color="#64748b" style={styles.searchIcon} />
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Buscar por nombre o descripción..."
+                            value={searchQuery}
+                            onChangeText={handleSearchChange}
+                            testID="servicio-search-input"
+                            placeholderTextColor="#94a3b8"
+                        />
+                    </View>
                 </View>
 
             <Modal

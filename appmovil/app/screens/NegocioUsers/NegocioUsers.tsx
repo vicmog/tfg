@@ -391,6 +391,7 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
                 <View style={styles.heroBody}>
                     <Text style={styles.title}>Gestión de permisos</Text>
                     <Text style={styles.subtitle}>{NEGOCIO_LABEL} {negocio.nombre} · {usuarios.length} usuarios</Text>
+                    <Text style={styles.sectionLabel}>{USER_WITH_ACCESS}</Text>
                 </View>
             </View>
 
@@ -752,6 +753,11 @@ const styles = StyleSheet.create({
         color: "#64748b",
         marginBottom: 12,
         fontWeight: "500",
+    },
+    sectionLabel: {
+        fontSize: 14,
+        color: "#0f172a",
+        fontWeight: "700",
     },
     loadingText: {
         marginTop: 12,
