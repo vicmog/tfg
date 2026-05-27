@@ -14,7 +14,7 @@ export const CompraProducto = sequelize.define(
         id_producto: {
             type: DataTypes.INTEGER,
             primaryKey: true,
-            references: { model: "Producto", key: "id_producto" },
+            references: { model: "Producto", key: "id_ps" },
             onDelete: "CASCADE",
             allowNull: false,
         },

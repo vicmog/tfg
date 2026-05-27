@@ -252,7 +252,7 @@ const EditarProducto: React.FC<EditarProductoProps> = ({ route, navigation }) =>
             }
 
             setSuccess(UPDATE_SUCCESS_MESSAGE);
-            navigation.navigate("Productos", { negocio });
+            navigation.goBack();
         } catch (saveError) {
             setError(CONNECTION_ERROR);
         } finally {

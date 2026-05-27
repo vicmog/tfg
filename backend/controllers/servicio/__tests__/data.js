@@ -184,6 +184,7 @@ export const deleteServicioReqSinPermiso = {
 };
 
 export const mockServicioData = {
+    id_ps: 5,
     id_servicio: 5,
     id_negocio: 10,
     id_recurso_favorito: null,
@@ -192,11 +193,15 @@ export const mockServicioData = {
     duracion: 45,
     descripcion: "Corte con lavado y peinado",
     requiere_capacidad: false,
+    reload: jest.fn(async function reloadServicioMock() {
+        return this;
+    }),
 };
 
 export const mockServicios = [
     mockServicioData,
     {
+        id_ps: 6,
         id_servicio: 6,
         id_negocio: 10,
         id_recurso_favorito: 8,
@@ -217,6 +222,9 @@ export const mockServicioConUpdate = {
     ...mockServicioData,
     update: jest.fn(async function updateServicioMock(data) {
         Object.assign(this, data);
+        return this;
+    }),
+    reload: jest.fn(async function reloadServicioUpdateMock() {
         return this;
     }),
 };

@@ -479,13 +479,14 @@ export const getSalesStats = async (req, res) => {
 
         // Productos más vendidos
         const productosMasVendidos = await sequelize.query(
-            `SELECT p.id_producto, p.nombre, COUNT(vp.id_producto) as cantidad, SUM(vp.cantidad) as total_cantidad, SUM(p.precio_venta * vp.cantidad) as ingresos
-             FROM "VentaProducto" vp
-             JOIN "Venta" v ON vp.id_venta = v.id_venta
+            `SELECT ps.id_ps as id_producto, ps.nombre, COUNT(psv.id_ps) as cantidad, SUM(psv.cantidad) as total_cantidad, SUM(ps.precio * psv.cantidad) as ingresos
+             FROM "ProductoServicioVenta" psv
+             JOIN "Venta" v ON psv.id_venta = v.id_venta
              JOIN "Cliente" c ON v.id_cliente = c.id_cliente
-             JOIN "Producto" p ON vp.id_producto = p.id_producto
-             WHERE c.id_negocio = :id_negocio AND v.fecha BETWEEN :startDate AND :endDate
-             GROUP BY p.id_producto, p.nombre
+             JOIN "ProductoServicio" ps ON psv.id_ps = ps.id_ps
+             JOIN "Producto" p ON psv.id_ps = p.id_ps
+             WHERE c.id_negocio = :id_negocio AND v.fecha BETWEEN :startDate AND :endDate AND ps.tipo = 'PRODUCTO'
+             GROUP BY ps.id_ps, ps.nombre
              ORDER BY cantidad DESC
              LIMIT 10`,
             {
@@ -500,13 +501,14 @@ export const getSalesStats = async (req, res) => {
 
         // Servicios más vendidos
         const serviciosMasVendidos = await sequelize.query(
-            `SELECT s.id_servicio, s.nombre, COUNT(vs.id_servicio) as cantidad, SUM(s.precio) as ingresos
-             FROM "VentaServicio" vs
-             JOIN "Venta" v ON vs.id_venta = v.id_venta
+            `SELECT ps.id_ps as id_servicio, ps.nombre, COUNT(psv.id_ps) as cantidad, SUM(ps.precio) as ingresos
+             FROM "ProductoServicioVenta" psv
+             JOIN "Venta" v ON psv.id_venta = v.id_venta
              JOIN "Cliente" c ON v.id_cliente = c.id_cliente
-             JOIN "Servicio" s ON vs.id_servicio = s.id_servicio
-             WHERE c.id_negocio = :id_negocio AND v.fecha BETWEEN :startDate AND :endDate
-             GROUP BY s.id_servicio, s.nombre
+             JOIN "ProductoServicio" ps ON psv.id_ps = ps.id_ps
+             JOIN "Servicio" s ON psv.id_ps = s.id_ps
+             WHERE c.id_negocio = :id_negocio AND v.fecha BETWEEN :startDate AND :endDate AND ps.tipo = 'SERVICIO'
+             GROUP BY ps.id_ps, ps.nombre
              ORDER BY cantidad DESC
              LIMIT 10`,
             {
@@ -564,13 +566,14 @@ export const getReservaStats = async (req, res) => {
 
         // Top 3 servicios más reservados (total del negocio)
         const serviciosMasReservados = await sequelize.query(
-            `SELECT s.id_servicio, s.nombre, COUNT(sr.id_servicio) as cantidad
+            `SELECT ps.id_ps as id_servicio, ps.nombre, COUNT(sr.id_servicio) as cantidad
              FROM "ServicioReserva" sr
              JOIN "Reserva" r ON sr.id_reserva = r.id_reserva
              JOIN "Cliente" c ON r.id_cliente = c.id_cliente
-             JOIN "Servicio" s ON sr.id_servicio = s.id_servicio
+             JOIN "Servicio" s ON sr.id_servicio = s.id_ps
+             JOIN "ProductoServicio" ps ON s.id_ps = ps.id_ps
              WHERE c.id_negocio = :id_negocio
-             GROUP BY s.id_servicio, s.nombre
+             GROUP BY ps.id_ps, ps.nombre
              ORDER BY cantidad DESC
              LIMIT 3`,
             {
@@ -650,17 +653,18 @@ export const getProductStats = async (req, res) => {
         const rangeStart = dateRange?.[Op.between]?.[0];
         const rangeEnd = dateRange?.[Op.between]?.[1];
 
-        const productosMasVendidos = await sequelize.query(
-            `SELECT p.id_producto, p.nombre, SUM(vp.cantidad) as cantidad_vendida, SUM(p.precio_venta * vp.cantidad) as facturacion
-             FROM "VentaProducto" vp
-             JOIN "Venta" v ON vp.id_venta = v.id_venta
-             JOIN "Producto" p ON vp.id_producto = p.id_producto
-             JOIN "Proveedor" pr ON p.id_proveedor = pr.id_proveedor
-             JOIN "Cliente" c ON v.id_cliente = c.id_cliente
-             WHERE c.id_negocio = :id_negocio AND pr.id_negocio = :id_negocio AND v.fecha BETWEEN :startDate AND :endDate
-             GROUP BY p.id_producto, p.nombre
-             ORDER BY cantidad_vendida DESC
-             LIMIT 15`,
+            const productosMasVendidos = await sequelize.query(
+                `SELECT ps.id_ps as id_producto, ps.nombre, SUM(psv.cantidad) as cantidad_vendida, SUM(ps.precio * psv.cantidad) as facturacion
+                 FROM "ProductoServicioVenta" psv
+                 JOIN "Venta" v ON psv.id_venta = v.id_venta
+                 JOIN "Cliente" c ON v.id_cliente = c.id_cliente
+                 JOIN "ProductoServicio" ps ON psv.id_ps = ps.id_ps
+                 JOIN "Producto" p ON psv.id_ps = p.id_ps
+                 JOIN "Proveedor" pr ON p.id_proveedor = pr.id_proveedor
+                 WHERE c.id_negocio = :id_negocio AND pr.id_negocio = :id_negocio AND v.fecha BETWEEN :startDate AND :endDate AND ps.tipo = 'PRODUCTO'
+                 GROUP BY ps.id_ps, ps.nombre
+                 ORDER BY cantidad_vendida DESC
+                 LIMIT 15`,
             {
                 replacements: {
                     id_negocio,
@@ -671,17 +675,18 @@ export const getProductStats = async (req, res) => {
             }
         );
 
-        const productosMenosVendidos = await sequelize.query(
-            `SELECT p.id_producto, p.nombre, SUM(vp.cantidad) as cantidad_vendida, SUM(p.precio_venta * vp.cantidad) as facturacion
-             FROM "VentaProducto" vp
-             JOIN "Venta" v ON vp.id_venta = v.id_venta
-             JOIN "Producto" p ON vp.id_producto = p.id_producto
-             JOIN "Proveedor" pr ON p.id_proveedor = pr.id_proveedor
-             JOIN "Cliente" c ON v.id_cliente = c.id_cliente
-             WHERE c.id_negocio = :id_negocio AND pr.id_negocio = :id_negocio AND v.fecha BETWEEN :startDate AND :endDate
-             GROUP BY p.id_producto, p.nombre
-             ORDER BY cantidad_vendida ASC
-             LIMIT 15`,
+            const productosMenosVendidos = await sequelize.query(
+                `SELECT ps.id_ps as id_producto, ps.nombre, SUM(psv.cantidad) as cantidad_vendida, SUM(ps.precio * psv.cantidad) as facturacion
+                 FROM "ProductoServicioVenta" psv
+                 JOIN "Venta" v ON psv.id_venta = v.id_venta
+                 JOIN "Cliente" c ON v.id_cliente = c.id_cliente
+                 JOIN "ProductoServicio" ps ON psv.id_ps = ps.id_ps
+                 JOIN "Producto" p ON psv.id_ps = p.id_ps
+                 JOIN "Proveedor" pr ON p.id_proveedor = pr.id_proveedor
+                 WHERE c.id_negocio = :id_negocio AND pr.id_negocio = :id_negocio AND v.fecha BETWEEN :startDate AND :endDate AND ps.tipo = 'PRODUCTO'
+                 GROUP BY ps.id_ps, ps.nombre
+                 ORDER BY cantidad_vendida ASC
+                 LIMIT 15`,
             {
                 replacements: {
                     id_negocio,
@@ -734,19 +739,20 @@ export const getServiceStats = async (req, res) => {
         const rangeStart = dateRange?.[Op.between]?.[0];
         const rangeEnd = dateRange?.[Op.between]?.[1];
 
-        const serviciosMasVendidos = await sequelize.query(
-            `SELECT s.id_servicio, s.nombre, COUNT(vs.id_servicio) as cantidad_ventas, SUM(s.precio) as facturacion_total
-             FROM "VentaServicio" vs
-             JOIN "Venta" v ON vs.id_venta = v.id_venta
-             JOIN "Servicio" s ON vs.id_servicio = s.id_servicio
-             JOIN "Cliente" c ON v.id_cliente = c.id_cliente
-             WHERE c.id_negocio = :id_negocio AND v.fecha BETWEEN :startDate AND :endDate
-                AND NOT EXISTS (
-                    SELECT 1
-                    FROM "ServicioReserva" sr
-                    WHERE sr.id_servicio = s.id_servicio
-                )
-             GROUP BY s.id_servicio, s.nombre
+            const serviciosMasVendidos = await sequelize.query(
+                `SELECT ps.id_ps as id_servicio, ps.nombre, COUNT(psv.id_ps) as cantidad_ventas, SUM(ps.precio) as facturacion_total
+                 FROM "ProductoServicioVenta" psv
+                 JOIN "Venta" v ON psv.id_venta = v.id_venta
+                 JOIN "Cliente" c ON v.id_cliente = c.id_cliente
+                 JOIN "Servicio" s ON psv.id_ps = s.id_ps
+                 JOIN "ProductoServicio" ps ON s.id_ps = ps.id_ps
+                 WHERE c.id_negocio = :id_negocio AND v.fecha BETWEEN :startDate AND :endDate AND ps.tipo = 'SERVICIO'
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM "ServicioReserva" sr
+                        WHERE sr.id_servicio = s.id_ps
+                    )
+                 GROUP BY ps.id_ps, ps.nombre
              ORDER BY cantidad_ventas DESC
              LIMIT 15`,
             {
@@ -756,18 +762,19 @@ export const getServiceStats = async (req, res) => {
         );
 
         const serviciosMenosVendidos = await sequelize.query(
-            `SELECT s.id_servicio, s.nombre, COUNT(vs.id_servicio) as cantidad_ventas, SUM(s.precio) as facturacion_total
-             FROM "VentaServicio" vs
-             JOIN "Venta" v ON vs.id_venta = v.id_venta
-             JOIN "Servicio" s ON vs.id_servicio = s.id_servicio
+            `SELECT ps.id_ps as id_servicio, ps.nombre, COUNT(psv.id_ps) as cantidad_ventas, SUM(ps.precio) as facturacion_total
+             FROM "ProductoServicioVenta" psv
+             JOIN "Venta" v ON psv.id_venta = v.id_venta
+             JOIN "Servicio" s ON psv.id_ps = s.id_ps
+             JOIN "ProductoServicio" ps ON s.id_ps = ps.id_ps
              JOIN "Cliente" c ON v.id_cliente = c.id_cliente
-             WHERE c.id_negocio = :id_negocio AND v.fecha BETWEEN :startDate AND :endDate
+             WHERE c.id_negocio = :id_negocio AND v.fecha BETWEEN :startDate AND :endDate AND ps.tipo = 'SERVICIO'
                 AND NOT EXISTS (
                     SELECT 1
                     FROM "ServicioReserva" sr
-                    WHERE sr.id_servicio = s.id_servicio
+                    WHERE sr.id_servicio = s.id_ps
                 )
-             GROUP BY s.id_servicio, s.nombre
+             GROUP BY ps.id_ps, ps.nombre
              ORDER BY cantidad_ventas ASC
              LIMIT 15`,
             {
@@ -1009,12 +1016,13 @@ export const getCompraStats = async (req, res) => {
         );
 
         const productosMasComprados = await sequelize.query(
-            `SELECT p.id_producto, p.nombre, SUM(cp.cantidad_esperada) as cantidad_esperada, SUM(cp.cantidad_llegada) as cantidad_llegada, SUM(c.importe_total) as importe_total
+            `SELECT ps.id_ps as id_producto, ps.nombre, SUM(cp.cantidad_esperada) as cantidad_esperada, SUM(cp.cantidad_llegada) as cantidad_llegada, SUM(c.importe_total) as importe_total
              FROM "CompraProducto" cp
              JOIN "Compra" c ON cp.id_compra = c.id_compra
-             JOIN "Producto" p ON cp.id_producto = p.id_producto
+             JOIN "Producto" p ON cp.id_producto = p.id_ps
+             JOIN "ProductoServicio" ps ON p.id_ps = ps.id_ps
              WHERE c.id_negocio = :id_negocio AND c.fecha BETWEEN :startDate AND :endDate
-             GROUP BY p.id_producto, p.nombre
+             GROUP BY ps.id_ps, ps.nombre
              ORDER BY cantidad_esperada DESC
              LIMIT 15`,
             {
@@ -1063,7 +1071,7 @@ export const getCompraStats = async (req, res) => {
                 `SELECT p.id_proveedor, p.nombre, COUNT(DISTINCT c.id_compra) as cantidad, COALESCE(SUM(c.importe_total),0) as total
                  FROM "Compra" c
                  JOIN "CompraProducto" cp ON c.id_compra = cp.id_compra
-                 JOIN "Producto" pr ON cp.id_producto = pr.id_producto
+                 JOIN "Producto" pr ON cp.id_producto = pr.id_ps
                  JOIN "Proveedor" p ON pr.id_proveedor = p.id_proveedor
                  WHERE c.id_negocio = :id_negocio
                    AND c.estado = 'completada'
@@ -1129,13 +1137,14 @@ export const getClientStats = async (req, res) => {
         const clientesPorGasto = await sequelize.query(
             `SELECT c.id_cliente, c.nombre, c.apellido1,
                     COALESCE(SUM(v.precio_total), 0) as ventas_total,
-                    COALESCE(SUM(s.precio), 0) as reservas_total,
-                    COALESCE(SUM(v.precio_total), 0) + COALESCE(SUM(s.precio), 0) as total_gastado
+                          COALESCE(SUM(ps.precio), 0) as reservas_total,
+                          COALESCE(SUM(v.precio_total), 0) + COALESCE(SUM(ps.precio), 0) as total_gastado
              FROM "Cliente" c
              LEFT JOIN "Venta" v ON c.id_cliente = v.id_cliente
              LEFT JOIN "Reserva" r ON c.id_cliente = r.id_cliente
              LEFT JOIN "ServicioReserva" sr ON r.id_reserva = sr.id_reserva
-             LEFT JOIN "Servicio" s ON sr.id_servicio = s.id_servicio
+                      LEFT JOIN "Servicio" s ON sr.id_servicio = s.id_ps
+                      LEFT JOIN "ProductoServicio" ps ON s.id_ps = ps.id_ps
              WHERE c.id_negocio = :id_negocio
              GROUP BY c.id_cliente, c.nombre, c.apellido1
              ORDER BY total_gastado DESC
@@ -1161,11 +1170,12 @@ export const getClientStats = async (req, res) => {
         );
 
         const clientesPorVentas = await sequelize.query(
-            `SELECT c.id_cliente, c.nombre, c.apellido1, COUNT(vp.id_producto) as num_productos_vendidos
+            `SELECT c.id_cliente, c.nombre, c.apellido1, COUNT(psv.id_ps) as num_productos_vendidos
              FROM "Cliente" c
              JOIN "Venta" v ON c.id_cliente = v.id_cliente
-             JOIN "VentaProducto" vp ON v.id_venta = vp.id_venta
-             WHERE c.id_negocio = :id_negocio
+             JOIN "ProductoServicioVenta" psv ON v.id_venta = psv.id_venta
+             JOIN "ProductoServicio" ps ON psv.id_ps = ps.id_ps
+             WHERE c.id_negocio = :id_negocio AND ps.tipo = 'PRODUCTO'
              GROUP BY c.id_cliente, c.nombre, c.apellido1
              ORDER BY num_productos_vendidos DESC
              LIMIT 3`,

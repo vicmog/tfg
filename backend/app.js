@@ -19,6 +19,7 @@ import plantillaRoutes from "./routes/plantilla.js";
 import ventaRoutes from "./routes/venta.js";
 import estadisticasRoutes from "./routes/estadisticas.js";
 import ajusteRoutes from "./routes/ajuste.js";
+import "./models/associations.js";
 
 
 dotenv.config();

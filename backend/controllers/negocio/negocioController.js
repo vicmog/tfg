@@ -5,6 +5,7 @@ import { Plantilla } from "../../models/Plantilla.js";
 import { ServicioPlantilla } from "../../models/ServicioPlantilla.js";
 import { RecursoPlantilla } from "../../models/RecursoPlantilla.js";
 import { Servicio } from "../../models/Servicio.js";
+import { ProductoServicio } from "../../models/ProductoServicio.js";
 import { Recurso } from "../../models/Recurso.js";
 import { Ajuste } from "../../models/Ajuste.js";
 import { Op, fn, col, where } from "sequelize";
@@ -82,16 +83,30 @@ export const createNegocio = async (req, res) => {
             ]);
 
             if (serviciosPlantilla.length > 0) {
-                await Servicio.bulkCreate(
+                // Primero crear las entradas en ProductoServicio (tipo SERVICIO)
+                const productoServicios = await ProductoServicio.bulkCreate(
                     serviciosPlantilla.map((servicioPlantilla) => ({
                         id_negocio: negocio.id_negocio,
                         nombre: servicioPlantilla.nombre,
-                        precio: servicioPlantilla.precio,
-                        duracion: servicioPlantilla.duracion,
                         descripcion: servicioPlantilla.descripcion,
-                        requiere_capacidad: Boolean(servicioPlantilla.requiere_capacidad),
-                    }))
+                        precio: servicioPlantilla.precio || 0,
+                        tipo: "SERVICIO",
+                    })),
+                    { returning: true }
                 );
+
+                // Luego crear las filas en Servicio usando los id_ps generados
+                const serviciosToCreate = serviciosPlantilla.map((servicioPlantilla, idx) => ({
+                    id_negocio: negocio.id_negocio,
+                    nombre: servicioPlantilla.nombre,
+                    precio: servicioPlantilla.precio || 0,
+                    id_ps: productoServicios[idx].id_ps,
+                    duracion: servicioPlantilla.duracion,
+                    descripcion: servicioPlantilla.descripcion,
+                    requiere_capacidad: Boolean(servicioPlantilla.requiere_capacidad),
+                }));
+
+                await Servicio.bulkCreate(serviciosToCreate);
             }
 
             if (recursosPlantilla.length > 0) {

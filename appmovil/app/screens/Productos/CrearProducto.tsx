@@ -261,7 +261,7 @@ const CrearProducto: React.FC<CrearProductoProps> = ({ route, navigation }) => {
 
             setSuccess(SUCCESS_MESSAGE);
             resetForm();
-            navigation.navigate("Productos", { negocio });
+            navigation.goBack();
         } catch (saveError) {
             setError(CONNECTION_ERROR);
         } finally {

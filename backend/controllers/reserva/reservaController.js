@@ -4,8 +4,8 @@ import { Recurso } from "../../models/Recurso.js";
 import { Reserva } from "../../models/Reserva.js";
 import { Servicio } from "../../models/Servicio.js";
 import { ServicioReserva } from "../../models/ServicioReserva.js";
+import { ProductoServicioVenta } from "../../models/ProductoServicioVenta.js";
 import { Venta } from "../../models/Venta.js";
-import { VentaServicio } from "../../models/VentaServicio.js";
 import { UsuarioNegocio } from "../../models/UsuarioNegocio.js";
 import { sendClienteEmail } from "../../utils/mailer.js";
 import { RESERVA_ERRORS, RESERVA_MESSAGES } from "./constants.js";
@@ -190,7 +190,9 @@ export const createReserva = async (req, res) => {
             return res.status(404).json({ message: RESERVA_ERRORS.CLIENTE_NOT_FOUND });
         }
 
-        const servicio = idServicioInt ? await Servicio.findByPk(idServicioInt) : null;
+        const servicio = idServicioInt
+            ? await Servicio.findByPk(idServicioInt, { include: [{ association: "base" }] })
+            : null;
         if (idServicioInt && !servicio) {
             return res.status(404).json({ message: RESERVA_ERRORS.SERVICIO_NOT_FOUND });
         }
@@ -203,7 +205,7 @@ export const createReserva = async (req, res) => {
             return res.status(400).json({ message: RESERVA_ERRORS.RESOURCE_CLIENT_NEGOCIO_MISMATCH });
         }
 
-        if (servicio && servicio.id_negocio !== recurso.id_negocio) {
+        if (servicio && servicio.base?.id_negocio !== recurso.id_negocio) {
             return res.status(400).json({ message: RESERVA_ERRORS.SERVICIO_NEGOCIO_MISMATCH });
         }
 
@@ -435,7 +437,9 @@ export const updateReserva = async (req, res) => {
             return res.status(404).json({ message: RESERVA_ERRORS.CLIENTE_NOT_FOUND });
         }
 
-        const servicio = idServicioInt ? await Servicio.findByPk(idServicioInt) : null;
+        const servicio = idServicioInt
+            ? await Servicio.findByPk(idServicioInt, { include: [{ association: "base" }] })
+            : null;
         if (idServicioInt && !servicio) {
             return res.status(404).json({ message: RESERVA_ERRORS.SERVICIO_NOT_FOUND });
         }
@@ -448,7 +452,7 @@ export const updateReserva = async (req, res) => {
             return res.status(400).json({ message: RESERVA_ERRORS.RESOURCE_CLIENT_NEGOCIO_MISMATCH });
         }
 
-        if (servicio && servicio.id_negocio !== recurso.id_negocio) {
+        if (servicio && servicio.base?.id_negocio !== recurso.id_negocio) {
             return res.status(400).json({ message: RESERVA_ERRORS.SERVICIO_NEGOCIO_MISMATCH });
         }
 
@@ -696,9 +700,13 @@ export const hacerCaja = async (req, res) => {
                     continue;
                 }
 
-                const servicios = await Servicio.findAll({ where: { id_servicio: servicioIds }, transaction });
+                const servicios = await Servicio.findAll({
+                    where: { id_ps: servicioIds },
+                    include: [{ association: "base" }],
+                    transaction,
+                });
 
-                const precioTotal = servicios.reduce((sum, s) => sum + (s.precio || 0), 0);
+                const precioTotal = servicios.reduce((sum, s) => sum + (s.base?.precio || 0), 0);
 
                 const venta = await Venta.create({
                     id_cliente: reserva.id_cliente,
@@ -708,7 +716,18 @@ export const hacerCaja = async (req, res) => {
                 }, { transaction });
 
                 for (const id_servicio of servicioIds) {
-                    await VentaServicio.create({ id_venta: venta.id_venta, id_servicio }, { transaction });
+                    const servicio = servicios.find((item) => item.id_ps === id_servicio);
+
+                    await ProductoServicioVenta.create(
+                        {
+                            id_venta: venta.id_venta,
+                            id_ps: id_servicio,
+                            cantidad: 1,
+                            precio_unitario: servicio?.base?.precio || 0,
+                            subtotal: servicio?.base?.precio || 0,
+                        },
+                        { transaction }
+                    );
                 }
 
                 // Mark reservation as completed after creating the sale
@@ -855,10 +874,10 @@ export const getReservasByNegocio = async (req, res) => {
 
             const servicioIds = [...new Set(serviciosReserva.map((item) => item.id_servicio))];
             const servicios = servicioIds.length
-                ? await Servicio.findAll({ where: { id_servicio: servicioIds } })
+                ? await Servicio.findAll({ where: { id_ps: servicioIds }, include: [{ association: "base" }] })
                 : [];
 
-            const servicioById = new Map(servicios.map((servicio) => [servicio.id_servicio, servicio]));
+            const servicioById = new Map(servicios.map((servicio) => [servicio.id_ps, servicio]));
             const servicioIdByReservaId = new Map(serviciosReserva.map((item) => [item.id_reserva, item.id_servicio]));
 
             const reservasSerialized = reservas.map((reserva) => {
@@ -872,7 +891,7 @@ export const getReservasByNegocio = async (req, res) => {
                 return serializeReserva({
                     ...toPlain(reserva),
                     id_servicio: idServicio,
-                    servicio_nombre: servicio?.nombre || null,
+                    servicio_nombre: servicio?.base?.nombre || null,
                     duracion_minutos: durationMinutes,
                 });
             });

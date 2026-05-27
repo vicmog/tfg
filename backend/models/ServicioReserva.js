@@ -7,7 +7,7 @@ export const ServicioReserva = sequelize.define(
         id_servicio: {
             type: DataTypes.INTEGER,
             primaryKey: true,
-            references: { model: "Servicio", key: "id_servicio" },
+            references: { model: "Servicio", key: "id_ps" },
             onDelete: "CASCADE",
         },
         id_reserva: {

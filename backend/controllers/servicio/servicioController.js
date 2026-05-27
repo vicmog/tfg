@@ -1,6 +1,9 @@
+import { sequelize } from "../../models/db.js";
+import { ProductoServicio } from "../../models/ProductoServicio.js";
 import { Servicio } from "../../models/Servicio.js";
 import { Recurso } from "../../models/Recurso.js";
 import { UsuarioNegocio } from "../../models/UsuarioNegocio.js";
+import { Op } from "sequelize";
 import {
     SERVICIO_ERRORS,
     SERVICIO_MESSAGES,
@@ -11,14 +14,23 @@ const canManageServicios = (rol) => [SERVICIO_ROLES.ADMIN, SERVICIO_ROLES.JEFE].
 const PRICE_REGEX = /^\d+(?:[.,]\d{1,2})?$/;
 const INTEGER_REGEX = /^\d+$/;
 
+const includeServicioRelations = [
+    {
+        association: "base",
+    },
+    {
+        association: "recursoFavorito",
+    },
+];
+
 const serializeServicio = (servicio) => ({
-    id_servicio: servicio.id_servicio,
-    id_negocio: servicio.id_negocio,
+    id_servicio: servicio.id_ps,
+    id_negocio: servicio.base?.id_negocio ?? servicio.id_negocio,
     id_recurso_favorito: servicio.id_recurso_favorito ?? null,
-    nombre: servicio.nombre,
-    precio: servicio.precio,
+    nombre: servicio.base?.nombre ?? servicio.nombre,
+    precio: servicio.base?.precio ?? servicio.precio,
     duracion: servicio.duracion,
-    descripcion: servicio.descripcion,
+    descripcion: servicio.base?.descripcion ?? servicio.descripcion,
     requiere_capacidad: Boolean(servicio.requiere_capacidad),
 });
 
@@ -224,10 +236,33 @@ export const createServicio = async (req, res) => {
             }
         }
 
-        const servicio = await Servicio.create({
-            id_negocio,
-            ...servicioFieldsResult.value,
+        const servicio = await sequelize.transaction(async (transaction) => {
+            const servicioServicio = await ProductoServicio.create(
+                {
+                    id_negocio,
+                    nombre: servicioFieldsResult.value.nombre,
+                    descripcion: servicioFieldsResult.value.descripcion,
+                    precio: servicioFieldsResult.value.precio,
+                    tipo: "SERVICIO",
+                },
+                { transaction }
+            );
+
+            return Servicio.create(
+                {
+                    id_negocio,
+                    nombre: servicioFieldsResult.value.nombre,
+                    precio: servicioFieldsResult.value.precio,
+                    id_ps: servicioServicio.id_ps,
+                    id_recurso_favorito: servicioFieldsResult.value.id_recurso_favorito,
+                    duracion: servicioFieldsResult.value.duracion,
+                    requiere_capacidad: servicioFieldsResult.value.requiere_capacidad,
+                },
+                { transaction }
+            );
         });
+
+        await servicio.reload({ include: includeServicioRelations });
 
         return res.status(201).json({
             message: SERVICIO_MESSAGES.SERVICIO_CREATED,
@@ -260,7 +295,15 @@ export const getServiciosByNegocio = async (req, res) => {
         }
 
         const servicios = await Servicio.findAll({
-            where: { id_negocio },
+            include: [
+                {
+                    association: "base",
+                    where: { id_negocio },
+                },
+                {
+                    association: "recursoFavorito",
+                },
+            ],
             order: [["createdAt", "DESC"]],
         });
 
@@ -291,14 +334,16 @@ export const updateServicio = async (req, res) => {
     }
 
     try {
-        const servicio = await Servicio.findByPk(id_servicio);
+        const servicio = await Servicio.findByPk(id_servicio, {
+            include: includeServicioRelations,
+        });
 
         if (!servicio) {
             return res.status(404).json({ message: SERVICIO_ERRORS.SERVICIO_NOT_FOUND });
         }
 
         const usuarioNegocio = await UsuarioNegocio.findOne({
-            where: { id_usuario, id_negocio: servicio.id_negocio },
+            where: { id_usuario, id_negocio: servicio.base?.id_negocio ?? servicio.id_negocio },
         });
 
         if (!usuarioNegocio) {
@@ -335,7 +380,33 @@ export const updateServicio = async (req, res) => {
             }
         }
 
-        await servicio.update(servicioFieldsResult.value);
+        await sequelize.transaction(async (transaction) => {
+            await ProductoServicio.update(
+                {
+                    nombre: servicioFieldsResult.value.nombre,
+                    precio: servicioFieldsResult.value.precio,
+                    descripcion: servicioFieldsResult.value.descripcion,
+                },
+                {
+                    where: { id_ps: servicio.id_ps },
+                    transaction,
+                }
+            );
+
+                await servicio.update(
+                    {
+                        id_negocio: servicio.base?.id_negocio ?? servicio.id_negocio,
+                    nombre: servicioFieldsResult.value.nombre,
+                    precio: servicioFieldsResult.value.precio,
+                    id_recurso_favorito: servicioFieldsResult.value.id_recurso_favorito,
+                    duracion: servicioFieldsResult.value.duracion,
+                    requiere_capacidad: servicioFieldsResult.value.requiere_capacidad,
+                },
+                { transaction }
+            );
+        });
+
+        await servicio.reload({ include: includeServicioRelations });
 
         return res.status(200).json({
             message: SERVICIO_MESSAGES.SERVICIO_UPDATED,
@@ -359,14 +430,16 @@ export const deleteServicio = async (req, res) => {
     }
 
     try {
-        const servicio = await Servicio.findByPk(id_servicio);
+        const servicio = await Servicio.findByPk(id_servicio, {
+            include: includeServicioRelations,
+        });
 
         if (!servicio) {
             return res.status(404).json({ message: SERVICIO_ERRORS.SERVICIO_NOT_FOUND });
         }
 
         const usuarioNegocio = await UsuarioNegocio.findOne({
-            where: { id_usuario, id_negocio: servicio.id_negocio },
+            where: { id_usuario, id_negocio: servicio.base?.id_negocio ?? servicio.id_negocio },
         });
 
         if (!usuarioNegocio) {
@@ -377,7 +450,12 @@ export const deleteServicio = async (req, res) => {
             return res.status(403).json({ message: SERVICIO_ERRORS.NO_MANAGE_PERMISSION });
         }
 
-        await servicio.destroy();
+        await sequelize.transaction(async (transaction) => {
+            await ProductoServicio.destroy({
+                where: { id_ps: servicio.id_ps },
+                transaction,
+            });
+        });
 
         return res.status(200).json({ message: SERVICIO_MESSAGES.SERVICIO_DELETED });
     } catch (error) {
@@ -398,14 +476,16 @@ export const getServicioById = async (req, res) => {
     }
 
     try {
-        const servicio = await Servicio.findByPk(id_servicio);
+        const servicio = await Servicio.findByPk(id_servicio, {
+            include: includeServicioRelations,
+        });
 
         if (!servicio) {
             return res.status(404).json({ message: SERVICIO_ERRORS.SERVICIO_NOT_FOUND });
         }
 
         const usuarioNegocio = await UsuarioNegocio.findOne({
-            where: { id_usuario, id_negocio: servicio.id_negocio },
+            where: { id_usuario, id_negocio: servicio.base?.id_negocio ?? servicio.id_negocio },
         });
 
         if (!usuarioNegocio) {
@@ -439,22 +519,26 @@ export const searchServicios = async (req, res) => {
             return res.status(403).json({ message: SERVICIO_ERRORS.NO_ACCESS_TO_NEGOCIO });
         }
 
-        const { Op } = await import("sequelize");
-        const whereClause = { id_negocio };
-
-        if (q) {
-            whereClause[Op.or] = [
-                { nombre: { [Op.iLike]: `%${q}%` } },
-                { descripcion: { [Op.iLike]: `%${q}%` } },
-            ];
-        }
-
         const servicios = await Servicio.findAll({
-            where: whereClause,
-            order: [["nombre", "ASC"]],
+            include: [
+                {
+                    association: "base",
+                    where: { id_negocio },
+                },
+            ],
+            order: [["createdAt", "DESC"]],
         });
 
-        return res.status(200).json({ servicios: servicios.map(serializeServicio) });
+        const searchTerm = `${q ?? ""}`.trim().toLowerCase();
+        const filteredServicios = searchTerm
+            ? servicios.filter((servicio) => {
+                const nombre = `${servicio.base?.nombre ?? ""}`.toLowerCase();
+                const descripcion = `${servicio.base?.descripcion ?? ""}`.toLowerCase();
+                return nombre.includes(searchTerm) || descripcion.includes(searchTerm);
+            })
+            : servicios;
+
+        return res.status(200).json({ servicios: filteredServicios.map(serializeServicio) });
     } catch (error) {
         return res.status(500).json({ message: SERVICIO_ERRORS.SERVER_ERROR });
     }

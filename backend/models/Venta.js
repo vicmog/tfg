@@ -13,7 +13,7 @@ export const Venta = sequelize.define(
         },
         fecha: { type: DataTypes.DATE, allowNull: false },
         precio_total: { type: DataTypes.FLOAT, allowNull: false },
-        tipo: { type: DataTypes.ENUM("producto", "servicio"), allowNull: false },
+        tipo: { type: DataTypes.ENUM("producto", "servicio", "mixta"), allowNull: false },
         estado: { type: DataTypes.STRING, allowNull: false, defaultValue: "completada" },
     },
     {
