@@ -6,6 +6,7 @@ import {
     searchProductosByNegocio,
     updateProducto,
 } from "../productoController.js";
+import { ProductoServicio } from "../../../models/ProductoServicio.js";
 import { Producto } from "../../../models/Producto.js";
 import { Proveedor } from "../../../models/Proveedor.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
@@ -44,6 +45,7 @@ import {
 } from "./data.js";
 
 jest.mock("../../../models/Producto.js");
+jest.mock("../../../models/ProductoServicio.js");
 jest.mock("../../../models/Proveedor.js");
 jest.mock("../../../models/UsuarioNegocio.js");
 
@@ -56,50 +58,82 @@ describe("ProductoController Unit Tests", () => {
         it("deberia crear producto correctamente para jefe", async () => {
             (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
             (Proveedor.findByPk).mockResolvedValue(mockProveedor);
-            (Producto.create).mockResolvedValue(mockProductoData);
+            (ProductoServicio.create).mockResolvedValue({ id_ps: 301 });
+            (Producto.create).mockResolvedValue({
+                ...mockProductoData,
+                reload: jest.fn(async function reloadProductoMock() {
+                    return this;
+                }),
+            });
 
             const { res, jsonMock } = buildRes();
 
             await createProducto(createProductoReq, res);
 
-            expect(Producto.create).toHaveBeenCalledWith({
-                id_proveedor: 7,
-                nombre: "Champu profesional",
-                referencia: "CH-001",
-                categoria: "Cosmetica",
-                precio_compra: 5.25,
-                precio_venta: 12.99,
-                stock: 50,
-                stock_minimo: 5,
-                descripcion: "Uso diario",
-            });
+            expect(Producto.create).toHaveBeenCalledWith(
+                {
+                    nombre: "Champu profesional",
+                    descripcion: "Uso diario",
+                    id_ps: 301,
+                    id_proveedor: 7,
+                    referencia: "CH-001",
+                    categoria: "Cosmetica",
+                    precio_compra: 5.25,
+                    precio_venta: 12.99,
+                    stock: 50,
+                    stock_minimo: 5,
+                },
+                expect.objectContaining({ transaction: expect.any(Object) })
+            );
             expect(res.status).toHaveBeenCalledWith(201);
             expect(jsonMock).toHaveBeenCalledWith({
                 message: "Producto creado correctamente",
-                producto: mockProductoData,
+                producto: expect.objectContaining({
+                    id_producto: 55,
+                    id_proveedor: 7,
+                    nombre: "Champu profesional",
+                    referencia: "CH-001",
+                    descripcion: "Uso diario",
+                    categoria: "Cosmetica",
+                    precio_compra: 5.25,
+                    precio_venta: 12.99,
+                    stock: 50,
+                    stock_minimo: 5,
+                }),
             });
         });
 
         it("deberia crear producto correctamente para admin", async () => {
             (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioAdmin);
             (Proveedor.findByPk).mockResolvedValue(mockProveedor);
-            (Producto.create).mockResolvedValue({ ...mockProductoData, nombre: "Mascarilla" });
+            (ProductoServicio.create).mockResolvedValue({ id_ps: 302 });
+            (Producto.create).mockResolvedValue({
+                ...mockProductoData,
+                nombre: "Mascarilla",
+                reload: jest.fn(async function reloadProductoAdminMock() {
+                    return this;
+                }),
+            });
 
             const { res } = buildRes();
 
             await createProducto(createProductoReqAdmin, res);
 
-            expect(Producto.create).toHaveBeenCalledWith({
-                id_proveedor: 7,
-                nombre: "Mascarilla",
-                referencia: "MSK-002",
-                categoria: "Cosmetica",
-                precio_compra: 4,
-                precio_venta: 11,
-                stock: 30,
-                stock_minimo: 3,
-                descripcion: null,
-            });
+            expect(Producto.create).toHaveBeenCalledWith(
+                {
+                    nombre: "Mascarilla",
+                    descripcion: null,
+                    id_ps: 302,
+                    id_proveedor: 7,
+                    referencia: "MSK-002",
+                    categoria: "Cosmetica",
+                    precio_compra: 4,
+                    precio_venta: 11,
+                    stock: 30,
+                    stock_minimo: 3,
+                },
+                expect.objectContaining({ transaction: expect.any(Object) })
+            );
             expect(res.status).toHaveBeenCalledWith(201);
         });
 
@@ -322,7 +356,18 @@ describe("ProductoController Unit Tests", () => {
 
             await deleteProducto(deleteProductoReq, res);
 
-            expect(mockProductoEntity.destroy).toHaveBeenCalled();
+            expect(Producto.destroy).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: { id_ps: 55 },
+                    transaction: expect.any(Object),
+                })
+            );
+            expect(ProductoServicio.destroy).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: { id_ps: 55 },
+                    transaction: expect.any(Object),
+                })
+            );
             expect(res.status).toHaveBeenCalledWith(200);
             expect(jsonMock).toHaveBeenCalledWith({
                 message: "Producto eliminado correctamente",
@@ -339,7 +384,18 @@ describe("ProductoController Unit Tests", () => {
 
             await deleteProducto(deleteProductoReqAdmin, res);
 
-            expect(producto.destroy).toHaveBeenCalled();
+            expect(Producto.destroy).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: { id_ps: 55 },
+                    transaction: expect.any(Object),
+                })
+            );
+            expect(ProductoServicio.destroy).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: { id_ps: 55 },
+                    transaction: expect.any(Object),
+                })
+            );
             expect(res.status).toHaveBeenCalledWith(200);
         });
 
@@ -380,6 +436,9 @@ describe("ProductoController Unit Tests", () => {
                     Object.assign(this, fields);
                     return this;
                 }),
+                reload: jest.fn(async function reloadProductoUpdateMock() {
+                    return this;
+                }),
             };
 
             (Producto.findByPk).mockResolvedValue(producto);
@@ -402,7 +461,18 @@ describe("ProductoController Unit Tests", () => {
                 stock: 45,
                 stock_minimo: 4,
                 descripcion: "Nueva formula",
-            });
+            }, expect.objectContaining({ transaction: expect.any(Object) }));
+            expect(ProductoServicio.update).toHaveBeenCalledWith(
+                {
+                    nombre: "Champu premium",
+                    descripcion: "Nueva formula",
+                    precio: 13.99,
+                },
+                expect.objectContaining({
+                    where: { id_ps: 55 },
+                    transaction: expect.any(Object),
+                })
+            );
             expect(res.status).toHaveBeenCalledWith(200);
             expect(jsonMock).toHaveBeenCalledWith(
                 expect.objectContaining({

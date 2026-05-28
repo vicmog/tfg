@@ -1,4 +1,5 @@
 import { createServicio, deleteServicio, getServiciosByNegocio, updateServicio, getServicioById, searchServicios } from "../servicioController.js";
+import { ProductoServicio } from "../../../models/ProductoServicio.js";
 import { Servicio } from "../../../models/Servicio.js";
 import { Recurso } from "../../../models/Recurso.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
@@ -34,6 +35,7 @@ import {
 } from "./data.js";
 
 jest.mock("../../../models/Servicio.js");
+jest.mock("../../../models/ProductoServicio.js");
 jest.mock("../../../models/Recurso.js");
 jest.mock("../../../models/UsuarioNegocio.js");
 
@@ -45,6 +47,7 @@ describe("ServicioController Unit Tests", () => {
     describe("createServicio", () => {
         it("debería crear servicio correctamente para jefe", async () => {
             (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
+            (ProductoServicio.create).mockResolvedValue({ id_ps: 101 });
             (Servicio.create).mockResolvedValue(mockServicioData);
 
             const { res, jsonMock } = buildRes();
@@ -57,7 +60,6 @@ describe("ServicioController Unit Tests", () => {
                     nombre: "Corte premium",
                     precio: 25.5,
                     duracion: 45,
-                    descripcion: "Corte con lavado y peinado",
                     requiere_capacidad: false,
                     id_recurso_favorito: null,
                     id_ps: expect.any(Number),
@@ -67,13 +69,23 @@ describe("ServicioController Unit Tests", () => {
             expect(res.status).toHaveBeenCalledWith(201);
             expect(jsonMock).toHaveBeenCalledWith({
                 message: "Servicio creado correctamente",
-                servicio: mockServicioData,
+                servicio: expect.objectContaining({
+                    id_servicio: 5,
+                    id_negocio: 10,
+                    id_recurso_favorito: null,
+                    nombre: "Corte premium",
+                    precio: 25.5,
+                    duracion: 45,
+                    descripcion: "Corte con lavado y peinado",
+                    requiere_capacidad: false,
+                }),
             });
         });
 
         it("debería crear servicio correctamente para admin con strings numéricos", async () => {
             (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioAdmin);
             (Recurso.findOne).mockResolvedValue({ id_recurso: 8, id_negocio: 10, nombre: "Sala A" });
+            (ProductoServicio.create).mockResolvedValue({ id_ps: 102 });
             (Servicio.create).mockResolvedValue({
                 id_servicio: 6,
                 id_negocio: 10,
@@ -94,7 +106,6 @@ describe("ServicioController Unit Tests", () => {
                     nombre: "Color completo",
                     precio: 60,
                     duracion: 90,
-                    descripcion: "Aplicación de color con secado",
                     requiere_capacidad: false,
                     id_recurso_favorito: 8,
                     id_ps: expect.any(Number),
@@ -194,7 +205,30 @@ describe("ServicioController Unit Tests", () => {
                 })
             );
             expect(res.status).toHaveBeenCalledWith(200);
-            expect(jsonMock).toHaveBeenCalledWith({ servicios: mockServicios });
+            expect(jsonMock).toHaveBeenCalledWith({
+                servicios: [
+                    expect.objectContaining({
+                        id_servicio: 5,
+                        id_negocio: 10,
+                        id_recurso_favorito: null,
+                        nombre: "Corte premium",
+                        precio: 25.5,
+                        duracion: 45,
+                        descripcion: "Corte con lavado y peinado",
+                        requiere_capacidad: false,
+                    }),
+                    expect.objectContaining({
+                        id_servicio: 6,
+                        id_negocio: 10,
+                        id_recurso_favorito: 8,
+                        nombre: "Color completo",
+                        precio: 60,
+                        duracion: 90,
+                        descripcion: "Aplicación de color con secado",
+                        requiere_capacidad: false,
+                    }),
+                ],
+            });
         });
 
         it("debería fallar si no está autenticado", async () => {
@@ -224,7 +258,18 @@ describe("ServicioController Unit Tests", () => {
             );
             expect(res.status).toHaveBeenCalledWith(200);
             expect(jsonMock).toHaveBeenCalledWith({
-                servicios: mockServicios,
+                servicios: [
+                    expect.objectContaining({
+                        id_servicio: 5,
+                        id_negocio: 10,
+                        id_recurso_favorito: null,
+                    }),
+                    expect.objectContaining({
+                        id_servicio: 6,
+                        id_negocio: 10,
+                        id_recurso_favorito: 8,
+                    }),
+                ],
             });
         });
     });
@@ -352,7 +397,12 @@ describe("ServicioController Unit Tests", () => {
 
             await deleteServicio(deleteServicioReq, res);
 
-            expect(mockServicioConDestroy.destroy).toHaveBeenCalled();
+            expect(ProductoServicio.destroy).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: { id_ps: 5 },
+                    transaction: expect.any(Object),
+                })
+            );
             expect(res.status).toHaveBeenCalledWith(200);
             expect(jsonMock).toHaveBeenCalledWith({
                 message: "Servicio eliminado correctamente",
@@ -367,7 +417,12 @@ describe("ServicioController Unit Tests", () => {
 
             await deleteServicio(deleteServicioReqAdmin, res);
 
-            expect(mockServicioConDestroy.destroy).toHaveBeenCalled();
+            expect(ProductoServicio.destroy).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: { id_ps: 5 },
+                    transaction: expect.any(Object),
+                })
+            );
             expect(res.status).toHaveBeenCalledWith(200);
         });
 
@@ -425,12 +480,23 @@ describe("ServicioController Unit Tests", () => {
 
             await getServicioById(req, res);
 
-                expect(Servicio.findByPk).toHaveBeenCalledWith(5, expect.objectContaining({ include: expect.any(Array) }));
+            expect(Servicio.findByPk).toHaveBeenCalledWith(5, expect.objectContaining({ include: expect.any(Array) }));
             expect(UsuarioNegocio.findOne).toHaveBeenCalledWith({
                 where: { id_usuario: 1, id_negocio: 10 },
             });
             expect(res.status).toHaveBeenCalledWith(200);
-            expect(jsonMock).toHaveBeenCalledWith({ servicio: mockServicioData });
+            expect(jsonMock).toHaveBeenCalledWith({
+                servicio: expect.objectContaining({
+                    id_servicio: 5,
+                    id_negocio: 10,
+                    id_recurso_favorito: null,
+                    nombre: "Corte premium",
+                    precio: 25.5,
+                    duracion: 45,
+                    descripcion: "Corte con lavado y peinado",
+                    requiere_capacidad: false,
+                }),
+            });
         });
 
         it("debería fallar si el servicio no existe", async () => {
@@ -488,7 +554,16 @@ describe("ServicioController Unit Tests", () => {
     describe("searchServicios", () => {
         it("debería buscar servicios por nombre", async () => {
             (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
-            (Servicio.findAll).mockResolvedValue([mockServicioData]);
+            (Servicio.findAll).mockResolvedValue([
+                {
+                    ...mockServicioData,
+                    base: {
+                        id_negocio: 10,
+                        nombre: "Corte premium",
+                        descripcion: "Corte con lavado y peinado",
+                    },
+                },
+            ]);
 
             const { res, jsonMock } = buildRes();
             const req = {
@@ -501,16 +576,39 @@ describe("ServicioController Unit Tests", () => {
             expect(UsuarioNegocio.findOne).toHaveBeenCalledWith({
                 where: { id_usuario: 1, id_negocio: 10 },
             });
-                expect(Servicio.findAll).toHaveBeenCalledWith(expect.objectContaining({ include: expect.any(Array) }));
+            expect(Servicio.findAll).toHaveBeenCalledWith(expect.objectContaining({ include: expect.any(Array) }));
             expect(res.status).toHaveBeenCalledWith(200);
             expect(jsonMock).toHaveBeenCalledWith({
-                servicios: [mockServicioData],
+                servicios: [
+                    expect.objectContaining({
+                        id_servicio: 5,
+                        id_negocio: 10,
+                        nombre: "Corte premium",
+                    }),
+                ],
             });
         });
 
         it("debería buscar servicios por texto de búsqueda", async () => {
             (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
-            (Servicio.findAll).mockResolvedValue(mockServicios);
+            (Servicio.findAll).mockResolvedValue([
+                {
+                    ...mockServicioData,
+                    base: {
+                        id_negocio: 10,
+                        nombre: "Corte premium",
+                        descripcion: "Corte con lavado y peinado",
+                    },
+                },
+                {
+                    ...mockServicios[1],
+                    base: {
+                        id_negocio: 10,
+                        nombre: "Color completo",
+                        descripcion: "Aplicación de color con secado",
+                    },
+                },
+            ]);
 
             const { res, jsonMock } = buildRes();
             const req = {
@@ -521,14 +619,33 @@ describe("ServicioController Unit Tests", () => {
             await searchServicios(req, res);
 
             expect(res.status).toHaveBeenCalledWith(200);
-                expect(jsonMock).toHaveBeenCalledWith({
-                servicios: mockServicios,
+            expect(jsonMock).toHaveBeenCalledWith({
+                servicios: [
+                    expect.objectContaining({ id_servicio: 6, nombre: "Color completo" }),
+                ],
             });
         });
 
         it("debería retornar todos los servicios sin parámetros de búsqueda", async () => {
             (UsuarioNegocio.findOne).mockResolvedValue(mockUsuarioJefe);
-            (Servicio.findAll).mockResolvedValue(mockServicios);
+            (Servicio.findAll).mockResolvedValue([
+                {
+                    ...mockServicioData,
+                    base: {
+                        id_negocio: 10,
+                        nombre: "Corte premium",
+                        descripcion: "Corte con lavado y peinado",
+                    },
+                },
+                {
+                    ...mockServicios[1],
+                    base: {
+                        id_negocio: 10,
+                        nombre: "Color completo",
+                        descripcion: "Aplicación de color con secado",
+                    },
+                },
+            ]);
 
             const { res, jsonMock } = buildRes();
             const req = {
@@ -540,7 +657,10 @@ describe("ServicioController Unit Tests", () => {
 
             expect(res.status).toHaveBeenCalledWith(200);
             expect(jsonMock).toHaveBeenCalledWith({
-                servicios: mockServicios,
+                servicios: expect.arrayContaining([
+                    expect.objectContaining({ id_servicio: 5, nombre: "Corte premium" }),
+                    expect.objectContaining({ id_servicio: 6, nombre: "Color completo" }),
+                ]),
             });
         });
 

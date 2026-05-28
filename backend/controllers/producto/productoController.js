@@ -14,6 +14,8 @@ const canManageProductos = (rol) => [PRODUCTO_ROLES.ADMIN, PRODUCTO_ROLES.JEFE].
 const PRICE_REGEX = /^\d+(?:[.,]\d{1,2})?$/;
 const INTEGER_REGEX = /^\d+$/;
 
+const getProductoId = (producto) => producto.id_ps ?? producto.id_producto ?? null;
+
 const includeProductoRelations = [
     {
         association: "base",
@@ -68,7 +70,7 @@ const normalizeStock = (value, requiredError, invalidError, isRequired = true) =
 };
 
 const serializeProducto = (producto) => ({
-    id_producto: producto.id_ps,
+    id_producto: getProductoId(producto),
     id_proveedor: producto.id_proveedor,
     nombre: producto.base?.nombre ?? producto.nombre ?? "",
     referencia: producto.referencia,
@@ -227,7 +229,7 @@ export const createProducto = async (req, res) => {
                 {
                     nombre: productoFieldsResult.value.nombre,
                     descripcion: productoFieldsResult.value.descripcion,
-                    id_ps: productoServicio.id_ps,
+                    id_ps: getProductoId(productoServicio),
                     id_proveedor: productoFieldsResult.value.id_proveedor,
                     referencia: productoFieldsResult.value.referencia,
                     categoria: productoFieldsResult.value.categoria,
@@ -314,7 +316,7 @@ export const updateProducto = async (req, res) => {
                     precio: productoFieldsResult.value.precio,
                 },
                 {
-                    where: { id_ps: producto.id_ps },
+                    where: { id_ps: getProductoId(producto) },
                     transaction,
                 }
             );
@@ -588,12 +590,12 @@ export const deleteProducto = async (req, res) => {
 
         await sequelize.transaction(async (transaction) => {
             await Producto.destroy({
-                where: { id_ps: producto.id_ps },
+                where: { id_ps: getProductoId(producto) },
                 transaction,
             });
 
             await ProductoServicio.destroy({
-                where: { id_ps: producto.id_ps },
+                where: { id_ps: getProductoId(producto) },
                 transaction,
             });
         });

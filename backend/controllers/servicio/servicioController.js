@@ -14,6 +14,8 @@ const canManageServicios = (rol) => [SERVICIO_ROLES.ADMIN, SERVICIO_ROLES.JEFE].
 const PRICE_REGEX = /^\d+(?:[.,]\d{1,2})?$/;
 const INTEGER_REGEX = /^\d+$/;
 
+const getServicioId = (servicio) => servicio.id_ps ?? servicio.id_servicio ?? null;
+
 const includeServicioRelations = [
     {
         association: "base",
@@ -24,7 +26,7 @@ const includeServicioRelations = [
 ];
 
 const serializeServicio = (servicio) => ({
-    id_servicio: servicio.id_ps,
+    id_servicio: getServicioId(servicio),
     id_negocio: servicio.base?.id_negocio ?? servicio.id_negocio,
     id_recurso_favorito: servicio.id_recurso_favorito ?? null,
     nombre: servicio.base?.nombre ?? servicio.nombre,
@@ -253,7 +255,7 @@ export const createServicio = async (req, res) => {
                     id_negocio,
                     nombre: servicioFieldsResult.value.nombre,
                     precio: servicioFieldsResult.value.precio,
-                    id_ps: servicioServicio.id_ps,
+                    id_ps: getServicioId(servicioServicio),
                     id_recurso_favorito: servicioFieldsResult.value.id_recurso_favorito,
                     duracion: servicioFieldsResult.value.duracion,
                     requiere_capacidad: servicioFieldsResult.value.requiere_capacidad,
@@ -388,7 +390,7 @@ export const updateServicio = async (req, res) => {
                     descripcion: servicioFieldsResult.value.descripcion,
                 },
                 {
-                    where: { id_ps: servicio.id_ps },
+                    where: { id_ps: getServicioId(servicio) },
                     transaction,
                 }
             );
@@ -452,7 +454,7 @@ export const deleteServicio = async (req, res) => {
 
         await sequelize.transaction(async (transaction) => {
             await ProductoServicio.destroy({
-                where: { id_ps: servicio.id_ps },
+                where: { id_ps: getServicioId(servicio) },
                 transaction,
             });
         });
