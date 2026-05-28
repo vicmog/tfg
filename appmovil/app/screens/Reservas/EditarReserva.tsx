@@ -147,7 +147,7 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
 
     const [selectedClienteId, setSelectedClienteId] = useState<number | null>(reserva.id_cliente);
     const [selectedRecursoId, setSelectedRecursoId] = useState<number | null>(reserva.id_recurso);
-    const [selectedServicioId, setSelectedServicioId] = useState<number | null>(reserva.id_servicio || null);
+    const [selectedServicioId, setSelectedServicioId] = useState<number | null>(reserva.id_ps ?? reserva.id_servicio ?? null);
     const [selectedFecha, setSelectedFecha] = useState<string>(toLocalDateKey(reserva.fecha_hora_inicio));
     const [selectedSlotInicioIso, setSelectedSlotInicioIso] = useState<string | null>(reserva.fecha_hora_inicio);
     const [duracionMinutos, setDuracionMinutos] = useState<string>(getInitialDuration(reserva));
@@ -183,7 +183,7 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
                 return null;
             }
 
-            return servicios.find((servicio) => toNumericId(servicio.id_servicio) === selectedId) || null;
+            return servicios.find((servicio) => toNumericId(servicio.id_servicio ?? servicio.id_ps) === selectedId) || null;
         },
         [servicios, selectedServicioId]
     );
@@ -387,7 +387,7 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
         }
 
         setSelectedServicioId(normalizedServiceId);
-        const servicio = servicios.find((item) => toNumericId(item.id_servicio) === normalizedServiceId);
+        const servicio = servicios.find((item) => toNumericId(item.id_servicio ?? item.id_ps) === normalizedServiceId);
 
         if (servicio?.duracion) {
             setDuracionMinutos(`${servicio.duracion}`);
@@ -459,10 +459,10 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({
+                    body: JSON.stringify({
                     id_recurso: selectedRecursoId,
                     id_cliente: selectedClienteId,
-                    id_servicio: isNoServicioSelected ? undefined : selectedServicioId,
+                    id_ps: isNoServicioSelected ? undefined : selectedServicioId,
                     fecha_hora_inicio: selectedSlotInicioIso,
                     duracion_minutos: duracionMinutos.trim(),
                     capacidad_solicitada: requiresCapacity
@@ -790,9 +790,9 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
                                 <Text style={styles.emptyText}>No hay servicios que coincidan</Text>
                             ) : filteredServicios.map((servicio) => (
                                 <TouchableOpacity
-                                    key={servicio.id_servicio}
+                                    key={servicio.id_servicio ?? servicio.id_ps}
                                     style={styles.optionRow}
-                                    onPress={() => handleSelectServicio(servicio.id_servicio)}
+                                    onPress={() => handleSelectServicio(servicio.id_servicio ?? servicio.id_ps)}
                                 >
                                     <Text style={styles.optionText}>{servicio.nombre}</Text>
                                     <Text style={styles.optionMeta}>Duracion: {servicio.duracion} min</Text>
@@ -812,13 +812,22 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#f7fafc",
-        paddingTop: 12,
+        paddingTop: 0,
     },
     header: {
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 12,
+        paddingVertical: 12,
         marginBottom: 12,
+        backgroundColor: "#fff",
+        borderBottomWidth: 1,
+        borderBottomColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
+        elevation: 3,
     },
     iconButton: {
         padding: 8,
@@ -828,7 +837,7 @@ const styles = StyleSheet.create({
     title: {
         marginLeft: 12,
         fontSize: 22,
-        color: "#0D47A1",
+        color: "#111827",
         fontWeight: "700",
     },
     feedbackError: {
@@ -847,19 +856,19 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     content: {
-        paddingHorizontal: 12,
+        paddingHorizontal: 16,
         paddingBottom: 24,
     },
     fieldLabel: {
         marginTop: 10,
         marginBottom: 6,
-        color: "#374151",
-        fontWeight: "600",
+        color: "#111827",
+        fontWeight: "700",
     },
     selector: {
         borderWidth: 1,
-        borderColor: "#e5e7eb",
-        borderRadius: 8,
+        borderColor: "#dbe3ee",
+        borderRadius: 12,
         paddingHorizontal: 12,
         paddingVertical: 12,
         backgroundColor: "#fff",
@@ -876,18 +885,18 @@ const styles = StyleSheet.create({
     },
     input: {
         borderWidth: 1,
-        borderColor: "#e5e7eb",
-        borderRadius: 8,
+        borderColor: "#dbe3ee",
+        borderRadius: 12,
         paddingHorizontal: 12,
         paddingVertical: 12,
         backgroundColor: "#fff",
     },
     inlineCalendarCard: {
         borderWidth: 1,
-        borderColor: "#e5e7eb",
+        borderColor: "#dbe3ee",
         backgroundColor: "#fff",
-        borderRadius: 10,
-        padding: 10,
+        borderRadius: 14,
+        padding: 12,
         marginTop: 8,
     },
     inlineCalendarHeader: {
@@ -936,12 +945,17 @@ const styles = StyleSheet.create({
     saveButton: {
         marginTop: 16,
         backgroundColor: "#1976D2",
-        borderRadius: 10,
+        borderRadius: 12,
         paddingVertical: 12,
         alignItems: "center",
         flexDirection: "row",
         justifyContent: "center",
         gap: 8,
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+        elevation: 3,
     },
     saveButtonDisabled: {
         opacity: 0.7,

@@ -275,7 +275,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
     );
 
     const selectedServicio = useMemo(
-        () => servicios.find((servicio) => servicio.id_servicio === selectedServicioId) || null,
+        () => servicios.find((servicio) => (servicio.id_servicio ?? servicio.id_ps) === selectedServicioId) || null,
         [servicios, selectedServicioId]
     );
 
@@ -495,7 +495,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
     );
 
     const servicioById = useMemo(
-        () => new Map(servicios.map((servicio) => [servicio.id_servicio, servicio])),
+        () => new Map(servicios.map((servicio) => [servicio.id_servicio ?? servicio.id_ps, servicio])),
         [servicios]
     );
 
@@ -628,8 +628,9 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
     };
 
     const handleSelectServicio = (idServicio: number) => {
-        setSelectedServicioId(idServicio);
-        const servicio = servicios.find((item) => item.id_servicio === idServicio);
+        const normalized = toNumericId(idServicio);
+        setSelectedServicioId(normalized);
+        const servicio = servicios.find((item) => (item.id_servicio ?? item.id_ps) === normalized);
 
         if (servicio?.duracion) {
             setDuracionMinutos(`${servicio.duracion}`);
@@ -784,7 +785,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                 body: JSON.stringify({
                     id_recurso: selectedRecursoId,
                     id_cliente: selectedClienteId,
-                    id_servicio: selectedServicioId,
+                    id_ps: selectedServicioId,
                     fecha_hora_inicio: selectedSlotInicioIso,
                     duracion_minutos: duracionMinutos.trim(),
                 }),
@@ -884,7 +885,10 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                 >
                     <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
                 </TouchableOpacity>
-                <Text style={styles.title}>{SCREEN_TITLE}</Text>
+                <View style={styles.headerTitleBlock}>
+                    <Text style={styles.title}>{SCREEN_TITLE}</Text>
+                    <Text style={styles.headerSubtitle}>Agenda, disponibilidad y gestión de reservas</Text>
+                </View>
                 <TouchableOpacity
                     style={styles.addButton}
                     onPress={() => navigation.navigate("CrearReserva", { negocio })}
@@ -1369,9 +1373,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                     {`${DETAIL_RECURSO_LABEL} `}{recursoById.get(selectedReservaDetail.id_recurso)?.nombre || `#${selectedReservaDetail.id_recurso}`}
                                 </Text>
                                 <Text style={styles.detailLine}>
-                                    {`${DETAIL_SERVICIO_LABEL} `}{selectedReservaDetail.servicio_nombre || (selectedReservaDetail.id_servicio
-                                        ? servicioById.get(selectedReservaDetail.id_servicio)?.nombre
-                                        : "-") || "-"}
+                                    {`${DETAIL_SERVICIO_LABEL} `}{selectedReservaDetail.servicio_nombre || servicioById.get(selectedReservaDetail.id_servicio ?? selectedReservaDetail.id_ps)?.nombre || "-"}
                                 </Text>
                                 <Text style={styles.detailLine}>{`${DETAIL_INICIO_LABEL} ${toDateTimeDisplay(selectedReservaDetail.fecha_hora_inicio)}`}</Text>
                                 <Text style={styles.detailLine}>{`${DETAIL_FIN_LABEL} ${toDateTimeDisplay(selectedReservaDetail.fecha_hora_fin)}`}</Text>
@@ -1579,10 +1581,10 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                 <Text style={styles.emptyText}>{EMPTY_SERVICIOS_FILTERED_MESSAGE}</Text>
                             ) : filteredServicios.map((servicio) => (
                                 <TouchableOpacity
-                                    key={servicio.id_servicio}
+                                    key={servicio.id_servicio ?? servicio.id_ps}
                                     style={styles.optionRow}
-                                    onPress={() => handleSelectServicio(servicio.id_servicio)}
-                                    testID={`reservas-select-servicio-${servicio.id_servicio}`}
+                                    onPress={() => handleSelectServicio(servicio.id_servicio ?? servicio.id_ps)}
+                                    testID={`reservas-select-servicio-${servicio.id_servicio ?? servicio.id_ps}`}
                                 >
                                     <Text style={styles.optionText}>{servicio.nombre}</Text>
                                     <Text style={styles.optionMeta}>{`${SERVICIO_DURACION_PREFIX} ${servicio.duracion} ${SERVICIO_DURACION_SUFFIX}`}</Text>
@@ -1602,13 +1604,22 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#f7fafc",
-        paddingTop: 12,
+        paddingTop: 0,
     },
     header: {
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 12,
+        paddingVertical: 12,
         marginBottom: 12,
+        backgroundColor: "#fff",
+        borderBottomWidth: 1,
+        borderBottomColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
+        elevation: 3,
     },
     iconButton: {
         padding: 8,
@@ -1619,8 +1630,19 @@ const styles = StyleSheet.create({
         flex: 1,
         marginLeft: 12,
         fontSize: 22,
-        color: "#0D47A1",
+        color: "#111827",
         fontWeight: "700",
+    },
+    headerTitleBlock: {
+        flex: 1,
+        marginLeft: 12,
+        marginRight: 12,
+    },
+    headerSubtitle: {
+        marginTop: 2,
+        fontSize: 12,
+        color: "#64748b",
+        fontWeight: "500",
     },
     addButton: {
         flexDirection: "row",
@@ -1691,9 +1713,16 @@ const styles = StyleSheet.create({
     },
     calendarCard: {
         backgroundColor: "#fff",
-        borderRadius: 12,
-        padding: 12,
+        borderRadius: 18,
+        padding: 14,
         marginBottom: 12,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.05,
+        shadowRadius: 16,
+        elevation: 2,
     },
     selectedDayToggle: {
         flexDirection: "row",
@@ -1810,8 +1839,15 @@ const styles = StyleSheet.create({
     },
     dayListCard: {
         backgroundColor: "#fff",
-        borderRadius: 12,
-        padding: 12,
+        borderRadius: 18,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.05,
+        shadowRadius: 16,
+        elevation: 2,
     },
     dayListTitle: {
         fontSize: 16,

@@ -1,10 +1,55 @@
 import { MaterialIcons } from "@expo/vector-icons";
 
+export type ModuloId =
+    | "gastos"
+    | "clientes"
+    | "empleados"
+    | "servicios"
+    | "recursos"
+    | "productos"
+    | "proveedores"
+    | "compras"
+    | "descuentos"
+    | "ventas"
+    | "reservas"
+    | "estadisticas";
+
+export type AjusteModuleField =
+    | "modulo_gastos"
+    | "modulo_clientes"
+    | "modulo_empleados"
+    | "modulo_servicios"
+    | "modulo_recursos"
+    | "modulo_productos"
+    | "modulo_proveedores"
+    | "modulo_compras"
+    | "modulo_descuentos"
+    | "modulo_ventas"
+    | "modulo_reservas"
+    | "modulo_estadisticas";
+
 export type Modulo = {
-    id: string;
+    id: ModuloId;
     nombre: string;
     icono: keyof typeof MaterialIcons.glyphMap;
     color: string;
+};
+
+export type Ajuste = {
+    id_ajuste: number;
+    id_negocio: number;
+    modulo_gastos: boolean;
+    modulo_clientes: boolean;
+    modulo_empleados: boolean;
+    modulo_servicios: boolean;
+    modulo_recursos: boolean;
+    modulo_productos: boolean;
+    modulo_proveedores: boolean;
+    modulo_compras: boolean;
+    modulo_descuentos: boolean;
+    modulo_ventas: boolean;
+    modulo_reservas: boolean;
+    modulo_estadisticas: boolean;
 };
 
 export type Negocio = {

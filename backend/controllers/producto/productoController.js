@@ -1,3 +1,5 @@
+import { sequelize } from "../../models/db.js";
+import { ProductoServicio } from "../../models/ProductoServicio.js";
 import { Producto } from "../../models/Producto.js";
 import { Proveedor } from "../../models/Proveedor.js";
 import { UsuarioNegocio } from "../../models/UsuarioNegocio.js";
@@ -11,6 +13,17 @@ import {
 const canManageProductos = (rol) => [PRODUCTO_ROLES.ADMIN, PRODUCTO_ROLES.JEFE].includes(rol);
 const PRICE_REGEX = /^\d+(?:[.,]\d{1,2})?$/;
 const INTEGER_REGEX = /^\d+$/;
+
+const getProductoId = (producto) => producto.id_ps ?? producto.id_producto ?? null;
+
+const includeProductoRelations = [
+    {
+        association: "base",
+    },
+    {
+        association: "proveedor",
+    },
+];
 
 const normalizePrice = (value, requiredError, invalidError) => {
     const priceValue = `${value ?? ""}`.trim();
@@ -57,14 +70,14 @@ const normalizeStock = (value, requiredError, invalidError, isRequired = true) =
 };
 
 const serializeProducto = (producto) => ({
-    id_producto: producto.id_producto,
+    id_producto: getProductoId(producto),
     id_proveedor: producto.id_proveedor,
-    nombre: producto.nombre,
+    nombre: producto.base?.nombre ?? producto.nombre ?? "",
     referencia: producto.referencia,
-    descripcion: producto.descripcion,
+    descripcion: producto.base?.descripcion ?? producto.descripcion ?? null,
     categoria: producto.categoria,
     precio_compra: producto.precio_compra,
-    precio_venta: producto.precio_venta,
+    precio_venta: producto.base?.precio ?? producto.precio_venta,
     stock: producto.stock,
     stock_minimo: producto.stock_minimo,
 });
@@ -76,6 +89,7 @@ const validateProductoFields = ({
     categoria,
     precio_compra,
     precio_venta,
+    precio,
     stock,
     stock_minimo,
     descripcion,
@@ -112,7 +126,7 @@ const validateProductoFields = ({
     }
 
     const precioVentaResult = normalizePrice(
-        precio_venta,
+        precio ?? precio_venta,
         PRODUCTO_ERRORS.PRECIO_VENTA_REQUIRED,
         PRODUCTO_ERRORS.PRECIO_VENTA_INVALID
     );
@@ -153,6 +167,7 @@ const validateProductoFields = ({
             stock: stockResult.value,
             stock_minimo: stockMinimoResult.value,
             descripcion: typeof descripcion === "string" ? descripcion.trim() || null : null,
+            precio: precioVentaResult.value,
         },
     };
 };
@@ -198,7 +213,36 @@ export const createProducto = async (req, res) => {
             return res.status(400).json({ message: PRODUCTO_ERRORS.PROVIDER_NOT_IN_BUSINESS });
         }
 
-        const producto = await Producto.create(productoFieldsResult.value);
+        const producto = await sequelize.transaction(async (transaction) => {
+            const productoServicio = await ProductoServicio.create(
+                {
+                    id_negocio: proveedor.id_negocio,
+                    nombre: productoFieldsResult.value.nombre,
+                    descripcion: productoFieldsResult.value.descripcion,
+                    precio: productoFieldsResult.value.precio,
+                    tipo: "PRODUCTO",
+                },
+                { transaction }
+            );  
+
+            return Producto.create(
+                {
+                    nombre: productoFieldsResult.value.nombre,
+                    descripcion: productoFieldsResult.value.descripcion,
+                    id_ps: getProductoId(productoServicio),
+                    id_proveedor: productoFieldsResult.value.id_proveedor,
+                    referencia: productoFieldsResult.value.referencia,
+                    categoria: productoFieldsResult.value.categoria,
+                    precio_compra: productoFieldsResult.value.precio_compra,
+                    precio_venta: productoFieldsResult.value.precio,
+                    stock: productoFieldsResult.value.stock,
+                    stock_minimo: productoFieldsResult.value.stock_minimo,
+                },
+                { transaction }
+            );
+        });
+
+        await producto.reload({ include: includeProductoRelations });
 
         return res.status(201).json({
             message: PRODUCTO_MESSAGES.PRODUCTO_CREATED,
@@ -228,7 +272,9 @@ export const updateProducto = async (req, res) => {
     }
 
     try {
-        const producto = await Producto.findByPk(id_producto);
+        const producto = await Producto.findByPk(id_producto, {
+            include: includeProductoRelations,
+        });
 
         if (!producto) {
             return res.status(404).json({ message: PRODUCTO_ERRORS.PRODUCTO_NOT_FOUND });
@@ -262,7 +308,36 @@ export const updateProducto = async (req, res) => {
             return res.status(400).json({ message: PRODUCTO_ERRORS.PROVIDER_NOT_IN_BUSINESS });
         }
 
-        await producto.update(productoFieldsResult.value);
+        await sequelize.transaction(async (transaction) => {
+            await ProductoServicio.update(
+                {
+                    nombre: productoFieldsResult.value.nombre,
+                    descripcion: productoFieldsResult.value.descripcion,
+                    precio: productoFieldsResult.value.precio,
+                },
+                {
+                    where: { id_ps: getProductoId(producto) },
+                    transaction,
+                }
+            );
+
+            await producto.update(
+                {
+                    nombre: productoFieldsResult.value.nombre,
+                    descripcion: productoFieldsResult.value.descripcion,
+                    id_proveedor: productoFieldsResult.value.id_proveedor,
+                    referencia: productoFieldsResult.value.referencia,
+                    categoria: productoFieldsResult.value.categoria,
+                    precio_compra: productoFieldsResult.value.precio_compra,
+                    precio_venta: productoFieldsResult.value.precio,
+                    stock: productoFieldsResult.value.stock,
+                    stock_minimo: productoFieldsResult.value.stock_minimo,
+                },
+                { transaction }
+            );
+        });
+
+        await producto.reload({ include: includeProductoRelations });
 
         return res.status(200).json({
             message: PRODUCTO_MESSAGES.PRODUCTO_UPDATED,
@@ -318,6 +393,7 @@ export const getProductosByNegocio = async (req, res) => {
                     [Op.in]: proveedoresIds,
                 },
             },
+            include: includeProductoRelations,
             order: [["createdAt", "DESC"]],
         });
 
@@ -383,37 +459,36 @@ export const searchProductosByNegocio = async (req, res) => {
             proveedores.map((proveedor) => [proveedor.id_proveedor, proveedor.nombre])
         );
 
+        const productos = await Producto.findAll({
+            where: {
+                id_proveedor: {
+                    [Op.in]: proveedoresIds,
+                },
+            },
+            include: includeProductoRelations,
+            order: [["createdAt", "DESC"]],
+        });
+
         const searchTermLower = searchTerm.toLowerCase();
         const providerMatchedIds = proveedores
             .filter((proveedor) => proveedor.nombre.toLowerCase().includes(searchTermLower))
             .map((proveedor) => proveedor.id_proveedor);
 
-        const whereClause = {
-            id_proveedor: {
-                [Op.in]: proveedoresIds,
-            },
-        };
-
-        if (searchTerm) {
-            const searchLike = `%${searchTerm}%`;
-            whereClause[Op.or] = [
-                { nombre: { [Op.like]: searchLike } },
-                { referencia: { [Op.like]: searchLike } },
-                { categoria: { [Op.like]: searchLike } },
-                ...(providerMatchedIds.length
-                    ? [{ id_proveedor: { [Op.in]: providerMatchedIds } }]
-                    : []),
-            ];
-        }
-
-        const productos = await Producto.findAll({
-            where: whereClause,
-            order: [["createdAt", "DESC"]],
-        });
+        const filteredProductos = searchTerm
+            ? productos.filter((producto) => {
+                const nombre = `${producto.base?.nombre ?? ""}`.toLowerCase();
+                const referencia = `${producto.referencia ?? ""}`.toLowerCase();
+                const categoria = `${producto.categoria ?? ""}`.toLowerCase();
+                return nombre.includes(searchTermLower)
+                    || referencia.includes(searchTermLower)
+                    || categoria.includes(searchTermLower)
+                    || providerMatchedIds.includes(producto.id_proveedor);
+            })
+            : productos;
 
         return res.status(200).json({
             message: PRODUCTO_MESSAGES.PRODUCTOS_SEARCHED,
-            productos: productos.map((producto) => ({
+            productos: filteredProductos.map((producto) => ({
                 ...serializeProducto(producto),
                 proveedor_nombre: providersMap.get(producto.id_proveedor) || "",
             })),
@@ -436,13 +511,15 @@ export const getProductoById = async (req, res) => {
     }
 
     try {
-        const producto = await Producto.findByPk(id_producto);
+        const producto = await Producto.findByPk(id_producto, {
+            include: includeProductoRelations,
+        });
 
         if (!producto) {
             return res.status(404).json({ message: PRODUCTO_ERRORS.PRODUCTO_NOT_FOUND });
         }
 
-        const proveedor = await Proveedor.findByPk(producto.id_proveedor);
+        const proveedor = producto.proveedor ?? (await Proveedor.findByPk(producto.id_proveedor));
 
         if (!proveedor) {
             return res.status(404).json({ message: PRODUCTO_ERRORS.PRODUCT_PROVIDER_NOT_FOUND });
@@ -485,7 +562,9 @@ export const deleteProducto = async (req, res) => {
     }
 
     try {
-        const producto = await Producto.findByPk(id_producto);
+        const producto = await Producto.findByPk(id_producto, {
+            include: includeProductoRelations,
+        });
 
         if (!producto) {
             return res.status(404).json({ message: PRODUCTO_ERRORS.PRODUCTO_NOT_FOUND });
@@ -509,7 +588,17 @@ export const deleteProducto = async (req, res) => {
             return res.status(403).json({ message: PRODUCTO_ERRORS.NO_MANAGE_PERMISSION });
         }
 
-        await producto.destroy();
+        await sequelize.transaction(async (transaction) => {
+            await Producto.destroy({
+                where: { id_ps: getProductoId(producto) },
+                transaction,
+            });
+
+            await ProductoServicio.destroy({
+                where: { id_ps: getProductoId(producto) },
+                transaction,
+            });
+        });
 
         return res.status(200).json({ message: PRODUCTO_MESSAGES.PRODUCTO_DELETED });
     } catch (error) {

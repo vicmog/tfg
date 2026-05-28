@@ -81,7 +81,7 @@ describe("CrearProducto", () => {
         expect(queryByText("Proveedor Sur")).toBeTruthy();
     });
 
-    it("crea producto y redirige a productos", async () => {
+    it("crea producto y vuelve a la pantalla anterior", async () => {
         (fetch as jest.Mock)
             .mockResolvedValueOnce({
                 ok: true,
@@ -134,9 +134,7 @@ describe("CrearProducto", () => {
         });
 
         await waitFor(() => {
-            expect(mockNavigation.navigate).toHaveBeenCalledWith("Productos", {
-                negocio: mockRoute.params.negocio,
-            });
+            expect(mockNavigation.goBack).toHaveBeenCalled();
         });
     });
 

@@ -5,8 +5,10 @@ import { Usuario } from "../../../models/Usuario.js";
 import { Plantilla } from "../../../models/Plantilla.js";
 import { ServicioPlantilla } from "../../../models/ServicioPlantilla.js";
 import { RecursoPlantilla } from "../../../models/RecursoPlantilla.js";
+import { ProductoServicio } from "../../../models/ProductoServicio.js";
 import { Servicio } from "../../../models/Servicio.js";
 import { Recurso } from "../../../models/Recurso.js";
+import { Ajuste } from "../../../models/Ajuste.js";
 import { Op } from "sequelize";
 import { buildRes } from "./data.js";
 
@@ -16,12 +18,16 @@ jest.mock("../../../models/Usuario.js");
 jest.mock("../../../models/Plantilla.js");
 jest.mock("../../../models/ServicioPlantilla.js");
 jest.mock("../../../models/RecursoPlantilla.js");
+jest.mock("../../../models/ProductoServicio.js");
 jest.mock("../../../models/Servicio.js");
 jest.mock("../../../models/Recurso.js");
+jest.mock("../../../models/Ajuste.js");
 
 describe("NegocioController Unit Tests", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (Ajuste.create).mockResolvedValue({});
+    (ProductoServicio.bulkCreate).mockResolvedValue([{ id_ps: 201 }]);
   });
 
   describe("createNegocio", () => {
@@ -148,11 +154,21 @@ describe("NegocioController Unit Tests", () => {
       await createNegocio(req, res);
 
       expect(Plantilla.findByPk).toHaveBeenCalledWith(5);
+      expect(ProductoServicio.bulkCreate).toHaveBeenCalledWith([
+        {
+          id_negocio: 10,
+          nombre: "Corte",
+          descripcion: "Desc",
+          precio: 12,
+          tipo: "SERVICIO",
+        },
+      ], expect.objectContaining({ returning: true }));
       expect(Servicio.bulkCreate).toHaveBeenCalledWith([
         {
           id_negocio: 10,
           nombre: "Corte",
           precio: 12,
+          id_ps: 201,
           duracion: 30,
           descripcion: "Desc",
           requiere_capacidad: true,

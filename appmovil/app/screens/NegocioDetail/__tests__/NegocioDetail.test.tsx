@@ -27,12 +27,45 @@ jest.mock("@react-navigation/native", () => ({
 global.fetch = jest.fn();
 
 describe("NegocioDetail", () => {
+    const mockAjuste = {
+        id_ajuste: 1,
+        id_negocio: 1,
+        modulo_gastos: true,
+        modulo_clientes: true,
+        modulo_empleados: true,
+        modulo_servicios: true,
+        modulo_recursos: true,
+        modulo_productos: true,
+        modulo_proveedores: true,
+        modulo_compras: true,
+        modulo_descuentos: true,
+        modulo_ventas: true,
+        modulo_reservas: true,
+        modulo_estadisticas: true,
+    };
+
     beforeEach(() => {
         jest.clearAllMocks();
         (AsyncStorage.getItem as jest.Mock).mockResolvedValue("mock-token");
-        (fetch as jest.Mock).mockResolvedValue({
-            ok: true,
-            json: async () => ({ negocio: mockNegocio }),
+        (fetch as jest.Mock).mockImplementation((url: string) => {
+            if (url === API_ROUTES.negocioById(1)) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({ negocio: mockNegocio }),
+                });
+            }
+
+            if (url === API_ROUTES.ajustesByNegocio(1)) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({ ajuste: mockAjuste }),
+                });
+            }
+
+            return Promise.resolve({
+                ok: false,
+                json: async () => ({}),
+            });
         });
     });
 
@@ -107,10 +140,26 @@ describe("NegocioDetail", () => {
     it("muestra botón de editar módulos para admin", async () => {
         const adminNegocio = { ...mockNegocio, rol: "admin" };
         const adminRoute = { params: { negocio: adminNegocio } } as any;
-        
-        (fetch as jest.Mock).mockResolvedValue({
-            ok: true,
-            json: async () => ({ negocio: adminNegocio }),
+
+        (fetch as jest.Mock).mockImplementation((url: string) => {
+            if (url === API_ROUTES.negocioById(1)) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({ negocio: adminNegocio }),
+                });
+            }
+
+            if (url === API_ROUTES.ajustesByNegocio(1)) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({ ajuste: mockAjuste }),
+                });
+            }
+
+            return Promise.resolve({
+                ok: false,
+                json: async () => ({}),
+            });
         });
 
         const { getByTestId } = render(
@@ -179,6 +228,43 @@ describe("NegocioDetail", () => {
 
         fireEvent.press(getByTestId("permissions-settings-button"));
         expect(mockNavigation.navigate).toHaveBeenCalledWith("NegocioUsers", { negocio: mockNegocio });
+    });
+
+    it("navega a AjustesModulos al pulsar edit-modules-button", async () => {
+        const adminNegocio = { ...mockNegocio, rol: "admin" };
+        const adminRoute = { params: { negocio: adminNegocio } } as any;
+
+        (fetch as jest.Mock).mockImplementation((url: string) => {
+            if (url === API_ROUTES.negocioById(1)) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({ negocio: adminNegocio }),
+                });
+            }
+
+            if (url === API_ROUTES.ajustesByNegocio(1)) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({ ajuste: mockAjuste }),
+                });
+            }
+
+            return Promise.resolve({
+                ok: false,
+                json: async () => ({}),
+            });
+        });
+
+        const { getByTestId } = render(
+            <NegocioDetail navigation={mockNavigation} route={adminRoute} />
+        );
+
+        await waitFor(() => {
+            expect(getByTestId("edit-modules-button")).toBeTruthy();
+        });
+
+        fireEvent.press(getByTestId("edit-modules-button"));
+        expect(mockNavigation.navigate).toHaveBeenCalledWith("AjustesModulos", { negocio: adminNegocio });
     });
 
     it("navega a Empleados al pulsar módulo empleados", async () => {
@@ -276,9 +362,26 @@ describe("NegocioDetail", () => {
 
     it("actualiza los datos cuando la respuesta es exitosa", async () => {
         const updatedNegocio = { ...mockNegocio, nombre: "Negocio Actualizado" };
-        (fetch as jest.Mock).mockResolvedValue({
-            ok: true,
-            json: async () => ({ negocio: updatedNegocio }),
+
+        (fetch as jest.Mock).mockImplementation((url: string) => {
+            if (url === API_ROUTES.negocioById(1)) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({ negocio: updatedNegocio }),
+                });
+            }
+
+            if (url === API_ROUTES.ajustesByNegocio(1)) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({ ajuste: mockAjuste }),
+                });
+            }
+
+            return Promise.resolve({
+                ok: false,
+                json: async () => ({}),
+            });
         });
 
         const { getByText } = render(
@@ -287,6 +390,50 @@ describe("NegocioDetail", () => {
 
         await waitFor(() => {
             expect(getByText("Negocio Actualizado")).toBeTruthy();
+        });
+    });
+
+    it("oculta modulos del grupo catalogo cuando productos esta desactivado", async () => {
+        (fetch as jest.Mock).mockImplementation((url: string) => {
+            if (url === API_ROUTES.negocioById(1)) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({ negocio: mockNegocio }),
+                });
+            }
+
+            if (url === API_ROUTES.ajustesByNegocio(1)) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({
+                        ajuste: {
+                            ...mockAjuste,
+                            modulo_productos: false,
+                            modulo_compras: false,
+                            modulo_ventas: false,
+                            modulo_descuentos: false,
+                            modulo_proveedores: false,
+                        },
+                    }),
+                });
+            }
+
+            return Promise.resolve({
+                ok: false,
+                json: async () => ({}),
+            });
+        });
+
+        const { queryByTestId } = render(
+            <NegocioDetail navigation={mockNavigation} route={mockRoute} />
+        );
+
+        await waitFor(() => {
+            expect(queryByTestId("modulo-productos")).toBeNull();
+            expect(queryByTestId("modulo-compras")).toBeNull();
+            expect(queryByTestId("modulo-ventas")).toBeNull();
+            expect(queryByTestId("modulo-descuentos")).toBeNull();
+            expect(queryByTestId("modulo-proveedores")).toBeNull();
         });
     });
 });

@@ -1,9 +1,9 @@
+import { sequelize } from "../../models/db.js";
+import { ProductoServicio } from "../../models/ProductoServicio.js";
+import { ProductoServicioVenta } from "../../models/ProductoServicioVenta.js";
 import { Venta } from "../../models/Venta.js";
-import { VentaProducto } from "../../models/VentaProducto.js";
-import { VentaServicio } from "../../models/VentaServicio.js";
-import { Cliente } from "../../models/Cliente.js";
 import { Producto } from "../../models/Producto.js";
-import { Servicio } from "../../models/Servicio.js";
+import { Cliente } from "../../models/Cliente.js";
 import { UsuarioNegocio } from "../../models/UsuarioNegocio.js";
 import { sendClienteEmail } from "../../utils/mailer.js";
 import { Op } from "sequelize";
@@ -14,6 +14,17 @@ import {
 } from "./constants.js";
 
 const INTEGER_REGEX = /^\d+$/;
+
+const includeVentaDetalles = [
+    {
+        association: "detalles",
+        include: [
+            {
+                association: "productoServicio",
+            },
+        ],
+    },
+];
 
 const canManageVentas = (rol) => [VENTA_ROLES.ADMIN, VENTA_ROLES.JEFE].includes(rol);
 
@@ -107,17 +118,74 @@ const serializeVentaWithItems = (venta, items) => ({
     updatedAt: venta.updatedAt,
 });
 
+const normalizeItemQuantity = (value) => {
+    const quantity = Number.parseInt(`${value ?? 1}`, 10);
+    return Number.isInteger(quantity) && quantity > 0 ? quantity : 1;
+};
+
+const resolveVentaItem = async (item) => {
+    const idPsValue = normalizeIntegerId(
+        item?.id_ps ?? item?.id_producto ?? item?.id_servicio,
+        VENTA_ERRORS.PRODUCTO_NOT_FOUND
+    );
+
+    if (idPsValue.error) {
+        return { error: idPsValue.error };
+    }
+
+    const productoServicio = await ProductoServicio.findByPk(idPsValue.value, {
+        include: [
+            {
+                association: "producto",
+            },
+            {
+                association: "servicio",
+            },
+        ],
+    });
+
+    if (!productoServicio) {
+        return { error: VENTA_ERRORS.PRODUCTO_NOT_FOUND };
+    }
+
+    if (productoServicio.tipo === "PRODUCTO" && !productoServicio.producto) {
+        return { error: VENTA_ERRORS.PRODUCTO_NOT_FOUND };
+    }
+
+    if (productoServicio.tipo === "SERVICIO" && !productoServicio.servicio) {
+        return { error: VENTA_ERRORS.SERVICIO_NOT_FOUND };
+    }
+
+    return { value: productoServicio };
+};
+
+const resolveVentaTipo = (items) => {
+    const tipos = new Set(
+        items
+            .map((item) => `${item?.tipo ?? ""}`.trim().toUpperCase())
+            .filter((tipo) => tipo === "PRODUCTO" || tipo === "SERVICIO")
+    );
+
+    if (tipos.has("PRODUCTO") && tipos.has("SERVICIO")) {
+        return "mixta";
+    }
+
+    if (tipos.has("PRODUCTO")) {
+        return "producto";
+    }
+
+    if (tipos.has("SERVICIO")) {
+        return "servicio";
+    }
+
+    return "mixta";
+};
+
 export const createVenta = async (req, res) => {
     const id_usuario = req.user?.id_usuario;
     const idNegocioResult = normalizeIntegerId(req.body?.id_negocio, VENTA_ERRORS.NEGOCIO_ID_REQUIRED);
     const idClienteResult = normalizeIntegerId(req.body?.id_cliente, VENTA_ERRORS.CLIENTE_ID_REQUIRED);
-    const tipo = typeof req.body?.tipo === "string" ? req.body.tipo.toLowerCase().trim() : "";
     const items = Array.isArray(req.body?.items) ? req.body.items : [];
-    const precioTotalResult = normalizePrice(
-        req.body?.precio_total,
-        VENTA_ERRORS.PRECIO_TOTAL_REQUIRED,
-        VENTA_ERRORS.PRECIO_TOTAL_INVALID
-    );
     const fechaResult = normalizeFecha(req.body?.fecha);
 
     if (!id_usuario) {
@@ -132,16 +200,8 @@ export const createVenta = async (req, res) => {
         return res.status(400).json({ message: idClienteResult.error });
     }
 
-    if (!tipo || !["producto", "servicio"].includes(tipo)) {
-        return res.status(400).json({ message: VENTA_ERRORS.TIPO_INVALID });
-    }
-
     if (!items || items.length === 0) {
         return res.status(400).json({ message: VENTA_ERRORS.ITEMS_REQUIRED });
-    }
-
-    if (precioTotalResult.error) {
-        return res.status(400).json({ message: precioTotalResult.error });
     }
 
     if (fechaResult.error) {
@@ -161,65 +221,102 @@ export const createVenta = async (req, res) => {
             return res.status(404).json({ message: VENTA_ERRORS.CLIENTE_NOT_FOUND });
         }
 
-        const venta = await Venta.create({
-            id_cliente: idClienteResult.value,
-            fecha: fechaResult.value,
-            precio_total: precioTotalResult.value,
-            tipo,
-            estado: "completada",
-        });
+        const transaction = await sequelize.transaction();
+        try {
+            const ventaItems = [];
 
-        if (tipo === "producto") {
             for (const item of items) {
-                const idProductoResult = normalizeIntegerId(item.id_producto, VENTA_ERRORS.PRODUCTO_NOT_FOUND);
-                const cantidad = Number.parseInt(`${item.cantidad ?? 1}`, 10) || 1;
+                const resolvedItem = await resolveVentaItem(item);
 
-                if (idProductoResult.error) {
-                    await venta.destroy();
-                    return res.status(400).json({ message: idProductoResult.error });
+                if (resolvedItem.error) {
+                    await transaction.rollback();
+                    return res.status(400).json({ message: resolvedItem.error });
                 }
 
-                const producto = await Producto.findByPk(idProductoResult.value);
+                const productoServicio = resolvedItem.value;
+                const quantity = normalizeItemQuantity(item?.cantidad);
+                const unitPrice = Number(productoServicio.precio) || 0;
 
-                if (!producto) {
-                    await venta.destroy();
-                    return res.status(404).json({ message: VENTA_ERRORS.PRODUCTO_NOT_FOUND });
+                if (productoServicio.tipo === "PRODUCTO") {
+                    const producto = productoServicio.producto;
+
+                    if (quantity > producto.stock) {
+                        await transaction.rollback();
+                        return res.status(400).json({ message: "Stock insuficiente para el producto seleccionado" });
+                    }
+
+                    ventaItems.push({
+                        id_ps: productoServicio.id_ps,
+                        tipo: "PRODUCTO",
+                        cantidad: quantity,
+                        precio_unitario: unitPrice,
+                        subtotal: unitPrice * quantity,
+                    });
+                } else {
+                    ventaItems.push({
+                        id_ps: productoServicio.id_ps,
+                        tipo: "SERVICIO",
+                        cantidad: quantity,
+                        precio_unitario: unitPrice,
+                        subtotal: unitPrice * quantity,
+                    });
                 }
-
-                await VentaProducto.create({
-                    id_venta: venta.id_venta,
-                    id_producto: idProductoResult.value,
-                    cantidad,
-                });
             }
-        } else if (tipo === "servicio") {
-            for (const item of items) {
-                const idServicioResult = normalizeIntegerId(item.id_servicio, VENTA_ERRORS.SERVICIO_NOT_FOUND);
 
-                if (idServicioResult.error) {
-                    await venta.destroy();
-                    return res.status(400).json({ message: idServicioResult.error });
+            const precioTotal = ventaItems.reduce((sum, item) => sum + item.subtotal, 0);
+            const tipoVenta = resolveVentaTipo(ventaItems);
+
+            const venta = await Venta.create(
+                {
+                    id_cliente: idClienteResult.value,
+                    fecha: fechaResult.value,
+                    precio_total: precioTotal,
+                    tipo: tipoVenta,
+                    estado: "completada",
+                },
+                { transaction }
+            );
+
+            for (const item of ventaItems) {
+                if (item.tipo === "PRODUCTO") {
+                    await Producto.update(
+                        {
+                            stock: sequelize.literal(`"stock" - ${item.cantidad}`),
+                        },
+                        {
+                            where: { id_ps: item.id_ps },
+                            transaction,
+                        }
+                    );
                 }
 
-                const servicio = await Servicio.findByPk(idServicioResult.value);
-
-                if (!servicio || servicio.id_negocio !== idNegocioResult.value) {
-                    await venta.destroy();
-                    return res.status(404).json({ message: VENTA_ERRORS.SERVICIO_NOT_FOUND });
-                }
-
-                await VentaServicio.create({
-                    id_venta: venta.id_venta,
-                    id_servicio: idServicioResult.value,
-                });
+                await ProductoServicioVenta.create(
+                    {
+                        id_venta: venta.id_venta,
+                        id_ps: item.id_ps,
+                        cantidad: item.cantidad,
+                        precio_unitario: item.precio_unitario,
+                        subtotal: item.subtotal,
+                    },
+                    { transaction }
+                );
             }
+
+            await transaction.commit();
+
+            return res.status(201).json({
+                message: VENTA_MESSAGES.VENTA_CREATED,
+                venta: serializeVenta(venta),
+            });
+        } catch (error) {
+            await transaction.rollback();
+            throw error;
+        }
+    } catch (error) {
+        if (error?.message === "Stock insuficiente para el producto seleccionado") {
+            return res.status(400).json({ message: error.message });
         }
 
-        return res.status(201).json({
-            message: VENTA_MESSAGES.VENTA_CREATED,
-            venta: serializeVenta(venta),
-        });
-    } catch (error) {
         return res.status(500).json({ message: VENTA_ERRORS.SERVER_ERROR });
     }
 };
@@ -265,7 +362,7 @@ export const getVentasByNegocio = async (req, res) => {
             id_cliente: { [Op.in]: clienteIds },
         };
 
-        if (tipo && ["producto", "servicio"].includes(tipo)) {
+        if (tipo && ["producto", "servicio", "mixta"].includes(tipo)) {
             where.tipo = tipo;
         }
 
@@ -297,7 +394,9 @@ export const getVentaById = async (req, res) => {
     }
 
     try {
-        const venta = await Venta.findByPk(idVentaResult.value);
+        const venta = await Venta.findByPk(idVentaResult.value, {
+            include: includeVentaDetalles,
+        });
 
         if (!venta) {
             return res.status(404).json({ message: VENTA_ERRORS.VENTA_NOT_FOUND });
@@ -315,25 +414,13 @@ export const getVentaById = async (req, res) => {
             return res.status(accessResult.status).json({ message: accessResult.message });
         }
 
-        // Cargar items según el tipo
-        let items = [];
-
-        if (venta.tipo === "producto") {
-            const ventaProductos = await VentaProducto.findAll({
-                where: { id_venta: venta.id_venta },
-            });
-            items = ventaProductos.map((vp) => ({
-                id_producto: vp.id_producto,
-                cantidad: vp.cantidad,
-            }));
-        } else if (venta.tipo === "servicio") {
-            const ventaServicios = await VentaServicio.findAll({
-                where: { id_venta: venta.id_venta },
-            });
-            items = ventaServicios.map((vs) => ({
-                id_servicio: vs.id_servicio,
-            }));
-        }
+        const items = (venta.detalles ?? []).map((detalle) => ({
+            id_ps: detalle.id_ps,
+            tipo: `${detalle.productoServicio?.tipo ?? ""}`.toLowerCase(),
+            cantidad: detalle.cantidad,
+            precio_unitario: detalle.precio_unitario,
+            subtotal: detalle.subtotal,
+        }));
 
         return res.status(200).json({
             message: VENTA_MESSAGES.VENTAS_RETRIEVED,
@@ -358,7 +445,9 @@ export const deleteVenta = async (req, res) => {
     }
 
     try {
-        const venta = await Venta.findByPk(idVentaResult.value);
+        const venta = await Venta.findByPk(idVentaResult.value, {
+            include: includeVentaDetalles,
+        });
 
         if (!venta) {
             return res.status(404).json({ message: VENTA_ERRORS.VENTA_NOT_FOUND });
@@ -376,7 +465,35 @@ export const deleteVenta = async (req, res) => {
             return res.status(accessResult.status).json({ message: accessResult.message });
         }
 
-        await venta.destroy();
+        const transaction = await sequelize.transaction();
+
+        try {
+            for (const detalle of venta.detalles ?? []) {
+                if (detalle.productoServicio?.tipo === "PRODUCTO") {
+                    await Producto.update(
+                        {
+                            stock: sequelize.literal(`"stock" + ${detalle.cantidad}`),
+                        },
+                        {
+                            where: { id_ps: detalle.id_ps },
+                            transaction,
+                        }
+                    );
+                }
+            }
+
+            await ProductoServicioVenta.destroy({
+                where: { id_venta: venta.id_venta },
+                transaction,
+            });
+
+            await venta.destroy({ transaction });
+
+            await transaction.commit();
+        } catch (error) {
+            await transaction.rollback();
+            throw error;
+        }
 
         return res.status(200).json({ message: VENTA_MESSAGES.VENTA_DELETED });
     } catch (error) {
@@ -388,13 +505,7 @@ export const updateVenta = async (req, res) => {
     const id_usuario = req.user?.id_usuario;
     const idVentaResult = normalizeIntegerId(req.params?.id_venta, VENTA_ERRORS.VENTA_ID_REQUIRED);
     const idClienteResult = req.body?.id_cliente ? normalizeIntegerId(req.body.id_cliente, VENTA_ERRORS.CLIENTE_ID_REQUIRED) : null;
-    const tipo = typeof req.body?.tipo === "string" ? req.body.tipo.toLowerCase().trim() : "";
     const items = Array.isArray(req.body?.items) ? req.body.items : [];
-    const precioTotalResult = req.body?.precio_total ? normalizePrice(
-        req.body.precio_total,
-        VENTA_ERRORS.PRECIO_TOTAL_REQUIRED,
-        VENTA_ERRORS.PRECIO_TOTAL_INVALID
-    ) : null;
     const fechaResult = req.body?.fecha ? normalizeFecha(req.body.fecha) : null;
 
     if (!id_usuario) {
@@ -406,7 +517,9 @@ export const updateVenta = async (req, res) => {
     }
 
     try {
-        const venta = await Venta.findByPk(idVentaResult.value);
+        const venta = await Venta.findByPk(idVentaResult.value, {
+            include: includeVentaDetalles,
+        });
 
         if (!venta) {
             return res.status(404).json({ message: VENTA_ERRORS.VENTA_NOT_FOUND });
@@ -438,22 +551,6 @@ export const updateVenta = async (req, res) => {
             venta.id_cliente = idClienteResult.value;
         }
 
-        // Validar y actualizar tipo
-        if (tipo) {
-            if (!["producto", "servicio"].includes(tipo)) {
-                return res.status(400).json({ message: VENTA_ERRORS.TIPO_INVALID });
-            }
-            venta.tipo = tipo;
-        }
-
-        // Validar y actualizar precio total
-        if (precioTotalResult) {
-            if (precioTotalResult.error) {
-                return res.status(400).json({ message: precioTotalResult.error });
-            }
-            venta.precio_total = precioTotalResult.value;
-        }
-
         // Validar y actualizar fecha
         if (fechaResult) {
             if (fechaResult.error) {
@@ -462,61 +559,109 @@ export const updateVenta = async (req, res) => {
             venta.fecha = fechaResult.value;
         }
 
-        // Actualizar items si se proporcionan
+        const transaction = await sequelize.transaction();
+
         if (items && items.length > 0) {
-            if (venta.tipo === "producto") {
-                // Eliminar items antiguos
-                await VentaProducto.destroy({ where: { id_venta: venta.id_venta } });
+            try {
+                for (const detalle of venta.detalles ?? []) {
+                    if (detalle.productoServicio?.tipo === "PRODUCTO") {
+                        await Producto.update(
+                            {
+                                stock: sequelize.literal(`"stock" + ${detalle.cantidad}`),
+                            },
+                            {
+                                where: { id_ps: detalle.id_ps },
+                                transaction,
+                            }
+                        );
+                    }
+                }
 
-                // Crear nuevos items
+                await ProductoServicioVenta.destroy({
+                    where: { id_venta: venta.id_venta },
+                    transaction,
+                });
+
+                const ventaItems = [];
+
                 for (const item of items) {
-                    const idProductoResult = normalizeIntegerId(item.id_producto, VENTA_ERRORS.PRODUCTO_ID_REQUIRED);
-                    if (idProductoResult.error) {
-                        return res.status(400).json({ message: idProductoResult.error });
+                    const resolvedItem = await resolveVentaItem(item);
+
+                    if (resolvedItem.error) {
+                        await transaction.rollback();
+                        return res.status(400).json({ message: resolvedItem.error });
                     }
 
-                    const producto = await Producto.findByPk(idProductoResult.value);
-                    if (!producto) {
-                        return res.status(404).json({ message: VENTA_ERRORS.PRODUCTO_NOT_FOUND });
+                    const productoServicio = resolvedItem.value;
+                    const quantity = normalizeItemQuantity(item?.cantidad);
+                    const unitPrice = Number(productoServicio.precio) || 0;
+
+                    if (productoServicio.tipo === "PRODUCTO") {
+                        const producto = productoServicio.producto;
+
+                        if (quantity > producto.stock) {
+                            await transaction.rollback();
+                            return res.status(400).json({ message: "Stock insuficiente para el producto seleccionado" });
+                        }
                     }
 
-                    await VentaProducto.create({
-                        id_venta: venta.id_venta,
-                        id_producto: idProductoResult.value,
-                        cantidad: Math.max(1, Number.parseInt(item.cantidad || "1", 10)),
+                    ventaItems.push({
+                        id_ps: productoServicio.id_ps,
+                        tipo: productoServicio.tipo,
+                        cantidad: quantity,
+                        precio_unitario: unitPrice,
+                        subtotal: unitPrice * quantity,
                     });
                 }
-            } else if (venta.tipo === "servicio") {
-                // Eliminar items antiguos
-                await VentaServicio.destroy({ where: { id_venta: venta.id_venta } });
 
-                // Crear nuevos items
-                for (const item of items) {
-                    const idServicioResult = normalizeIntegerId(item.id_servicio, VENTA_ERRORS.SERVICIO_ID_REQUIRED);
-                    if (idServicioResult.error) {
-                        return res.status(400).json({ message: idServicioResult.error });
+                const precioTotal = ventaItems.reduce((sum, item) => sum + item.subtotal, 0);
+                const tipoVenta = resolveVentaTipo(ventaItems);
+
+                venta.precio_total = precioTotal;
+                venta.tipo = tipoVenta;
+
+                for (const item of ventaItems) {
+                    if (item.tipo === "PRODUCTO") {
+                        await Producto.update(
+                            {
+                                stock: sequelize.literal(`"stock" - ${item.cantidad}`),
+                            },
+                            {
+                                where: { id_ps: item.id_ps },
+                                transaction,
+                            }
+                        );
                     }
 
-                    const servicio = await Servicio.findByPk(idServicioResult.value);
-                    if (!servicio) {
-                        return res.status(404).json({ message: VENTA_ERRORS.SERVICIO_NOT_FOUND });
-                    }
-
-                    await VentaServicio.create({
-                        id_venta: venta.id_venta,
-                        id_servicio: idServicioResult.value,
-                    });
+                    await ProductoServicioVenta.create(
+                        {
+                            id_venta: venta.id_venta,
+                            id_ps: item.id_ps,
+                            cantidad: item.cantidad,
+                            precio_unitario: item.precio_unitario,
+                            subtotal: item.subtotal,
+                        },
+                        { transaction }
+                    );
                 }
+            } catch (error) {
+                await transaction.rollback();
+                throw error;
             }
         }
 
-        await venta.save();
+        await venta.save({ transaction });
+        await transaction.commit();
 
         return res.status(200).json({
             message: VENTA_MESSAGES.VENTA_CREATED,
             venta: serializeVenta(venta),
         });
     } catch (error) {
+        if (error?.message === "Stock insuficiente para el producto seleccionado") {
+            return res.status(400).json({ message: error.message });
+        }
+
         console.error("Error en updateVenta:", error);
         return res.status(500).json({ message: VENTA_ERRORS.SERVER_ERROR });
     }

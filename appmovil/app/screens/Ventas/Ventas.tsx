@@ -87,6 +87,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalError, setModalError] = useState("");
   const [searchVentasClienteText, setSearchVentasClienteText] = useState("");
+  const [filtersExpanded, setFiltersExpanded] = useState(true);
   const [fechaDesde, setFechaDesde] = useState<string>("");
   const [fechaHasta, setFechaHasta] = useState<string>("");
   const [editingWhichDate, setEditingWhichDate] = useState<"desde" | "hasta" | null>(null);
@@ -299,6 +300,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
   };
 
   const handleClearFilters = () => {
+    setVentaType("producto");
     setSearchVentasClienteText("");
     setFechaDesde("");
     setFechaHasta("");
@@ -557,20 +559,39 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
-          <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Ventas</Text>
-        {canManageVentas && (
-          <TouchableOpacity
-            onPress={handleOpenVentaModal}
-            style={styles.addPrimaryButton}
-          >
-            <MaterialIcons name="add" size={20} color="#fff" />
+      <View style={styles.heroCard}>
+        <View style={styles.heroTopRow}>
+          <TouchableOpacity style={styles.heroBackButton} onPress={() => navigation.goBack()}>
+            <MaterialIcons name="arrow-back" size={24} color="#0f172a" />
           </TouchableOpacity>
-        )}
+          {canManageVentas && (
+            <TouchableOpacity style={styles.addButton} onPress={handleOpenVentaModal}>
+              <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 6 }} />
+              <Text style={styles.addButtonText}>Añadir Venta</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={styles.heroBody}>
+          <Text style={styles.headerTitle}>Ventas</Text>
+          <Text style={styles.subtitle}>{normalizedRole === 'admin' ? 'Administrador' : normalizedRole === 'jefe' ? 'Jefe' : 'Trabajador'} · {ventas.length} ventas</Text>
+
+          <View style={styles.heroSearchBox}>
+            <MaterialIcons name="search" size={20} color="#64748b" />
+            <TextInput
+              style={styles.heroSearchInput}
+              placeholder="Buscar por cliente..."
+              value={searchVentasClienteText}
+              onChangeText={setSearchVentasClienteText}
+              placeholderTextColor="#94a3b8"
+            />
+            {searchVentasClienteText ? (
+              <TouchableOpacity onPress={() => setSearchVentasClienteText("")} style={styles.heroSearchClearButton}>
+                <MaterialIcons name="close" size={18} color="#64748b" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        </View>
       </View>
 
       {/* Error Box */}
@@ -589,110 +610,102 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
         </View>
       ) : null}
 
-      {/* Toggle */}
-      <View style={styles.toggleContainer}>
-        <TouchableOpacity
-          style={[styles.toggleButton, ventaType === "producto" && styles.toggleButtonActive]}
-          onPress={() => setVentaType("producto")}
-        >
-          <Text
-            style={[
-              styles.toggleText,
-              ventaType === "producto" && styles.toggleTextActive,
-            ]}
-          >
-            Productos
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.toggleButton, ventaType === "servicio" && styles.toggleButtonActive]}
-          onPress={() => setVentaType("servicio")}
-        >
-          <Text
-            style={[
-              styles.toggleText,
-              ventaType === "servicio" && styles.toggleTextActive,
-            ]}
-          >
-            Servicios
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filtersContainer}
-        contentContainerStyle={styles.filtersContent}
-      >
-        {}
-        <View style={styles.filterSection}>
-          <View style={styles.searchBox}>
-            <MaterialIcons name="search" size={18} color="#6b7280" />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Buscar por cliente..."
-              value={searchVentasClienteText}
-              onChangeText={setSearchVentasClienteText}
-              placeholderTextColor="#9ca3af"
-            />
+      <View style={styles.filterCard}>
+        <TouchableOpacity style={styles.filterHeader} onPress={() => setFiltersExpanded((value) => !value)}>
+          <View style={styles.filterHeaderLeft}>
+            <View style={styles.filterHeaderIcon}>
+              <MaterialIcons name="tune" size={18} color="#ffffff" />
+            </View>
+            <View>
+              <Text style={styles.filterTitle}>Filtros</Text>
+              <Text style={styles.filterSubtitle}>Producto o servicio y rango de fechas</Text>
+            </View>
           </View>
-        </View>
-
-        {}
-        <TouchableOpacity
-          style={[styles.filterButton, fechaDesde && styles.filterButtonActive]}
-          onPress={() => {
-            const date = fechaDesde ? new Date(fechaDesde) : new Date();
-            setDatePickerCursor(date);
-            setEditingWhichDate("desde");
-            setDatePickerVisible(true);
-          }}
-        >
-          <MaterialIcons name="date-range" size={16} color={fechaDesde ? "#fff" : "#6b7280"} />
-          <Text style={[styles.filterButtonText, fechaDesde && styles.filterButtonTextActive]}>
-            {fechaDesde ? toDateOnlyDisplay(fechaDesde) : "Desde"}
-          </Text>
-          {fechaDesde && (
-            <TouchableOpacity onPress={() => setFechaDesde("")}>
-              <MaterialIcons name="close" size={14} color="#fff" />
-            </TouchableOpacity>
-          )}
+          <MaterialIcons name={filtersExpanded ? "expand-less" : "expand-more"} size={26} color="#475569" />
         </TouchableOpacity>
 
-        {}
-        <TouchableOpacity
-          style={[styles.filterButton, fechaHasta && styles.filterButtonActive]}
-          onPress={() => {
-            const date = fechaHasta ? new Date(fechaHasta) : new Date();
-            setDatePickerCursor(date);
-            setEditingWhichDate("hasta");
-            setDatePickerVisible(true);
-          }}
-        >
-          <MaterialIcons name="date-range" size={16} color={fechaHasta ? "#fff" : "#6b7280"} />
-          <Text style={[styles.filterButtonText, fechaHasta && styles.filterButtonTextActive]}>
-            {fechaHasta ? toDateOnlyDisplay(fechaHasta) : "Hasta"}
-          </Text>
-          {fechaHasta && (
-            <TouchableOpacity onPress={() => setFechaHasta("")}>
-              <MaterialIcons name="close" size={14} color="#fff" />
-            </TouchableOpacity>
-          )}
-        </TouchableOpacity>
+        {filtersExpanded ? (
+          <View style={styles.filterBody}>
+            <View style={styles.toggleContainer}>
+              <TouchableOpacity
+                style={[styles.toggleButton, ventaType === "producto" && styles.toggleButtonActive]}
+                onPress={() => setVentaType("producto")}
+              >
+                <Text
+                  style={[
+                    styles.toggleText,
+                    ventaType === "producto" && styles.toggleTextActive,
+                  ]}
+                >
+                  Productos
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.toggleButton, ventaType === "servicio" && styles.toggleButtonActive]}
+                onPress={() => setVentaType("servicio")}
+              >
+                <Text
+                  style={[
+                    styles.toggleText,
+                    ventaType === "servicio" && styles.toggleTextActive,
+                  ]}
+                >
+                  Servicios
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-        {}
-        {(searchVentasClienteText || fechaDesde || fechaHasta) && (
-          <TouchableOpacity
-            style={styles.filterClearButton}
-            onPress={handleClearFilters}
-          >
-            <MaterialIcons name="clear-all" size={16} color="#6b7280" />
-            <Text style={styles.filterClearText}>{REESTRABLERCER_FILTROS}</Text>
-          </TouchableOpacity>
-        )}
-      </ScrollView>
+            <View style={styles.dateFilterRow}>
+              <TouchableOpacity
+                style={[styles.filterButton, fechaDesde && styles.filterButtonActive]}
+                onPress={() => {
+                  const date = fechaDesde ? new Date(fechaDesde) : new Date();
+                  setDatePickerCursor(date);
+                  setEditingWhichDate("desde");
+                  setDatePickerVisible(true);
+                }}
+              >
+                <MaterialIcons name="date-range" size={16} color={fechaDesde ? "#fff" : "#64748b"} />
+                <Text style={[styles.filterButtonText, fechaDesde && styles.filterButtonTextActive]}>
+                  {fechaDesde ? toDateOnlyDisplay(fechaDesde) : "Desde"}
+                </Text>
+                {fechaDesde && (
+                  <TouchableOpacity onPress={() => setFechaDesde("")}>
+                    <MaterialIcons name="close" size={14} color="#fff" />
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.filterButton, fechaHasta && styles.filterButtonActive]}
+                onPress={() => {
+                  const date = fechaHasta ? new Date(fechaHasta) : new Date();
+                  setDatePickerCursor(date);
+                  setEditingWhichDate("hasta");
+                  setDatePickerVisible(true);
+                }}
+              >
+                <MaterialIcons name="date-range" size={16} color={fechaHasta ? "#fff" : "#64748b"} />
+                <Text style={[styles.filterButtonText, fechaHasta && styles.filterButtonTextActive]}>
+                  {fechaHasta ? toDateOnlyDisplay(fechaHasta) : "Hasta"}
+                </Text>
+                {fechaHasta && (
+                  <TouchableOpacity onPress={() => setFechaHasta("")}>
+                    <MaterialIcons name="close" size={14} color="#fff" />
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {(ventaType !== "producto" || fechaDesde || fechaHasta) && (
+              <TouchableOpacity style={styles.filterClearButton} onPress={handleClearFilters}>
+                <MaterialIcons name="clear-all" size={16} color="#64748b" />
+                <Text style={styles.filterClearText}>{REESTRABLERCER_FILTROS}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : null}
+      </View>
 
       {}
       {loading ? (
@@ -790,17 +803,16 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
       )}
 
       {}
-      <Modal visible={modalVisible} animationType="slide">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={handleCloseVentaModal}>
-              <MaterialIcons name="close" size={24} color="#1f2937" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>
-              Nueva Venta
-            </Text>
-            <View style={{ width: 24 }} />
-          </View>
+      <Modal visible={modalVisible} transparent animationType="none" onRequestClose={handleCloseVentaModal}>
+        <View style={[styles.modalOverlay, styles.modalOverlayBottom]}>
+          <View style={[styles.modalCard, styles.modalCardBottom]}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={handleCloseVentaModal}>
+                <MaterialIcons name="close" size={22} color="#6b7280" />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Nueva Venta</Text>
+              <View style={{ width: 24 }} />
+            </View>
 
           {modalError ? (
             <View style={[styles.feedbackBox, styles.modalError]}>
@@ -981,14 +993,22 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                         style={styles.cantidadInput}
                         keyboardType="number-pad"
                         placeholder="1"
-                        value={`${item.cantidad || 1}`}
-                        onChangeText={(text) =>
+                        value={item.cantidad != null ? String(item.cantidad) : ""}
+                        onChangeText={(text) => {
+                          const parsed = parseInt(text, 10);
                           handleUpdateItem(
                             index,
                             "cantidad",
-                            text ? parseInt(text) : 1
-                          )
-                        }
+                            Number.isFinite(parsed) ? parsed : undefined
+                          );
+                        }}
+                        onBlur={() => {
+                          const current = selectedItems[index];
+                          const val = current?.cantidad ?? 1;
+                          if (!Number.isFinite(val) || val <= 0) {
+                            handleUpdateItem(index, "cantidad", 1);
+                          }
+                        }}
                       />
                     </View>
                   )}
@@ -1153,21 +1173,24 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
             </TouchableOpacity>
           </ScrollView>
         </View>
+      </View>
       </Modal>
 
-      {/* View Venta Modal */}
+      {}
       <Modal
         visible={viewVentaModalVisible}
+        transparent
         animationType="slide"
         onRequestClose={handleCloseViewVentaModal}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Detalles de Venta</Text>
-            <TouchableOpacity onPress={handleCloseViewVentaModal}>
-              <MaterialIcons name="close" size={28} color="#1f2937" />
-            </TouchableOpacity>
-          </View>
+        <View style={[styles.modalOverlay, styles.modalOverlayBottom]}>
+          <View style={[styles.modalCard, styles.modalCardBottom]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Detalles de Venta</Text>
+              <TouchableOpacity onPress={handleCloseViewVentaModal}>
+                <MaterialIcons name="close" size={22} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
 
           {viewVentaLoading ? (
             <View style={styles.centerContainer}>
@@ -1182,7 +1205,6 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                 </View>
               ) : null}
 
-              {/* Cliente Info */}
               <View style={styles.detailSection}>
                 <Text style={styles.detailSectionTitle}>Cliente</Text>
                 <View style={styles.detailCard}>
@@ -1195,7 +1217,6 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                 </View>
               </View>
 
-              {/* Fecha Info */}
               <View style={styles.detailSection}>
                 <Text style={styles.detailSectionTitle}>Fecha</Text>
                 <View style={styles.detailCard}>
@@ -1206,7 +1227,6 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                 </View>
               </View>
 
-              {/* Precio Total */}
               <View style={styles.detailSection}>
                 <Text style={styles.detailSectionTitle}>Precio Total</Text>
                 <View style={[styles.detailCard, styles.priceCard]}>
@@ -1214,7 +1234,6 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                 </View>
               </View>
 
-              {/* Tipo y Estado */}
               <View style={styles.detailSection}>
                 <Text style={styles.detailSectionTitle}>Información</Text>
                 <View style={styles.detailCard}>
@@ -1237,7 +1256,6 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                 </View>
               </View>
 
-              {}
               <View style={styles.detailSection}>
                 <Text style={styles.detailSectionTitle}>
                   {selectedVenta.tipo === "producto" ? "Productos" : "Servicios"}
@@ -1267,7 +1285,6 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                 </View>
               </View>
 
-              {/* Close Button */}
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={handleCloseViewVentaModal}
@@ -1277,6 +1294,7 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
             </ScrollView>
           ) : null}
         </View>
+      </View>
       </Modal>
 
       {datePickerVisible && editingWhichDate && (
@@ -1437,8 +1455,127 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   backButton: { padding: 8 },
-  headerTitle: { fontSize: 20, fontWeight: "700", color: "#0D47A1" },
-  addPrimaryButton: { paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#1976D2", borderRadius: 10 },
+  headerTitle: { fontSize: 24, fontWeight: "800", color: "#0f172a", letterSpacing: -0.3 },
+  addPrimaryButton: { paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#1d4ed8", borderRadius: 10 },
+  heroCard: {
+    marginHorizontal: 16,
+    marginTop: 18,
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 4,
+  },
+  heroTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  heroBody: {
+    marginTop: 14,
+    marginBottom: 14,
+  },
+  heroSearchBox: {
+    marginTop: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  heroSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: "#0f172a",
+    paddingVertical: 0,
+  },
+  heroSearchClearButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 999,
+    backgroundColor: "#e2e8f0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroBackButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#eef4ff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1d4ed8",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  addButtonText: { color: "#fff", fontSize: 14, fontWeight: "600", marginLeft: 6 },
+  subtitle: {
+    marginTop: 6,
+    color: "#64748b",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.42)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 12,
+  },
+  modalOverlayBottom: {
+    justifyContent: "flex-start",
+    alignItems: "stretch",
+    paddingHorizontal: 0,
+  },
+  modalCard: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    marginHorizontal: 12,
+    padding: 18,
+    width: "90%",
+    maxWidth: 720,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 4,
+    gap: 12,
+  },
+  modalCardBottom: {
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    width: "100%",
+    maxWidth: undefined,
+    marginHorizontal: 0,
+    borderWidth: 0,
+    borderColor: "#e5e7eb",
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+    padding: 18,
+    height: "100%",
+    paddingTop: 40,
+  },
   feedbackBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -1469,6 +1606,56 @@ const styles = StyleSheet.create({
   toggleButtonActive: { backgroundColor: "#2563eb" },
   toggleText: { fontSize: 14, color: "#6b7280", fontWeight: "500" },
   toggleTextActive: { color: "#fff" },
+  filterCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
+  },
+  filterHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  filterHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+    minWidth: 0,
+  },
+  filterHeaderIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: "#1976D2",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  filterTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#0f172a",
+  },
+  filterSubtitle: {
+    marginTop: 2,
+    fontSize: 12,
+    color: "#64748b",
+  },
+  filterBody: {
+    marginTop: 14,
+    gap: 12,
+  },
   centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   emptyContainer: {
     flex: 1,
@@ -1525,6 +1712,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   label: { fontSize: 14, fontWeight: "600", color: "#1f2937", marginTop: 12, marginBottom: 8 },
+  dateFilterRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
   pickerContainer: { marginBottom: 12 },
   clienteList: { flexGrow: 0 },
   clienteButton: {

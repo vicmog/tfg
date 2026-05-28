@@ -18,6 +18,8 @@ import gastoRoutes from "./routes/gasto.js";
 import plantillaRoutes from "./routes/plantilla.js";
 import ventaRoutes from "./routes/venta.js";
 import estadisticasRoutes from "./routes/estadisticas.js";
+import ajusteRoutes from "./routes/ajuste.js";
+import "./models/associations.js";
 
 
 dotenv.config();
@@ -44,5 +46,6 @@ app.use("/v1/api/gastos", gastoRoutes);
 app.use("/v1/api/plantillas", plantillaRoutes);
 app.use("/v1/api/ventas", ventaRoutes);
 app.use("/v1/api/estadisticas", estadisticasRoutes);
+app.use("/v1/api/ajustes", ajusteRoutes);
 
 export default app;

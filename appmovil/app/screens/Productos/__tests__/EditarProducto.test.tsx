@@ -53,7 +53,7 @@ describe("EditarProducto", () => {
         });
     });
 
-    it("actualiza producto y redirige a productos", async () => {
+    it("actualiza producto y vuelve a la pantalla anterior", async () => {
         (fetch as jest.Mock)
             .mockResolvedValueOnce({
                 ok: true,
@@ -96,9 +96,7 @@ describe("EditarProducto", () => {
         });
 
         await waitFor(() => {
-            expect(mockNavigation.navigate).toHaveBeenCalledWith("Productos", {
-                negocio: mockEditarRoute.params.negocio,
-            });
+            expect(mockNavigation.goBack).toHaveBeenCalled();
         });
     });
 

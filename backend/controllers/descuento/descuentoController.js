@@ -107,15 +107,19 @@ export const getDescuentosByNegocio = async (req, res) => {
 
         const productos = await Producto.findAll({
             where: { id_proveedor: proveedorIds },
-            attributes: ['id_producto', 'nombre', 'referencia'],
+            include: [
+                {
+                    association: "base",
+                },
+            ],
         });
 
-        const productoIds = productos.map(p => p.id_producto);
+        const productoIds = productos.map((p) => p.id_ps);
         const productoMap = {};
-        productos.forEach(p => {
-            productoMap[p.id_producto] = {
-                nombre: p.nombre,
-                referencia: p.referencia,
+        productos.forEach((p) => {
+            productoMap[p.id_ps] = {
+                nombre: p.base?.nombre ?? "",
+                referencia: p.referencia ?? "",
             };
         });
 
@@ -160,7 +164,9 @@ export const getDescuentosByProducto = async (req, res) => {
 
     try {
         const productoId = productoIdResult.value;
-        const producto = await Producto.findByPk(productoId);
+        const producto = await Producto.findByPk(productoId, {
+            include: [{ association: "base" }],
+        });
 
         if (!producto) {
             return res.status(404).json({ message: DESCUENTO_ERRORS.PRODUCTO_NOT_FOUND });
@@ -229,7 +235,9 @@ export const createDescuento = async (req, res) => {
 
     try {
         const productoId = productoIdResult.value;
-        const producto = await Producto.findByPk(productoId);
+        const producto = await Producto.findByPk(productoId, {
+            include: [{ association: "base" }],
+        });
 
         if (!producto) {
             return res.status(404).json({ message: DESCUENTO_ERRORS.PRODUCTO_NOT_FOUND });
@@ -317,7 +325,9 @@ export const deleteDescuento = async (req, res) => {
             return res.status(404).json({ message: DESCUENTO_ERRORS.DESCUENTO_NOT_FOUND });
         }
 
-        const producto = await Producto.findByPk(descuento.id_producto);
+        const producto = await Producto.findByPk(descuento.id_producto, {
+            include: [{ association: "base" }],
+        });
 
         if (!producto) {
             return res.status(404).json({ message: DESCUENTO_ERRORS.PRODUCTO_NOT_FOUND });

@@ -387,15 +387,21 @@ const CrearCompra: React.FC<CrearCompraProps> = ({ route, navigation }) => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity
-                    style={styles.iconButton}
-                    onPress={() => navigation.goBack()}
-                    testID="compras-back-button"
-                >
-                    <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
-                </TouchableOpacity>
-                <Text style={styles.title}>{SCREEN_TITLE}</Text>
+            <View style={styles.heroCard}>
+                <View style={styles.heroTopRow}>
+                    <TouchableOpacity
+                        style={styles.heroBackButton}
+                        onPress={() => navigation.goBack()}
+                        testID="compras-back-button"
+                    >
+                        <MaterialIcons name="arrow-back" size={24} color="#0f172a" />
+                    </TouchableOpacity>
+                </View>
+
+                <View style={styles.heroBody}>
+                    <Text style={styles.title}>{SCREEN_TITLE}</Text>
+                    <Text style={styles.subtitle}>{normalizedRole === "admin" ? "Administrador" : normalizedRole === "jefe" ? "Jefe" : "Trabajador"} · nueva compra</Text>
+                </View>
             </View>
 
             <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -644,34 +650,59 @@ const styles = StyleSheet.create({
         backgroundColor: "#f7fafc",
         paddingTop: 10,
     },
-    header: {
+    heroCard: {
+        marginHorizontal: 16,
+        marginBottom: 12,
+        padding: 16,
+        borderRadius: 20,
+        backgroundColor: "#fff",
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 18,
+        elevation: 4,
+    },
+    heroTopRow: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#e5e7eb",
+        justifyContent: "space-between",
+        gap: 12,
     },
-    iconButton: {
-        padding: 10,
-        borderRadius: 8,
-        backgroundColor: "#f0f7ff",
-        marginRight: 12,
+    heroBody: {
+        marginTop: 14,
+        marginBottom: 8,
+    },
+    heroBackButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: "#eef4ff",
+        alignItems: "center",
+        justifyContent: "center",
     },
     title: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#0D47A1",
+        fontSize: 24,
+        fontWeight: "800",
+        color: "#0f172a",
+        letterSpacing: -0.3,
+    },
+    subtitle: {
+        marginTop: 6,
+        color: "#64748b",
+        fontSize: 14,
+        fontWeight: "500",
     },
     content: {
-        padding: 16,
+        paddingHorizontal: 16,
+        paddingBottom: 24,
         gap: 10,
     },
     formTitle: {
         fontSize: 18,
-        fontWeight: "700",
-        color: "#1f2937",
+        fontWeight: "800",
+        color: "#0f172a",
         marginBottom: 6,
     },
     loadingRow: {
@@ -681,15 +712,17 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         marginLeft: 8,
-        color: "#4b5563",
+        color: "#475569",
     },
     input: {
-        backgroundColor: "#fff",
-        borderRadius: 10,
+        backgroundColor: "#fafbfc",
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: "#d1d5db",
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        borderColor: "#e5e7eb",
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        color: "#0f172a",
+        fontSize: 15,
     },
     datePickerRow: {
         flexDirection: "row",
@@ -707,9 +740,9 @@ const styles = StyleSheet.create({
     webCalendarCard: {
         borderWidth: 1,
         borderColor: "#e5e7eb",
-        borderRadius: 10,
+        borderRadius: 14,
         backgroundColor: "#fff",
-        padding: 10,
+        padding: 12,
     },
     webCalendarHeader: {
         flexDirection: "row",
@@ -719,12 +752,12 @@ const styles = StyleSheet.create({
     },
     webCalendarNavButton: {
         padding: 6,
-        borderRadius: 8,
+        borderRadius: 10,
         backgroundColor: "#f3f4f6",
     },
     webCalendarTitle: {
-        color: "#111827",
-        fontWeight: "700",
+        color: "#0f172a",
+        fontWeight: "800",
         textTransform: "capitalize",
     },
     webWeekdaysRow: {
@@ -751,10 +784,10 @@ const styles = StyleSheet.create({
         height: 34,
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: 8,
+        borderRadius: 10,
     },
     webCalendarDayButtonSelected: {
-        backgroundColor: "#1976D2",
+        backgroundColor: "#1d4ed8",
     },
     webCalendarDayText: {
         color: "#1f2937",
@@ -765,29 +798,34 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 16,
-        fontWeight: "700",
-        color: "#1f2937",
+        fontWeight: "800",
+        color: "#0f172a",
         marginTop: 8,
     },
     rowCard: {
         borderWidth: 1,
-        borderColor: "#d1d5db",
-        borderRadius: 10,
+        borderColor: "#e5e7eb",
+        borderRadius: 18,
         backgroundColor: "#fff",
-        padding: 10,
-        gap: 8,
+        padding: 12,
+        gap: 10,
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2,
     },
     rowLabel: {
-        fontWeight: "600",
-        color: "#374151",
+        fontWeight: "700",
+        color: "#0f172a",
     },
     productSelectButton: {
         borderWidth: 1,
-        borderColor: "#93c5fd",
+        borderColor: "#bfdbfe",
         backgroundColor: "#eff6ff",
         borderRadius: 14,
-        paddingHorizontal: 10,
-        paddingVertical: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
         flexDirection: "row",
         alignItems: "center",
         gap: 8,
@@ -802,28 +840,34 @@ const styles = StyleSheet.create({
         alignItems: "center",
         alignSelf: "flex-start",
         gap: 6,
-        backgroundColor: "#f0f7ff",
-        borderRadius: 8,
-        paddingHorizontal: 10,
-        paddingVertical: 8,
+        backgroundColor: "#1d4ed8",
+        borderRadius: 999,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
         marginTop: 4,
     },
     addRowButtonText: {
-        color: "#1976D2",
-        fontWeight: "600",
+        color: "#fff",
+        fontWeight: "700",
     },
     removeButton: {
         flexDirection: "row",
         alignItems: "center",
         alignSelf: "flex-start",
         gap: 6,
+        backgroundColor: "#fff1f2",
+        borderWidth: 1,
+        borderColor: "#fecaca",
+        borderRadius: 999,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
     },
     removeButtonText: {
         color: "#b91c1c",
-        fontWeight: "600",
+        fontWeight: "700",
     },
     totalText: {
-        color: "#111827",
+        color: "#0f172a",
         fontWeight: "700",
         marginTop: 4,
     },
@@ -837,9 +881,9 @@ const styles = StyleSheet.create({
     },
     saveButton: {
         marginTop: 8,
-        backgroundColor: "#1976D2",
-        borderRadius: 10,
-        paddingVertical: 12,
+        backgroundColor: "#1d4ed8",
+        borderRadius: 12,
+        paddingVertical: 14,
         justifyContent: "center",
         alignItems: "center",
         flexDirection: "row",
@@ -855,33 +899,52 @@ const styles = StyleSheet.create({
     },
     modalBackdrop: {
         flex: 1,
-        backgroundColor: "rgba(0,0,0,0.35)",
-        justifyContent: "flex-end",
+        backgroundColor: "rgba(15, 23, 42, 0.42)",
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 12,
     },
     modalCard: {
         backgroundColor: "#fff",
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
-        padding: 16,
-        maxHeight: "72%",
+        borderRadius: 20,
+        padding: 18,
+        width: "100%",
+        maxWidth: 420,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 18,
+        elevation: 4,
+        maxHeight: "78%",
+    },
+    modalHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 14,
     },
     modalTitle: {
-        fontSize: 17,
-        fontWeight: "700",
-        color: "#111827",
-        marginBottom: 10,
+        fontSize: 20,
+        fontWeight: "800",
+        color: "#0f172a",
     },
     modalList: {
         marginTop: 10,
     },
     modalListItem: {
-        borderBottomWidth: 1,
-        borderBottomColor: "#e5e7eb",
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        borderRadius: 14,
         paddingVertical: 10,
+        paddingHorizontal: 12,
+        marginBottom: 8,
+        backgroundColor: "#fafbfc",
     },
     modalListItemTitle: {
-        fontWeight: "700",
-        color: "#111827",
+        fontWeight: "800",
+        color: "#0f172a",
     },
     modalListItemSubtitle: {
         color: "#4b5563",
@@ -896,13 +959,15 @@ const styles = StyleSheet.create({
     modalCloseButton: {
         marginTop: 14,
         alignSelf: "flex-end",
-        backgroundColor: "#e5e7eb",
-        paddingVertical: 8,
-        paddingHorizontal: 14,
-        borderRadius: 8,
+        backgroundColor: "#f3f4f6",
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
     },
     modalCloseButtonText: {
-        fontWeight: "700",
+        fontWeight: "600",
         color: "#374151",
     },
 });

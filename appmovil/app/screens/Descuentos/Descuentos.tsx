@@ -63,7 +63,7 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
 
     const [productos, setProductos] = useState<Producto[]>([]);
     const [descuentos, setDescuentos] = useState<DescuentoWithProducto[]>([]);
-    const [searchText, setSearchText] = useState("");
+    
     const [selectedProductoId, setSelectedProductoId] = useState<number | null>(null);
     const [porcentaje, setPorcentaje] = useState("");
     const [fechaInicio, setFechaInicio] = useState("");
@@ -86,7 +86,6 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
 
     const handleCloseModal = useCallback(() => {
         setModalVisible(false);
-        setSearchText("");
         setSelectedProductoId(null);
         setPorcentaje("");
         setFechaInicio("");
@@ -103,20 +102,7 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
         }
     }, [modalVisible, handleCloseModal, handleOpenModal]);
 
-    const filteredProductos = useMemo(() => {
-        const query = searchText.trim().toLowerCase();
-
-        if (!query) {
-            return productos;
-        }
-
-        return productos.filter((producto) =>
-            producto.nombre.toLowerCase().includes(query)
-            || producto.referencia.toLowerCase().includes(query)
-            || producto.categoria.toLowerCase().includes(query)
-            || (producto.proveedor_nombre || "").toLowerCase().includes(query)
-        );
-    }, [productos, searchText]);
+    const filteredProductos = useMemo(() => productos, [productos]);
 
     const selectedProducto = useMemo(
         () => productos.find((producto) => producto.id_producto === selectedProductoId) || null,
@@ -281,7 +267,6 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
             setFechaInicio("");
             setFechaFin("");
             setSelectedProductoId(null);
-            setSearchText("");
             setConfirmDeleteDescuentoId(null);
             fetchDescuentos();
             setTimeout(() => {
@@ -334,27 +319,34 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
         setConfirmDeleteDescuentoId(null);
     };
 
+    const roleLabel = normalizedRole === ADMIN_ROLE ? "Administrador" : normalizedRole === JEFE_ROLE ? "Jefe" : "Trabajador";
+
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity
-                    style={styles.iconButton}
-                    onPress={() => navigation.goBack()}
-                    testID="back-button"
-                >
-                    <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
-                </TouchableOpacity>
-                <Text style={styles.title}>{SCREEN_TITLE}</Text>
-                {canManageDescuentos ? (
-                    <TouchableOpacity
-                        style={styles.addButton}
-                        onPress={handleOpenModal}
-                        testID="toggle-descuento-form-button"
-                    >
-                        <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 6 }} />
-                        <Text style={styles.addButtonText}>Añadir</Text>
+            <View style={styles.heroCard}>
+                <View style={styles.heroTopRow}>
+                    <TouchableOpacity style={styles.heroBackButton} onPress={() => navigation.goBack()} testID="back-button">
+                        <MaterialIcons name="arrow-back" size={24} color="#0f172a" />
                     </TouchableOpacity>
-                ) : null}
+
+                    {canManageDescuentos ? (
+                        <TouchableOpacity
+                            style={styles.addButton}
+                            onPress={handleOpenModal}
+                            testID="toggle-descuento-form-button"
+                        >
+                            <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 6 }} />
+                            <Text style={styles.addButtonText}>Añadir</Text>
+                        </TouchableOpacity>
+                    ) : <View style={{ width: 1 }} />}
+                </View>
+
+                <View style={styles.heroBody}>
+                    <Text style={styles.title}>{SCREEN_TITLE}</Text>
+                    <Text style={styles.subtitle}>{roleLabel} · {descuentos.length} descuentos</Text>
+                </View>
+
+                
             </View>
 
             <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -478,13 +470,7 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
                             </View>
                         ) : null}
 
-                        <TextInput
-                            style={styles.input}
-                            placeholder={SEARCH_PRODUCT}
-                            value={searchText}
-                            onChangeText={setSearchText}
-                            testID="descuentos-search-product-input"
-                        />
+                        
 
                         <View style={styles.productList} testID="descuentos-product-list">
                             {filteredProductos.map((producto) => (
@@ -581,43 +567,65 @@ export default Descuentos;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f7fafc",
-        paddingTop: 10,
+        backgroundColor: "#f3f6fb",
+        paddingTop: 12,
     },
-    header: {
+    heroCard: {
+        marginHorizontal: 16,
+        marginBottom: 12,
+        padding: 16,
+        borderRadius: 20,
+        backgroundColor: "#fff",
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 18,
+        elevation: 4,
+    },
+    heroTopRow: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#e5e7eb",
+        gap: 12,
     },
-    iconButton: {
-        padding: 10,
-        borderRadius: 8,
-        backgroundColor: "#f0f7ff",
-        marginRight: 12,
+    heroBody: {
+        marginTop: 14,
+        marginBottom: 14,
+    },
+    heroBackButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: "#eef4ff",
+        alignItems: "center",
+        justifyContent: "center",
     },
     addButton: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#1976D2",
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 8,
+        backgroundColor: "#1d4ed8",
+        paddingHorizontal: 14,
+        paddingVertical: 9,
+        borderRadius: 999,
     },
     addButtonText: {
         color: "#fff",
-        fontWeight: "700",
-        fontSize: 14,
+        fontWeight: "600",
+        fontSize: 13,
     },
     title: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#0D47A1",
-        flex: 1,
+        fontSize: 24,
+        fontWeight: "800",
+        color: "#0f172a",
+        letterSpacing: -0.3,
+    },
+    subtitle: {
+        marginTop: 6,
+        color: "#64748b",
+        fontSize: 14,
+        fontWeight: "500",
     },
     content: {
         padding: 16,
@@ -691,15 +699,35 @@ const styles = StyleSheet.create({
         textAlign: "center",
         marginTop: 40,
     },
-    input: {
-        backgroundColor: "#fff",
-        borderWidth: 1,
-        borderColor: "#d1d5db",
-        borderRadius: 10,
+    searchContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#f8fafc",
+        borderRadius: 14,
         paddingHorizontal: 12,
-        paddingVertical: 10,
-        color: "#111827",
+        paddingVertical: 8,
+        borderWidth: 1,
+        borderColor: "#e2e8f0",
+    },
+    searchIcon: {
+        marginRight: 8,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 15,
+        color: "#0f172a",
+        paddingVertical: 6,
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        borderRadius: 12,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
         marginBottom: 12,
+        backgroundColor: "#fafbfc",
+        color: "#0f172a",
+        fontSize: 15,
     },
     loadingRow: {
         flexDirection: "row",
@@ -712,26 +740,59 @@ const styles = StyleSheet.create({
     },
     modalBackdrop: {
         flex: 1,
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
-        justifyContent: "flex-end",
+        backgroundColor: "rgba(15, 23, 42, 0.42)",
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 12,
     },
     formContainer: {
         backgroundColor: "#fff",
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        padding: 22,
-        maxHeight: "90%",
+        borderRadius: 20,
+        marginHorizontal: 12,
+        padding: 18,
+        width: "90%",
+        maxWidth: 420,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 18,
+        elevation: 4,
+    },
+    modalBackdropBottom: {
+        justifyContent: "flex-end",
+        alignItems: "stretch",
+        paddingHorizontal: 0,
+    },
+    modalCard: {
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
+        width: "100%",
+        maxWidth: undefined,
+        marginHorizontal: 0,
+        borderWidth: 1,
+        borderBottomWidth: 0,
+        borderColor: "#e5e7eb",
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        elevation: 0,
+        padding: 18,
+        maxHeight: "78%",
     },
     modalHeader: {
         flexDirection: "row",
-        justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: 18,
+        justifyContent: "space-between",
+        marginBottom: 16,
     },
     modalTitle: {
-        fontSize: 18,
-        fontWeight: "700",
-        color: "#1f2937",
+        color: "#0f172a",
+        fontSize: 20,
+        fontWeight: "800",
+        letterSpacing: -0.3,
     },
     productList: {
         maxHeight: 220,

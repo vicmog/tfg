@@ -74,6 +74,8 @@ const Productos: React.FC<ProductosProps> = ({ route, navigation }) => {
 
     const normalizedRole = (negocio.rol || "").toLowerCase();
     const canManageProductos = normalizedRole === JEFE_ROLE || normalizedRole === ADMIN_ROLE;
+    const productCount = productos.length;
+    const roleLabel = normalizedRole === ADMIN_ROLE ? "Administrador" : normalizedRole === JEFE_ROLE ? "Jefe" : "Trabajador";
 
     const filteredProductos = useMemo(() => {
         const query = searchText.trim().toLowerCase();
@@ -245,41 +247,50 @@ const Productos: React.FC<ProductosProps> = ({ route, navigation }) => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity
-                    style={styles.iconButton}
-                    onPress={() => navigation.goBack()}
-                    testID="back-button"
-                >
-                    <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
-                </TouchableOpacity>
-                <Text style={styles.title}>{SCREEN_TITLE}</Text>
-                {canManageProductos ? (
+            <View style={styles.heroCard}>
+                <View style={styles.heroTopRow}>
                     <TouchableOpacity
-                        style={styles.addButton}
-                        onPress={() => navigation.navigate("CrearProducto", { negocio })}
-                        testID="productos-add-button"
+                        style={styles.iconButton}
+                        onPress={() => navigation.goBack()}
+                        testID="back-button"
                     >
-                        <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 6 }} />
-                        <Text style={styles.addButtonText}>{ADD_PRODUCT_BUTTON}</Text>
+                        <MaterialIcons name="arrow-back" size={24} color="#0f172a" />
                     </TouchableOpacity>
+
+                    {canManageProductos ? (
+                        <TouchableOpacity
+                            style={styles.addButton}
+                            onPress={() => navigation.navigate("CrearProducto", { negocio })}
+                            testID="productos-add-button"
+                        >
+                            <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 6 }} />
+                            <Text style={styles.addButtonText}>{ADD_PRODUCT_BUTTON}</Text>
+                        </TouchableOpacity>
+                    ) : null}
+                </View>
+
+                <View style={styles.heroBody}>
+                    <Text style={styles.title}>{SCREEN_TITLE}</Text>
+                    <Text style={styles.subtitle}>
+                        {roleLabel} · {productCount} productos registrados
+                    </Text>
+                </View>
+
+                {canManageProductos ? (
+                    <View style={styles.searchContainer}>
+                        <MaterialIcons name="search" size={20} color="#64748b" style={styles.searchIcon} />
+                        <TextInput
+                            placeholder={SEARCH_PRODUCT}
+                            placeholderTextColor="#94a3b8"
+                            value={searchText}
+                            onChangeText={setSearchText}
+                            style={styles.searchInput}
+                            autoCapitalize="none"
+                            testID="productos-search-input"
+                        />
+                    </View>
                 ) : null}
             </View>
-
-            {canManageProductos ? (
-                <View style={styles.searchContainer}>
-                    <MaterialIcons name="search" size={20} color="#6b7280" style={styles.searchIcon} />
-                    <TextInput
-                        placeholder={SEARCH_PRODUCT}
-                        placeholderTextColor="#000000"
-                        value={searchText}
-                        onChangeText={setSearchText}
-                        style={styles.searchInput}
-                        autoCapitalize="none"
-                        testID="productos-search-input"
-                    />
-                </View>
-            ) : null}
 
             {listError ? (
                 <View style={styles.feedbackError} testID="productos-list-error-message">
@@ -440,10 +451,12 @@ const Productos: React.FC<ProductosProps> = ({ route, navigation }) => {
                                     testID={`producto-open-detail-${producto.id_producto}`}
                                 >
                                     <View style={styles.cardTopRow}>
-                                        <Text style={styles.productName}>{producto.nombre}</Text>
+                                        <View style={styles.productTitleBlock}>
+                                            <Text style={styles.productName}>{producto.nombre}</Text>
+                                            <Text style={styles.productMeta}>Ref: {producto.referencia}</Text>
+                                        </View>
                                         <Text style={styles.productPrice}>{Number(producto.precio_venta).toFixed(2)} EUR</Text>
                                     </View>
-                                    <Text style={styles.productMeta}>Ref: {producto.referencia}</Text>
                                     <Text style={styles.productMeta}>Categoria: {producto.categoria}</Text>
                                     <Text style={styles.productMeta}>Proveedor: {producto.proveedor_nombre || "-"}</Text>
                                     <Text style={styles.productMeta}>Stock: {producto.stock}</Text>
@@ -509,35 +522,58 @@ export default Productos;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f7fafc",
-        paddingTop: 10,
+        backgroundColor: "#f3f6fb",
+        paddingTop: 12,
     },
-    header: {
+    heroCard: {
+        marginHorizontal: 16,
+        marginBottom: 12,
+        padding: 16,
+        borderRadius: 20,
+        backgroundColor: "#fff",
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 18,
+        elevation: 4,
+    },
+    heroTopRow: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#e5e7eb",
+        justifyContent: "space-between",
+        gap: 12,
+    },
+    heroBody: {
+        marginTop: 14,
+        marginBottom: 14,
     },
     iconButton: {
-        padding: 10,
-        borderRadius: 8,
-        backgroundColor: "#f0f7ff",
-        marginRight: 12,
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: "#eef4ff",
+        alignItems: "center",
+        justifyContent: "center",
     },
     title: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#0D47A1",
-        flex: 1,
+        fontSize: 24,
+        fontWeight: "800",
+        color: "#0f172a",
+        letterSpacing: -0.3,
+    },
+    subtitle: {
+        marginTop: 6,
+        color: "#64748b",
+        fontSize: 14,
+        fontWeight: "500",
     },
     addButton: {
-        backgroundColor: "#1976D2",
-        borderRadius: 8,
-        paddingVertical: 8,
-        paddingHorizontal: 12,
+        backgroundColor: "#1d4ed8",
+        borderRadius: 999,
+        paddingVertical: 9,
+        paddingHorizontal: 14,
         flexDirection: "row",
         alignItems: "center",
     },
@@ -549,13 +585,10 @@ const styles = StyleSheet.create({
     searchContainer: {
         flexDirection: "row",
         alignItems: "center",
-        marginHorizontal: 16,
-        marginTop: 12,
-        marginBottom: 8,
-        backgroundColor: "#fff",
-        borderRadius: 10,
+        backgroundColor: "#f8fafc",
+        borderRadius: 14,
         borderWidth: 1,
-        borderColor: "#e5e7eb",
+        borderColor: "#e2e8f0",
         paddingHorizontal: 10,
     },
     searchIcon: {
@@ -563,7 +596,7 @@ const styles = StyleSheet.create({
     },
     searchInput: {
         flex: 1,
-        height: 42,
+        height: 44,
         color: "#111827",
     },
     feedbackError: {
@@ -629,41 +662,54 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
     },
     listContainer: {
-        padding: 16,
+        paddingHorizontal: 16,
+        paddingBottom: 24,
     },
     emptyText: {
         textAlign: "center",
-        color: "#6b7280",
+        color: "#64748b",
         marginTop: 20,
     },
     productCard: {
         backgroundColor: "#fff",
-        borderRadius: 12,
+        borderRadius: 18,
         padding: 14,
         marginBottom: 10,
         borderWidth: 1,
         borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2,
     },
     cardTopRow: {
         flexDirection: "row",
         justifyContent: "space-between",
-        alignItems: "center",
+        alignItems: "flex-start",
         marginBottom: 6,
+        gap: 10,
+    },
+    productTitleBlock: {
+        flex: 1,
     },
     productName: {
         fontSize: 16,
-        fontWeight: "700",
-        color: "#111827",
-        flex: 1,
-        marginRight: 8,
+        fontWeight: "800",
+        color: "#0f172a",
     },
     productPrice: {
         fontSize: 14,
-        fontWeight: "700",
+        fontWeight: "800",
         color: "#1d4ed8",
+        backgroundColor: "#eff6ff",
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 999,
+        overflow: "hidden",
     },
     productMeta: {
-        color: "#4b5563",
+        color: "#475569",
         marginTop: 2,
     },
     actionsRow: {
@@ -747,7 +793,7 @@ const styles = StyleSheet.create({
     discountsSectionTitle: {
         fontSize: 14,
         fontWeight: "700",
-        color: "#0D47A1",
+        color: "#0f172a",
         marginBottom: 10,
         textTransform: "uppercase",
     },
@@ -768,12 +814,12 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     discountCard: {
-        backgroundColor: "#f0f7ff",
-        borderRadius: 8,
+        backgroundColor: "#f8fafc",
+        borderRadius: 12,
         padding: 10,
         marginBottom: 8,
         borderWidth: 1,
-        borderColor: "#bfdbfe",
+        borderColor: "#e2e8f0",
     },
     discountRow: {
         flexDirection: "row",

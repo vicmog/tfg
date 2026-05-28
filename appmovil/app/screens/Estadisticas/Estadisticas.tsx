@@ -209,6 +209,8 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     .join("/");
 
   const pickerOptions = activePicker === "year" ? yearOptions : activePicker === "month" ? monthOptions : dayOptions;
+  const selectedPickerValue =
+    activePicker === "year" ? selectedYear : activePicker === "month" ? selectedMonth : selectedDay;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("es-ES", {
@@ -216,6 +218,40 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
       currency: "EUR",
       maximumFractionDigits: 0,
     }).format(value);
+  };
+
+  const buildBarData = <T,>(
+    items: T[],
+    valueGetter: (item: T) => number,
+    labelGetter: (item: T, index: number) => string,
+    palette: string[]
+  ) => {
+    return items.map((item, index) => ({
+      value: valueGetter(item),
+      label: labelGetter(item, index),
+      frontColor: palette[index % palette.length],
+    }));
+  };
+
+  const getClientChartLabel = (client: { nombre?: string; apellido1?: string }) => {
+    const firstName = (client.nombre || "").trim().split(/\s+/)[0] || "Cliente";
+    const firstSurname = (client.apellido1 || "").trim();
+
+    if (!firstSurname) {
+      return firstName;
+    }
+
+    return `${firstName} ${firstSurname.charAt(0)}.`;
+  };
+
+  const chartPalettes = {
+    green: ["#22c55e", "#16a34a", "#15803d"],
+    red: ["#fb7185", "#ef4444", "#dc2626"],
+    blue: ["#60a5fa", "#3b82f6", "#2563eb"],
+    orange: ["#fbbf24", "#f59e0b", "#d97706"],
+    teal: ["#2dd4bf", "#14b8a6", "#0f766e"],
+    violet: ["#c084fc", "#a855f7", "#7c3aed"],
+    indigo: ["#818cf8", "#6366f1", "#4f46e5"],
   };
 
   const loadDashboard = useCallback(async () => {
@@ -503,42 +539,72 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        <Text style={styles.sectionTitle}>Resumen General</Text>
-        <Text style={styles.sectionDescription}>Mes requiere año y día requiere mes + año.</Text>
+        <View style={styles.filterCard}>
+          <View style={styles.filterCardHeader}>
+            <View style={styles.filterCardTitleRow}>
+              <View style={styles.filterCardIcon}>
+                <MaterialIcons name="tune" size={18} color="#ffffff" />
+              </View>
+              <View>
+                <Text style={styles.sectionTitle}>Filtros</Text>
+              </View>
+            </View>
 
-        <View style={styles.filtersRow}>
-          <Pressable
-            style={[styles.filterChip, styles.filterChipGrow]}
-            onPress={() => setActivePicker("year")}
-            testID="estadisticas-filter-year"
-          >
-            <Text style={styles.filterLabel}>Año</Text>
-            <Text style={styles.filterValue}>{yearLabel}</Text>
-          </Pressable>
+            <View style={styles.filterActiveBadge}>
+              <Text style={styles.filterActiveBadgeText}>Periodo activo</Text>
+            </View>
+          </View>
 
-          <Pressable
-            style={[styles.filterChip, styles.filterChipGrow]}
-            onPress={() => setActivePicker("month")}
-            testID="estadisticas-filter-month"
-          >
-            <Text style={styles.filterLabel}>Mes</Text>
-            <Text style={styles.filterValue}>{monthLabel}</Text>
-          </Pressable>
+          <View style={styles.filtersRow}>
+            <Pressable
+              style={[
+                styles.filterChip,
+                styles.filterChipGrow,
+                activePicker === "year" && styles.filterChipActive,
+              ]}
+              onPress={() => setActivePicker("year")}
+              testID="estadisticas-filter-year"
+            >
+              <View style={styles.filterChipTopRow}>
+                <MaterialIcons name="event" size={16} color={activePicker === "year" ? "#0f172a" : "#6b7280"} />
+                <Text style={[styles.filterBadge, activePicker === "year" && styles.filterBadgeActive]}>Año</Text>
+              </View>
+              <Text style={styles.filterValue}>{yearLabel}</Text>
+            </Pressable>
 
-          <Pressable
-            style={[styles.filterChip, !selectedMonth && styles.filterCardDisabled]}
-            onPress={() => selectedMonth && setActivePicker("day")}
-            disabled={!selectedMonth}
-            testID="estadisticas-filter-day"
-          >
-            <Text style={styles.filterLabel}>Día</Text>
-            <Text style={styles.filterValue}>{dayLabel}</Text>
-          </Pressable>
-        </View>
+            <Pressable
+              style={[
+                styles.filterChip,
+                styles.filterChipGrow,
+                activePicker === "month" && styles.filterChipActive,
+              ]}
+              onPress={() => setActivePicker("month")}
+              testID="estadisticas-filter-month"
+            >
+              <View style={styles.filterChipTopRow}>
+                <MaterialIcons name="date-range" size={16} color={activePicker === "month" ? "#0f172a" : "#6b7280"} />
+                <Text style={[styles.filterBadge, activePicker === "month" && styles.filterBadgeActive]}>Mes</Text>
+              </View>
+              <Text style={styles.filterValue}>{monthLabel}</Text>
+            </Pressable>
 
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Periodo activo</Text>
-          <Text style={styles.summaryValue}>{summary || "Sin especificar"}</Text>
+            <Pressable
+              style={[
+                styles.filterChip,
+                !selectedMonth && styles.filterCardDisabled,
+                activePicker === "day" && styles.filterChipActive,
+              ]}
+              onPress={() => selectedMonth && setActivePicker("day")}
+              disabled={!selectedMonth}
+              testID="estadisticas-filter-day"
+            >
+              <View style={styles.filterChipTopRow}>
+                <MaterialIcons name="today" size={16} color={selectedMonth ? (activePicker === "day" ? "#0f172a" : "#6b7280") : "#9ca3af"} />
+                <Text style={[styles.filterBadge, activePicker === "day" && styles.filterBadgeActive]}>Día</Text>
+              </View>
+              <Text style={styles.filterValue}>{dayLabel}</Text>
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.chartCard}>
@@ -626,7 +692,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
           <>
             <View style={styles.chartCard}>
               <View style={styles.chartHeader}>
+                <View style={styles.chartHeaderTitleWrap}>
+                  <View style={[styles.chartIconWrap, styles.chartIconGreen]}>
+                    <MaterialIcons name="inventory-2" size={16} color="#ffffff" />
+                  </View>
                 <Text style={styles.chartTitle}>Top 5 más vendidos</Text>
+                </View>
                 <Text style={styles.chartSubtitle}>Periodo seleccionado</Text>
               </View>
 
@@ -636,7 +707,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                 </View>
               ) : (
                 <BarChart
-                  data={productosMasVendidos.slice(0, 5).map((p) => ({ value: Number(p.cantidad_vendida || p.cantidad || 0), label: p.nombre }))}
+                  data={buildBarData(
+                    productosMasVendidos.slice(0, 5),
+                    (p) => Number(p.cantidad_vendida || p.cantidad || 0),
+                    (p) => p.nombre,
+                    chartPalettes.green
+                  )}
                   barWidth={24}
                   spacing={18}
                   roundedTop
@@ -665,7 +741,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
             <View style={styles.chartCard}>
               <View style={styles.chartHeader}>
+                <View style={styles.chartHeaderTitleWrap}>
+                  <View style={[styles.chartIconWrap, styles.chartIconRed]}>
+                    <MaterialIcons name="inventory-2" size={16} color="#ffffff" />
+                  </View>
                 <Text style={styles.chartTitle}>Top 5 menos vendidos</Text>
+                </View>
                 <Text style={styles.chartSubtitle}>Periodo seleccionado</Text>
               </View>
 
@@ -675,7 +756,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                 </View>
               ) : (
                 <BarChart
-                  data={productosMenosVendidos.slice(0, 5).map((p) => ({ value: Number(p.cantidad_vendida || p.cantidad || 0), label: p.nombre }))}
+                  data={buildBarData(
+                    productosMenosVendidos.slice(0, 5),
+                    (p) => Number(p.cantidad_vendida || p.cantidad || 0),
+                    (p) => p.nombre,
+                    chartPalettes.red
+                  )}
                   barWidth={24}
                   spacing={18}
                   roundedTop
@@ -716,7 +802,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
           <>
             <View style={styles.chartCard}>
               <View style={styles.chartHeader}>
+                <View style={styles.chartHeaderTitleWrap}>
+                  <View style={[styles.chartIconWrap, styles.chartIconBlue]}>
+                    <MaterialIcons name="spa" size={16} color="#ffffff" />
+                  </View>
                 <Text style={styles.chartTitle}>Top 5 servicios más vendidos</Text>
+                </View>
                 <Text style={styles.chartSubtitle}>Periodo seleccionado</Text>
               </View>
 
@@ -726,7 +817,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                 </View>
               ) : (
                 <BarChart
-                  data={serviciosMasVendidos.slice(0, 5).map((s) => ({ value: Number(s.cantidad_ventas || 0), label: s.nombre }))}
+                  data={buildBarData(
+                    serviciosMasVendidos.slice(0, 5),
+                    (s) => Number(s.cantidad_ventas || 0),
+                    (s) => s.nombre,
+                    chartPalettes.blue
+                  )}
                   barWidth={24}
                   spacing={18}
                   roundedTop
@@ -755,7 +851,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
             <View style={styles.chartCard}>
               <View style={styles.chartHeader}>
+                <View style={styles.chartHeaderTitleWrap}>
+                  <View style={[styles.chartIconWrap, styles.chartIconOrange]}>
+                    <MaterialIcons name="spa" size={16} color="#ffffff" />
+                  </View>
                 <Text style={styles.chartTitle}>Top 5 servicios menos vendidos</Text>
+                </View>
                 <Text style={styles.chartSubtitle}>Periodo seleccionado</Text>
               </View>
 
@@ -765,7 +866,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                 </View>
               ) : (
                 <BarChart
-                  data={serviciosMenosVendidos.slice(0, 5).map((s) => ({ value: Number(s.cantidad_ventas || 0), label: s.nombre }))}
+                  data={buildBarData(
+                    serviciosMenosVendidos.slice(0, 5),
+                    (s) => Number(s.cantidad_ventas || 0),
+                    (s) => s.nombre,
+                    chartPalettes.orange
+                  )}
                   barWidth={24}
                   spacing={18}
                   roundedTop
@@ -806,7 +912,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
           <>
             <View style={styles.chartCard}>
               <View style={styles.chartHeader}>
+                <View style={styles.chartHeaderTitleWrap}>
+                  <View style={[styles.chartIconWrap, styles.chartIconTeal]}>
+                    <MaterialIcons name="build" size={16} color="#ffffff" />
+                  </View>
                 <Text style={styles.chartTitle}>Top 3 recursos más usados</Text>
+                </View>
                 <Text style={styles.chartSubtitle}>Periodo seleccionado</Text>
               </View>
 
@@ -816,7 +927,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                 </View>
               ) : (
                 <BarChart
-                  data={recursosMasUsados.slice(0, 3).map((r) => ({ value: Number(r.cantidad || 0), label: r.nombre }))}
+                  data={buildBarData(
+                    recursosMasUsados.slice(0, 3),
+                    (r) => Number(r.cantidad || 0),
+                    (r) => r.nombre,
+                    chartPalettes.teal
+                  )}
                   barWidth={24}
                   spacing={18}
                   roundedTop
@@ -845,7 +961,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
             <View style={styles.chartCard}>
               <View style={styles.chartHeader}>
+                <View style={styles.chartHeaderTitleWrap}>
+                  <View style={[styles.chartIconWrap, styles.chartIconViolet]}>
+                    <MaterialIcons name="build" size={16} color="#ffffff" />
+                  </View>
                 <Text style={styles.chartTitle}>Top 3 recursos menos usados</Text>
+                </View>
                 <Text style={styles.chartSubtitle}>Periodo seleccionado</Text>
               </View>
 
@@ -855,7 +976,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                 </View>
               ) : (
                 <BarChart
-                  data={recursosMenosUsados.slice(0, 3).map((r) => ({ value: Number(r.cantidad || 0), label: r.nombre }))}
+                  data={buildBarData(
+                    recursosMenosUsados.slice(0, 3),
+                    (r) => Number(r.cantidad || 0),
+                    (r) => r.nombre,
+                    chartPalettes.violet
+                  )}
                   barWidth={24}
                   spacing={18}
                   roundedTop
@@ -895,7 +1021,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
         {gastosExpanded ? (
           <View style={styles.chartCard}>
             <View style={styles.chartHeader}>
+              <View style={styles.chartHeaderTitleWrap}>
+                <View style={[styles.chartIconWrap, styles.chartIconRed]}>
+                  <MaterialIcons name="trending-down" size={16} color="#ffffff" />
+                </View>
               <Text style={styles.chartTitle}>Gastos</Text>
+              </View>
               <Text style={styles.chartSubtitle}>{selectedMonth ? "Últimos 5 meses" : "Últimos 5 años"}</Text>
             </View>
 
@@ -908,7 +1039,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
             ) : (
               <>
                 <BarChart
-                  data={gastosChart.map((g) => ({ value: Number(g.gastos || 0), label: g.label }))}
+                  data={buildBarData(
+                    gastosChart,
+                    (g) => Number(g.gastos || 0),
+                    (g) => g.label,
+                    chartPalettes.red
+                  )}
                   barWidth={24}
                   spacing={18}
                   roundedTop
@@ -949,7 +1085,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
           <>
             <View style={styles.chartCard}>
               <View style={styles.chartHeader}>
+                <View style={styles.chartHeaderTitleWrap}>
+                  <View style={[styles.chartIconWrap, styles.chartIconOrange]}>
+                    <MaterialIcons name="shopping-cart" size={16} color="#ffffff" />
+                  </View>
                 <Text style={styles.chartTitle}>Gasto en compras</Text>
+                </View>
                 <Text style={styles.chartSubtitle}>{selectedMonth ? "Últimos 5 meses" : "Últimos 5 años"}</Text>
               </View>
 
@@ -962,7 +1103,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
               ) : (
                 <>
                   <BarChart
-                    data={compraChart.map((c) => ({ value: Number(c.compras || 0), label: c.label }))}
+                    data={buildBarData(
+                      compraChart,
+                      (c) => Number(c.compras || 0),
+                      (c) => c.label,
+                      chartPalettes.orange
+                    )}
                     barWidth={24}
                     spacing={18}
                     roundedTop
@@ -992,8 +1138,13 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
             <View style={styles.chartCard}>
               <View style={styles.chartHeader}>
+                <View style={styles.chartHeaderTitleWrap}>
+                  <View style={[styles.chartIconWrap, styles.chartIconGreen]}>
+                    <MaterialIcons name="local-shipping" size={16} color="#ffffff" />
+                  </View>
                 <Text style={styles.chartTitle}>Top 3 proveedores</Text>
-                <Text style={styles.chartSubtitle}>Proveedores con más compras en el periodo</Text>
+                </View>
+                <Text style={styles.chartSubtitle}>Proveedores con más compras</Text>
               </View>
 
               {loadingCompras ? (
@@ -1005,7 +1156,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
               ) : (
                 <>
                   <BarChart
-                    data={proveedoresTop.map((p) => ({ value: Number(p.cantidad || p.total || 0), label: p.nombre }))}
+                    data={buildBarData(
+                      proveedoresTop,
+                      (p) => Number(p.cantidad || p.total || 0),
+                      (p) => p.nombre,
+                      chartPalettes.green
+                    )}
                     barWidth={28}
                     spacing={18}
                     roundedTop
@@ -1047,8 +1203,13 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
           <>
             <View style={styles.chartCard}>
               <View style={styles.chartHeader}>
+                <View style={styles.chartHeaderTitleWrap}>
+                  <View style={[styles.chartIconWrap, styles.chartIconIndigo]}>
+                    <MaterialIcons name="groups" size={16} color="#ffffff" />
+                  </View>
                 <Text style={styles.chartTitle}>Top 3 clientes por gasto</Text>
-                <Text style={styles.chartSubtitle}>Dinero total gastado (ventas + reservas)</Text>
+                </View>
+                <Text style={styles.chartSubtitle}>Dinero total gastado</Text>
               </View>
 
               {loadingClientes ? (
@@ -1060,7 +1221,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
               ) : (
                 <>
                   <BarChart
-                    data={clientesPorGasto.map((c) => ({ value: Number(c.total_gastado || 0), label: `${c.nombre}` }))}
+                    data={buildBarData(
+                      clientesPorGasto,
+                      (c) => Number(c.total_gastado || 0),
+                      (_c, index) => String(index + 1),
+                      chartPalettes.indigo
+                    )}
                     barWidth={28}
                     spacing={18}
                     roundedTop
@@ -1073,7 +1239,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                     isAnimated
                     disablePress
                     yAxisTextStyle={styles.yAxisText}
-                    xAxisLabelTextStyle={styles.xAxisText}
+                    xAxisLabelTextStyle={styles.clientXAxisText}
                   />
 
                   <View style={styles.listContainer}>
@@ -1103,7 +1269,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
               ) : (
                 <>
                   <BarChart
-                    data={clientesPorReservas.map((c) => ({ value: Number(c.num_reservas || 0), label: `${c.nombre}` }))}
+                    data={buildBarData(
+                      clientesPorReservas,
+                      (c) => Number(c.num_reservas || 0),
+                      (c) => getClientChartLabel(c),
+                      chartPalettes.blue
+                    )}
                     barWidth={28}
                     spacing={18}
                     roundedTop
@@ -1116,7 +1287,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                     isAnimated
                     disablePress
                     yAxisTextStyle={styles.yAxisText}
-                    xAxisLabelTextStyle={styles.xAxisText}
+                    xAxisLabelTextStyle={styles.clientXAxisText}
                   />
 
                   <View style={styles.listContainer}>
@@ -1146,7 +1317,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
               ) : (
                 <>
                   <BarChart
-                    data={clientesPorVentas.map((c) => ({ value: Number(c.num_productos_vendidos || 0), label: `${c.nombre}` }))}
+                    data={buildBarData(
+                      clientesPorVentas,
+                      (c) => Number(c.num_productos_vendidos || 0),
+                      (c) => getClientChartLabel(c),
+                      chartPalettes.teal
+                    )}
                     barWidth={28}
                     spacing={18}
                     roundedTop
@@ -1159,7 +1335,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                     isAnimated
                     disablePress
                     yAxisTextStyle={styles.yAxisText}
-                    xAxisLabelTextStyle={styles.xAxisText}
+                    xAxisLabelTextStyle={styles.clientXAxisText}
                   />
 
                   <View style={styles.listContainer}>
@@ -1189,7 +1365,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
               ) : (
                 <>
                   <BarChart
-                    data={clientesPorCanceladas.map((c) => ({ value: Number(c.num_canceladas || 0), label: `${c.nombre}` }))}
+                    data={buildBarData(
+                      clientesPorCanceladas,
+                      (c) => Number(c.num_canceladas || 0),
+                      (c) => getClientChartLabel(c),
+                      chartPalettes.orange
+                    )}
                     barWidth={28}
                     spacing={18}
                     roundedTop
@@ -1202,7 +1383,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                     isAnimated
                     disablePress
                     yAxisTextStyle={styles.yAxisText}
-                    xAxisLabelTextStyle={styles.xAxisText}
+                    xAxisLabelTextStyle={styles.clientXAxisText}
                   />
 
                   <View style={styles.listContainer}>
@@ -1231,7 +1412,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
             <>
               <View style={styles.chartCard}>
                 <View style={styles.chartHeader}>
+                  <View style={styles.chartHeaderTitleWrap}>
+                    <View style={[styles.chartIconWrap, styles.chartIconBlue]}>
+                      <MaterialIcons name="event-available" size={16} color="#ffffff" />
+                    </View>
                   <Text style={styles.chartTitle}>Top 3 servicios más reservados</Text>
+                  </View>
                   <Text style={styles.chartSubtitle}>Total en el negocio</Text>
                 </View>
 
@@ -1244,7 +1430,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                 ) : (
                   <>
                     <BarChart
-                      data={serviciosMasReservados.map((s) => ({ value: Number(s.cantidad || 0), label: s.nombre }))}
+                      data={buildBarData(
+                        serviciosMasReservados,
+                        (s) => Number(s.cantidad || 0),
+                        (s) => s.nombre,
+                        chartPalettes.blue
+                      )}
                       barWidth={28}
                       spacing={18}
                       roundedTop
@@ -1274,7 +1465,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
               <View style={styles.chartCard}>
                 <View style={styles.chartHeader}>
+                  <View style={styles.chartHeaderTitleWrap}>
+                    <View style={[styles.chartIconWrap, styles.chartIconViolet]}>
+                      <MaterialIcons name="calendar-today" size={16} color="#ffffff" />
+                    </View>
                   <Text style={styles.chartTitle}>Top 3 meses más reservados</Text>
+                  </View>
                   <Text style={styles.chartSubtitle}>Año seleccionado</Text>
                 </View>
 
@@ -1287,7 +1483,12 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
                 ) : (
                   <>
                     <BarChart
-                      data={mesesMasReservados.map((m) => ({ value: Number(m.cantidad || 0), label: m.label }))}
+                      data={buildBarData(
+                        mesesMasReservados,
+                        (m) => Number(m.cantidad || 0),
+                        (m) => m.label,
+                        chartPalettes.violet
+                      )}
                       barWidth={28}
                       spacing={18}
                       roundedTop
@@ -1329,10 +1530,15 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
               {pickerOptions.map((option) => (
                 <Pressable
                   key={`${activePicker}-${option.label}`}
-                  style={styles.modalOption}
+                  style={[styles.modalOption, option.value === selectedPickerValue && styles.modalOptionSelected]}
                   onPress={() => selectOption(option.value)}
                 >
-                  <Text style={styles.modalOptionText}>{option.label}</Text>
+                  <View style={styles.modalOptionRow}>
+                    <Text style={styles.modalOptionText}>{option.label}</Text>
+                    {option.value === selectedPickerValue ? (
+                      <MaterialIcons name="check" size={18} color="#1976D2" />
+                    ) : null}
+                  </View>
                 </Pressable>
               ))}
             </ScrollView>
@@ -1346,17 +1552,20 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f7fafc",
+    backgroundColor: "#f4f6f8",
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    backgroundColor: "#ffffff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
   backButton: {
     padding: 8,
@@ -1367,105 +1576,297 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#0D47A1",
+    color: "#0f172a",
   },
   iconButton: {
-    padding: 10,
+    padding: 8,
     borderRadius: 8,
-    backgroundColor: "#f0f7ff",
-    marginRight: 12,
+    backgroundColor: "#eef2ff",
+    marginRight: 4,
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 22,
+    paddingHorizontal: 18,
+    paddingTop: 22,
+    paddingBottom: 28,
+    gap: 14,
+  },
+  heroCard: {
+    borderRadius: 24,
+    padding: 18,
+    backgroundColor: "#0f172a",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 4,
+  },
+  heroTopRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 14,
+  },
+  heroIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: "#1976D2",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroTextBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
+  heroTitle: {
+    fontSize: 28,
+    lineHeight: 32,
+    color: "#ffffff",
+    fontWeight: "800",
+  },
+  heroDescription: {
+    color: "#cbd5e1",
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 8,
+  },
+  heroMetaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 16,
+  },
+  heroMetaPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255,255,255,0.92)",
+    borderRadius: 999,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+  },
+  heroMetaText: {
+    color: "#0f172a",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  filterCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  filterCardHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
     gap: 12,
   },
-  sectionTitle: {
-    fontSize: 24,
+  filterCardTitleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    flex: 1,
+    minWidth: 0,
+  },
+  filterCardIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: "#1976D2",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+  },
+  filterActiveBadge: {
+    backgroundColor: "#eff6ff",
+    borderColor: "#bfdbfe",
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    flexShrink: 0,
+  },
+  filterActiveBadgeText: {
+    color: "#1d4ed8",
+    fontSize: 12,
     fontWeight: "700",
-    color: "#1f2937",
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#0f172a",
   },
   sectionDescription: {
     color: "#6b7280",
     fontSize: 13,
     lineHeight: 18,
+    marginTop: 4,
   },
   filtersRow: {
     flexDirection: "row",
-    gap: 8,
+    gap: 10,
+    marginTop: 10,
   },
   filterChip: {
-    backgroundColor: "#ffffff",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    backgroundColor: "#f8fafc",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     minHeight: 48,
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
   },
   filterChipGrow: {
     flex: 1,
   },
+  filterChipActive: {
+    backgroundColor: "#eff6ff",
+    borderColor: "#93c5fd",
+    shadowOpacity: 0.08,
+    elevation: 2,
+  },
   filterCardDisabled: {
-    opacity: 0.45,
+    opacity: 0.5,
+  },
+  filterChipTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  filterBadge: {
+    fontSize: 11,
+    color: "#6b7280",
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  filterBadgeActive: {
+    color: "#1d4ed8",
   },
   filterLabel: {
     fontSize: 12,
-    color: "#111827",
+    color: "#374151",
     fontWeight: "600",
   },
   filterValue: {
     marginTop: 2,
-    fontSize: 13,
-    color: "#1976D2",
-    fontWeight: "700",
+    fontSize: 14,
+    color: "#0f172a",
+    fontWeight: "800",
   },
   summaryCard: {
-    marginTop: 8,
-    backgroundColor: "#ecfeff",
-    borderWidth: 1,
-    borderColor: "#a5f3fc",
+    marginTop: 12,
+    backgroundColor: "#ffffff",
     borderRadius: 12,
-    padding: 12,
+    padding: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.04,
+    shadowRadius: 14,
+    elevation: 2,
+    borderWidth: 0,
   },
   summaryTitle: {
     fontSize: 13,
-    color: "#155e75",
-    marginBottom: 4,
+    color: "#6b7280",
+    marginBottom: 6,
   },
   summaryValue: {
     fontSize: 18,
-    color: "#0c4a6e",
+    color: "#0f172a",
     fontWeight: "700",
   },
   chartCard: {
-    marginTop: 12,
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    marginTop: 14,
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    padding: 12,
+    overflow: "hidden",
   },
   chartHeader: {
-    marginBottom: 10,
+    marginBottom: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 10,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eef2f7",
+  },
+  chartHeaderTitleWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+    minWidth: 0,
+  },
+  chartIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  chartIconGreen: {
+    backgroundColor: "#16a34a",
+  },
+  chartIconRed: {
+    backgroundColor: "#dc2626",
+  },
+  chartIconBlue: {
+    backgroundColor: "#2563eb",
+  },
+  chartIconOrange: {
+    backgroundColor: "#d97706",
+  },
+  chartIconTeal: {
+    backgroundColor: "#0f766e",
+  },
+  chartIconViolet: {
+    backgroundColor: "#7c3aed",
+  },
+  chartIconIndigo: {
+    backgroundColor: "#4f46e5",
   },
   chartTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#1f2937",
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#0f172a",
+    flexShrink: 1,
   },
   chartSubtitle: {
-    marginTop: 2,
     fontSize: 12,
     color: "#6b7280",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    fontWeight: "700",
+    textAlign: "right",
   },
   collapsibleHeader: {
-    marginTop: 8,
+    marginTop: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -1487,31 +1888,38 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingVertical: 8,
+    borderRadius: 8,
   },
   listItemLabel: {
-    color: "#111827",
-    fontSize: 13,
+    color: "#0f172a",
+    fontSize: 14,
     flex: 1,
   },
   listItemValue: {
-    color: "#6b7280",
+    color: "#374151",
     fontSize: 13,
     marginLeft: 8,
     width: 72,
     textAlign: "right",
+    fontWeight: "600",
   },
   yAxisText: {
-    color: "#6b7280",
+    color: "#64748b",
     fontSize: 11,
   },
   xAxisText: {
-    color: "#6b7280",
-    fontSize: 10,
+    color: "#64748b",
+    fontSize: 11,
+  },
+  clientXAxisText: {
+    color: "#64748b",
+    fontSize: 9,
   },
   errorText: {
     color: "#b91c1c",
-    backgroundColor: "#fee2e2",
-    borderColor: "#fecaca",
+    backgroundColor: "#fff7f7",
+    borderColor: "#fee2e2",
     borderWidth: 1,
     borderRadius: 10,
     padding: 10,
@@ -1520,25 +1928,29 @@ const styles = StyleSheet.create({
   metricsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    gap: 12,
+    marginTop: 12,
   },
   metricCard: {
     width: "48%",
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
+    backgroundColor: "#ffffff",
     borderRadius: 12,
-    padding: 12,
+    padding: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
   },
   metricLabel: {
     fontSize: 12,
     color: "#6b7280",
-    marginBottom: 4,
+    marginBottom: 6,
   },
   metricValue: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0f172a",
   },
   metricPositive: {
     color: "#16a34a",
@@ -1555,13 +1967,17 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: "100%",
-    maxWidth: 420,
+    maxWidth: 480,
     maxHeight: "75%",
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
     borderRadius: 12,
     padding: 12,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderWidth: 0,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 3,
   },
   modalOptionsList: {
     maxHeight: 420,
@@ -1577,9 +1993,22 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#f3f4f6",
   },
+  modalOptionSelected: {
+    backgroundColor: "#eff6ff",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    marginHorizontal: -8,
+  },
+  modalOptionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
   modalOptionText: {
     fontSize: 15,
     color: "#1f2937",
+    flex: 1,
   },
 });
 

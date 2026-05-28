@@ -778,36 +778,51 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity
-                    style={styles.iconButton}
-                    onPress={() => navigation.goBack()}
-                    testID="compras-list-back-button"
-                >
-                    <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
-                </TouchableOpacity>
-                <Text style={styles.title}>{LIST_SCREEN_TITLE}</Text>
-                <TouchableOpacity
-                    style={styles.addButton}
-                    onPress={() => navigation.navigate("CrearCompra", { negocio })}
-                    testID="compras-go-create-button"
-                >
-                    <MaterialIcons name="add-shopping-cart" size={18} color="#fff" style={{ marginRight: 6 }} />
-                    <Text style={styles.addButtonText}>{ADD_COMPRA_BUTTON}</Text>
-                </TouchableOpacity>
-            </View>
-
-            <View style={styles.filtersContainer}>
-                <View style={styles.actionRow}>
+            <View style={styles.heroCard}>
+                <View style={styles.heroTopRow}>
                     <TouchableOpacity
-                        style={styles.secondaryButton}
-                        onPress={handleOpenFiltersModal}
-                        testID="compras-open-filters-button"
+                        style={styles.heroBackButton}
+                        onPress={() => navigation.goBack()}
+                        testID="compras-list-back-button"
                     >
-                        <MaterialIcons name="filter-list" size={18} color="#1f2937" />
-                        <Text style={styles.secondaryButtonText}>Filtros</Text>
+                        <MaterialIcons name="arrow-back" size={24} color="#0f172a" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={() => navigation.navigate("CrearCompra", { negocio })}
+                        testID="compras-go-create-button"
+                    >
+                        <MaterialIcons name="add-shopping-cart" size={18} color="#fff" style={{ marginRight: 6 }} />
+                        <Text style={styles.addButtonText}>{ADD_COMPRA_BUTTON}</Text>
                     </TouchableOpacity>
                 </View>
+
+                <View style={styles.heroBody}>
+                    <Text style={styles.title}>{LIST_SCREEN_TITLE}</Text>
+                    <Text style={styles.subtitle}>{normalizedRole === "admin" ? "Administrador" : normalizedRole === "jefe" ? "Jefe" : "Trabajador"} · {compras.length} compras</Text>
+                </View>
+            </View>
+
+            <View style={styles.filterCard}>
+                <TouchableOpacity style={styles.filterHeader} onPress={handleOpenFiltersModal} testID="compras-open-filters-button">
+                    <View style={styles.filterHeaderLeft}>
+                        <View style={styles.filterHeaderIcon}>
+                            <MaterialIcons name="tune" size={18} color="#ffffff" />
+                        </View>
+                        <View>
+                            <Text style={styles.filterTitle}>Filtros</Text>
+                            <Text style={styles.filterSubtitle}>Filtra por fecha de compra</Text>
+                        </View>
+                    </View>
+                    <MaterialIcons name="chevron-right" size={26} color="#475569" />
+                </TouchableOpacity>
+
+                {fechaFilterApplied ? (
+                    <View style={styles.activeFilterPill}>
+                        <MaterialIcons name="event" size={16} color="#1d4ed8" />
+                        <Text style={styles.activeFilterPillText}>Fecha: {fechaFilterApplied}</Text>
+                    </View>
+                ) : null}
             </View>
 
             <View style={styles.infoMessageContainer} testID="compras-green-button-info">
@@ -860,7 +875,7 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
                                     >
                                         <Text style={styles.compraDate}>Fecha: {formatDate(item.fecha)}</Text>
                                         <Text style={styles.compraAmount}>Importe: {formatAmount(item.importe_total)}</Text>
-                                        <Text style={styles.compraProvider}>Proveedor: {item.proveedor || NO_PROVIDER_MESSAGE}</Text>
+                                        <Text style={styles.compraProvider}>{item.proveedor || NO_PROVIDER_MESSAGE}</Text>
                                         <View style={styles.statusRow}>
                                             <Text style={styles.compraStatus}>Estado: {item.estado}</Text>
                                             {isCompleted ? (
@@ -952,7 +967,12 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
             >
                 <View style={styles.modalBackdrop}>
                     <View style={styles.modalCard}>
-                        <Text style={styles.modalTitle}>Filtros de compras</Text>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Filtros de compras</Text>
+                            <TouchableOpacity onPress={() => setFiltersModalVisible(false)} testID="compras-close-filters-icon-button">
+                                <MaterialIcons name="close" size={22} color="#6b7280" />
+                            </TouchableOpacity>
+                        </View>
 
                         <TouchableOpacity
                             style={styles.input}
@@ -1068,7 +1088,12 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
             >
                 <View style={styles.modalBackdrop}>
                     <View style={styles.modalCard}>
-                        <Text style={styles.modalTitle}>{EDIT_TITLE}</Text>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>{EDIT_TITLE}</Text>
+                            <TouchableOpacity onPress={handleCloseEdit} testID="compras-edit-close-icon-button">
+                                <MaterialIcons name="close" size={22} color="#6b7280" />
+                            </TouchableOpacity>
+                        </View>
 
                         {editLoading ? (
                             <ActivityIndicator size="small" color="#1976D2" testID="compras-edit-loading" />
@@ -1252,7 +1277,12 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
             >
                 <View style={styles.pickerBackdrop}>
                     <View style={styles.pickerCard}>
-                        <Text style={styles.modalTitle}>Seleccionar producto</Text>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Seleccionar producto</Text>
+                            <TouchableOpacity onPress={closeEditProductPicker} testID="compras-edit-picker-close-icon">
+                                <MaterialIcons name="close" size={22} color="#6b7280" />
+                            </TouchableOpacity>
+                        </View>
 
                         {editCatalogLoading ? (
                             <ActivityIndicator size="small" color="#1976D2" />
@@ -1355,54 +1385,133 @@ const styles = StyleSheet.create({
         backgroundColor: "#f7fafc",
         paddingTop: 10,
     },
-    header: {
+    heroCard: {
+        marginHorizontal: 16,
+        marginBottom: 12,
+        padding: 16,
+        borderRadius: 20,
+        backgroundColor: "#fff",
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 18,
+        elevation: 4,
+    },
+    heroTopRow: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#e5e7eb",
+        justifyContent: "space-between",
+        gap: 12,
     },
-    iconButton: {
-        padding: 10,
-        borderRadius: 8,
-        backgroundColor: "#f0f7ff",
-        marginRight: 12,
+    heroBody: {
+        marginTop: 14,
+        marginBottom: 8,
+    },
+    heroBackButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: "#eef4ff",
+        alignItems: "center",
+        justifyContent: "center",
     },
     title: {
-        flex: 1,
-        marginLeft: 12,
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#0D47A1",
+        fontSize: 24,
+        fontWeight: "800",
+        color: "#0f172a",
+        letterSpacing: -0.3,
+    },
+    subtitle: {
+        marginTop: 6,
+        color: "#64748b",
+        fontSize: 14,
+        fontWeight: "500",
     },
     addButton: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#1976D2",
-        paddingHorizontal: 10,
-        paddingVertical: 8,
-        borderRadius: 8,
+        backgroundColor: "#1d4ed8",
+        paddingHorizontal: 14,
+        paddingVertical: 9,
+        borderRadius: 999,
     },
     addButtonText: {
         color: "#fff",
         fontWeight: "600",
         fontSize: 13,
     },
-    filtersContainer: {
-        paddingHorizontal: 16,
-        paddingTop: 12,
-        paddingBottom: 8,
-        gap: 8,
+    filterCard: {
+        marginHorizontal: 16,
+        marginBottom: 8,
+        backgroundColor: "#fff",
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        padding: 14,
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2,
+    },
+    filterHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    filterHeaderLeft: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        flex: 1,
+    },
+    filterHeaderIcon: {
+        width: 36,
+        height: 36,
+        borderRadius: 12,
+        backgroundColor: "#1d4ed8",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    filterTitle: {
+        color: "#0f172a",
+        fontWeight: "800",
+        fontSize: 15,
+    },
+    filterSubtitle: {
+        color: "#64748b",
+        fontSize: 13,
+        marginTop: 2,
+    },
+    activeFilterPill: {
+        marginTop: 12,
+        flexDirection: "row",
+        alignItems: "center",
+        alignSelf: "flex-start",
+        gap: 6,
+        backgroundColor: "#eff6ff",
+        borderWidth: 1,
+        borderColor: "#bfdbfe",
+        borderRadius: 999,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+    },
+    activeFilterPillText: {
+        color: "#1d4ed8",
+        fontWeight: "700",
+        fontSize: 13,
     },
     input: {
-        backgroundColor: "#fff",
-        borderRadius: 10,
+        backgroundColor: "#fafbfc",
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: "#d1d5db",
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        borderColor: "#e5e7eb",
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        color: "#0f172a",
+        fontSize: 15,
     },
     datePickerRow: {
         flexDirection: "row",
@@ -1433,12 +1542,12 @@ const styles = StyleSheet.create({
     },
     webCalendarNavButton: {
         padding: 6,
-        borderRadius: 8,
+        borderRadius: 10,
         backgroundColor: "#f3f4f6",
     },
     webCalendarTitle: {
-        color: "#111827",
-        fontWeight: "700",
+        color: "#0f172a",
+        fontWeight: "800",
         textTransform: "capitalize",
     },
     webWeekdaysRow: {
@@ -1465,10 +1574,10 @@ const styles = StyleSheet.create({
         height: 34,
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: 8,
+        borderRadius: 10,
     },
     webCalendarDayButtonSelected: {
-        backgroundColor: "#1976D2",
+        backgroundColor: "#1d4ed8",
     },
     webCalendarDayText: {
         color: "#1f2937",
@@ -1483,33 +1592,35 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     primaryButton: {
-        backgroundColor: "#1976D2",
-        borderRadius: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        backgroundColor: "#1d4ed8",
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
     },
     primaryButtonText: {
         color: "#fff",
         fontWeight: "700",
     },
     secondaryButton: {
-        backgroundColor: "#e5e7eb",
-        borderRadius: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        backgroundColor: "#f3f4f6",
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
         flexDirection: "row",
         alignItems: "center",
         gap: 6,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
     },
     secondaryButtonText: {
-        color: "#1f2937",
-        fontWeight: "700",
+        color: "#374151",
+        fontWeight: "600",
     },
     infoMessageContainer: {
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: "#f0fdf4",
-        borderRadius: 8,
+        borderRadius: 12,
         borderWidth: 1,
         borderColor: "#86efac",
         paddingHorizontal: 12,
@@ -1535,11 +1646,16 @@ const styles = StyleSheet.create({
     },
     compraCard: {
         backgroundColor: "#fff",
-        borderRadius: 12,
+        borderRadius: 18,
         borderWidth: 1,
         borderColor: "#e5e7eb",
         padding: 12,
         gap: 4,
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2,
     },
     compraCardContent: {
         flexDirection: "row",
@@ -1552,11 +1668,13 @@ const styles = StyleSheet.create({
     cardActionsRow: {
         marginLeft: 8,
         gap: 8,
+        justifyContent: "center",
     },
     actionIconButton: {
-        height: 34,
-        width: 34,
-        borderRadius: 10,
+        height: 36,
+        width: 36,
+        borderRadius: 999,
+        flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
     },
@@ -1571,14 +1689,14 @@ const styles = StyleSheet.create({
     },
     completeTextButton: {
         backgroundColor: "#16a34a",
-        borderRadius: 8,
-        width: 34,
-        height: 34,
+        borderRadius: 999,
+        width: 36,
+        height: 36,
         alignItems: "center",
         justifyContent: "center",
     },
     compraDate: {
-        color: "#111827",
+        color: "#0f172a",
         fontWeight: "700",
     },
     compraAmount: {
@@ -1586,10 +1704,11 @@ const styles = StyleSheet.create({
         fontWeight: "700",
     },
     compraProvider: {
-        color: "#374151",
+        color: "#0f172a",
+        fontWeight: "800",
     },
     compraStatus: {
-        color: "#374151",
+        color: "#475569",
         textTransform: "capitalize",
     },
     statusRow: {
@@ -1635,22 +1754,38 @@ const styles = StyleSheet.create({
         color: "#4b5563",
     },
     modalActionRow: {
-        marginTop: 10,
+        marginTop: 14,
         flexDirection: "row",
         flexWrap: "wrap",
-        gap: 8,
+        gap: 10,
     },
     modalBackdrop: {
         flex: 1,
-        backgroundColor: "rgba(0,0,0,0.35)",
-        justifyContent: "flex-end",
+        backgroundColor: "rgba(15, 23, 42, 0.42)",
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 12,
     },
     modalCard: {
         backgroundColor: "#fff",
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
-        padding: 16,
-        maxHeight: "78%",
+        borderRadius: 20,
+        padding: 18,
+        width: "100%",
+        maxWidth: 420,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 18,
+        elevation: 4,
+        maxHeight: "84%",
+    },
+    modalHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 14,
     },
     editScroll: {
         maxHeight: 420,
@@ -1660,10 +1795,10 @@ const styles = StyleSheet.create({
     },
     editRowCard: {
         backgroundColor: "#f8fafc",
-        borderRadius: 8,
+        borderRadius: 14,
         borderWidth: 1,
         borderColor: "#e5e7eb",
-        padding: 8,
+        padding: 10,
         gap: 8,
     },
     editRowHeader: {
@@ -1676,11 +1811,11 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 8,
-        borderRadius: 8,
+        borderRadius: 14,
         borderWidth: 1,
         borderColor: "#bfdbfe",
-        paddingHorizontal: 10,
-        paddingVertical: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
         backgroundColor: "#eff6ff",
     },
     productSelectButtonText: {
@@ -1689,9 +1824,9 @@ const styles = StyleSheet.create({
         fontWeight: "600",
     },
     removeRowButton: {
-        height: 34,
-        width: 34,
-        borderRadius: 8,
+        height: 36,
+        width: 36,
+        borderRadius: 999,
         borderWidth: 1,
         borderColor: "#fecaca",
         alignItems: "center",
@@ -1704,10 +1839,10 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 6,
-        backgroundColor: "#1976D2",
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 8,
+        backgroundColor: "#1d4ed8",
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 999,
     },
     addProductButtonText: {
         color: "#fff",
@@ -1715,15 +1850,25 @@ const styles = StyleSheet.create({
     },
     pickerBackdrop: {
         flex: 1,
-        backgroundColor: "rgba(0,0,0,0.35)",
+        backgroundColor: "rgba(15, 23, 42, 0.42)",
         justifyContent: "center",
+        alignItems: "center",
         paddingHorizontal: 16,
     },
     pickerCard: {
         backgroundColor: "#fff",
-        borderRadius: 12,
-        padding: 14,
-        maxHeight: "72%",
+        borderRadius: 20,
+        padding: 18,
+        width: "100%",
+        maxWidth: 420,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 18,
+        elevation: 4,
+        maxHeight: "78%",
     },
     pickerList: {
         marginTop: 10,
@@ -1732,14 +1877,14 @@ const styles = StyleSheet.create({
     pickerItem: {
         borderWidth: 1,
         borderColor: "#dbeafe",
-        borderRadius: 8,
-        padding: 10,
+        borderRadius: 14,
+        padding: 12,
         marginBottom: 8,
         backgroundColor: "#f8fbff",
     },
     pickerItemTitle: {
-        color: "#1f2937",
-        fontWeight: "700",
+        color: "#0f172a",
+        fontWeight: "800",
     },
     pickerItemSubtitle: {
         marginTop: 2,
@@ -1750,10 +1895,9 @@ const styles = StyleSheet.create({
         opacity: 0.7,
     },
     modalTitle: {
-        fontSize: 18,
-        fontWeight: "700",
-        color: "#111827",
-        marginBottom: 10,
+        fontSize: 20,
+        fontWeight: "800",
+        color: "#0f172a",
     },
     detailContent: {
         gap: 6,
@@ -1763,8 +1907,8 @@ const styles = StyleSheet.create({
     },
     productsTitle: {
         marginTop: 8,
-        color: "#111827",
-        fontWeight: "700",
+        color: "#0f172a",
+        fontWeight: "800",
     },
     confirmBox: {
         marginTop: 10,

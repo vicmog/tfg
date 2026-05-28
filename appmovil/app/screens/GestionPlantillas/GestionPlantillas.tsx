@@ -244,40 +244,42 @@ const GestionPlantillas: React.FC<GestionPlantillasProps> = ({ navigation }) => 
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
-        </TouchableOpacity>
-        <View style={styles.headerTextWrap}>
-          <Text style={styles.title}>{SCREEN_TITLE}</Text>
-          <Text style={styles.subtitle}>{SCREEN_SUBTITLE}</Text>
-        </View>
-      </View>
-
-      <TouchableOpacity
-        style={styles.createButton}
-        onPress={() => navigation.navigate("CrearPlantilla")}
-        testID="create-plantilla-button"
-      >
-        <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 8 }} />
-        <Text style={styles.createButtonText}>Crear nueva plantilla</Text>
-      </TouchableOpacity>
-
-      <View style={styles.searchBox}>
-        <MaterialIcons name="search" size={18} color="#64748b" />
-        <TextInput
-          style={styles.searchInput}
-          placeholder={SEARCH_PLACEHOLDER}
-          placeholderTextColor="#94a3b8"
-          value={searchText}
-          onChangeText={setSearchText}
-          testID="plantillas-search-input"
-        />
-        {searchText ? (
-          <TouchableOpacity onPress={() => setSearchText("")} style={styles.searchClearButton}>
-            <MaterialIcons name="close" size={16} color="#64748b" />
+      <View style={styles.heroCard}>
+        <View style={styles.heroTopRow}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <MaterialIcons name="arrow-back" size={24} color="#0f172a" />
           </TouchableOpacity>
-        ) : null}
+          <TouchableOpacity
+            style={styles.createButton}
+            onPress={() => navigation.navigate("CrearPlantilla")}
+            testID="create-plantilla-button"
+          >
+            <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={styles.createButtonText}>Crear plantilla</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.heroBody}>
+          <Text style={styles.heroTitle}>{SCREEN_TITLE}</Text>
+          <Text style={styles.heroSubtitle}>{SCREEN_SUBTITLE}</Text>
+        </View>
+
+        <View style={styles.searchContainer}>
+          <MaterialIcons name="search" size={20} color="#64748b" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder={SEARCH_PLACEHOLDER}
+            placeholderTextColor="#94a3b8"
+            value={searchText}
+            onChangeText={setSearchText}
+            testID="plantillas-search-input"
+          />
+          {searchText ? (
+            <TouchableOpacity onPress={() => setSearchText("")} style={styles.searchClearButton}>
+              <MaterialIcons name="close" size={16} color="#64748b" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </View>
 
       {loading && !hasPlantillas ? (
@@ -326,9 +328,93 @@ export default GestionPlantillas;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f7fafc",
-    paddingTop: 50,
+    backgroundColor: "#f3f6fb",
+    paddingTop: 12,
+  },
+  heroCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 4,
+  },
+  heroTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    marginBottom: 14,
+  },
+  heroBody: {
+    marginBottom: 14,
+  },
+  heroTitle: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#0f172a",
+    letterSpacing: -0.3,
+  },
+  heroSubtitle: {
+    marginTop: 6,
+    color: "#64748b",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#eef4ff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  createButton: {
+    backgroundColor: "#1d4ed8",
+    borderRadius: 999,
+    minHeight: 36,
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  createButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 13,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f8fafc",
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: "#0f172a",
+    paddingVertical: 8,
+  },
+  searchClearButton: {
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+    backgroundColor: "#e5e7eb",
   },
   header: {
     flexDirection: "row",
@@ -339,121 +425,66 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: 4,
   },
-  backButton: {
-    padding: 8,
-    marginRight: 8,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#0D47A1",
-  },
-  subtitle: {
-    marginTop: 2,
-    color: "#64748b",
-    fontSize: 12,
-  },
-  createButton: {
-    backgroundColor: "#0f766e",
-    borderRadius: 10,
-    minHeight: 44,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginBottom: 16,
-  },
-  createButtonText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 14,
-  },
-  searchBox: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#dbeafe",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 8,
-    color: "#0f172a",
-    fontSize: 14,
-    paddingVertical: 2,
-  },
-  searchClearButton: {
-    width: 24,
-    height: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 12,
-    backgroundColor: "#f1f5f9",
-  },
   listContainer: {
+    paddingHorizontal: 16,
     paddingBottom: 24,
     flexGrow: 1,
   },
   plantillaCard: {
     backgroundColor: "#fff",
-    borderRadius: 12,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    padding: 14,
+    borderColor: "#e5e7eb",
+    padding: 16,
     marginBottom: 12,
     shadowColor: "#0f172a",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
     elevation: 2,
   },
   cardHeaderRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    marginBottom: 6,
+    marginBottom: 10,
   },
   plantillaName: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#1f2937",
+    fontWeight: "800",
+    color: "#0f172a",
     flex: 1,
     marginRight: 8,
   },
   actionsRow: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
   },
   editButton: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#cbd5e1",
+    borderColor: "#e5e7eb",
     backgroundColor: "#f8fafc",
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    marginLeft: 6,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: 999,
   },
   editButtonText: {
-    color: "#0f172a",
-    fontSize: 12,
-    fontWeight: "700",
-    marginLeft: 4,
+    color: "#1d4ed8",
+    fontSize: 13,
+    fontWeight: "600",
+    marginLeft: 6,
   },
   deleteButton: {
-    width: 32,
-    height: 30,
-    borderRadius: 8,
-    backgroundColor: "#b91c1c",
+    minWidth: 36,
+    height: 36,
+    borderRadius: 999,
+    backgroundColor: "#dc2626",
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 6,
+    marginLeft: 8,
   },
   confirmBox: {
     marginTop: 10,
@@ -509,21 +540,23 @@ const styles = StyleSheet.create({
   },
   badgesRow: {
     flexDirection: "row",
-    marginTop: 10,
+    marginTop: 12,
+    gap: 8,
   },
   badge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f1f5f9",
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 8,
-    marginRight: 8,
+    backgroundColor: "#eff6ff",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
   },
   badgeText: {
-    color: "#334155",
-    marginLeft: 4,
-    fontSize: 12,
+    color: "#1d4ed8",
+    marginLeft: 6,
+    fontSize: 13,
     fontWeight: "600",
   },
   centerState: {

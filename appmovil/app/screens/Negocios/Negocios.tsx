@@ -48,53 +48,62 @@ const Negocios: React.FC<NegociosScreenProps> = ({ navigation }) => {
     }, [search])
   );
 
+  const negociosCount = negocios.length;
+
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => navigation.navigate("EditarDatos")}
-          testID="edit-profile-button"
-        >
-          <MaterialIcons name="person" size={18} color="#1976D2" style={{ marginRight: 8 }} />
-          <Text style={styles.editButtonText}>Editar datos personales</Text>
-        </TouchableOpacity>
+      <View style={styles.heroCard}>
+        <View style={styles.heroTopRow}>
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => navigation.navigate("EditarDatos")}
+            testID="edit-profile-button"
+          >
+            <MaterialIcons name="person" size={18} color="#334155" style={{ marginRight: 8 }} />
+            <Text style={styles.editButtonText}>Editar datos</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => navigation.navigate("CrearNegocio")}
-          testID="add-business-button"
-        >
-          <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 8 }} />
-          <Text style={styles.addButtonText}>Añadir negocio</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => navigation.navigate("CrearNegocio")}
+            testID="add-business-button"
+          >
+            <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={styles.addButtonText}>Añadir negocio</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.heroBody}>
+          <Text style={styles.heroTitle}>Mis negocios</Text>
+          <Text style={styles.heroSubtitle}>{negociosCount} negocios activos</Text>
+        </View>
+
+        <View style={styles.searchContainer}>
+          <MaterialIcons name="search" size={20} color="#64748b" style={styles.searchIcon} />
+          <TextInput
+            placeholder="Buscar por nombre o CIF"
+            placeholderTextColor="#94a3b8"
+            value={searchTerm}
+            onChangeText={setSearchTerm}
+            style={styles.searchInput}
+            autoCapitalize="none"
+            testID="business-search-input"
+          />
+        </View>
       </View>
 
       {hasAdminAccess ? (
-        <View style={styles.adminActionContainer}>
+        <View style={styles.adminSection}>
           <TouchableOpacity
             style={styles.adminTemplateButton}
             onPress={() => navigation.navigate("GestionPlantillas")}
             testID="manage-templates-button"
           >
             <MaterialIcons name="dashboard-customize" size={18} color="#fff" style={{ marginRight: 8 }} />
-            <Text style={styles.adminTemplateButtonText}>Gestion de plantillas</Text>
+            <Text style={styles.adminTemplateButtonText}>Gestionar plantillas</Text>
           </TouchableOpacity>
         </View>
       ) : null}
-
-      <View style={styles.searchContainer}>
-        <MaterialIcons name="search" size={20} color="#6b7280" style={styles.searchIcon} />
-        <TextInput
-          placeholder="Buscar por nombre o CIF"
-          placeholderTextColor="#9ca3af"
-          value={searchTerm}
-          onChangeText={setSearchTerm}
-          style={styles.searchInput}
-          autoCapitalize="none"
-          testID="business-search-input"
-        />
-      </View>
       {negocios.length > 0 ?
         <ScrollView contentContainerStyle={styles.negociosContainer}>
           {negocios.map((negocio) => (
@@ -132,8 +141,44 @@ export default Negocios;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f7fafc",
-    paddingTop: 40,
+    backgroundColor: "#f3f6fb",
+    paddingTop: 12,
+  },
+  heroCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 4,
+  },
+  heroTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    marginBottom: 14,
+  },
+  heroBody: {
+    marginBottom: 14,
+  },
+  heroTitle: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#0f172a",
+    letterSpacing: -0.3,
+  },
+  heroSubtitle: {
+    marginTop: 6,
+    color: "#64748b",
+    fontSize: 14,
+    fontWeight: "500",
   },
   header: {
     flexDirection: "row",
@@ -145,22 +190,20 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-    marginHorizontal: 10,
-    marginBottom: 16,
-    borderRadius: 12,
+    backgroundColor: "#f8fafc",
+    borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: "#e2e8f0",
   },
-  adminActionContainer: {
-    paddingHorizontal: 10,
-    marginBottom: 14,
+  adminSection: {
+    marginHorizontal: 16,
+    marginBottom: 12,
   },
   adminTemplateButton: {
     backgroundColor: "#0f766e",
-    borderRadius: 10,
+    borderRadius: 12,
     minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
@@ -179,83 +222,86 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: "#111827",
-    paddingVertical: 6,
+    color: "#0f172a",
+    paddingVertical: 8,
   },
   editButton: {
-    display: "flex",
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "transparent",
+    backgroundColor: "#f8fafc",
     borderWidth: 1,
-    borderColor: "#1976D2",
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
+    borderColor: "#e2e8f0",
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    flex: 1,
   },
   editButtonText: {
-    width: "100%",
-    color: "#1976D2",
+    color: "#334155",
     fontWeight: "600",
-    fontSize: 14,
+    fontSize: 13,
   },
   addButton: {
-    display: "flex",
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1976D2",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    minHeight: 44,
+    backgroundColor: "#1d4ed8",
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    minHeight: 36,
     justifyContent: "center",
   },
   addButtonText: {
     color: "#fff",
-    fontWeight: "600",
-    fontSize: 15,
+    fontWeight: "700",
+    fontSize: 13,
   },
   negociosContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    paddingHorizontal: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 24,
     justifyContent: "space-between",
   },
   negocioCard: {
     width: "48%",
-    height: 100,
     backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 18,
+    padding: 14,
     marginBottom: 12,
     flexDirection: "row",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   businessImagePlaceholder: {
-    width: 56,
-    height: 56,
-    borderRadius: 8,
-    backgroundColor: "#f2f6fb",
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "#eff6ff",
     marginRight: 12,
+    alignItems: "center",
+    justifyContent: "center",
   },
   businessMeta: {
     flex: 1,
     justifyContent: "center",
   },
   negocioText: {
-    fontWeight: "700",
-    fontSize: 16,
-    color: "#0D47A1",
+    fontWeight: "800",
+    fontSize: 14,
+    color: "#0f172a",
   },
   negocioSubtitle: {
-    fontSize: 13,
-    color: "#6b7280",
+    fontSize: 12,
+    color: "#64748b",
     marginTop: 4,
+    fontWeight: "500",
   },
   actionsRow: {
     marginLeft: 8,

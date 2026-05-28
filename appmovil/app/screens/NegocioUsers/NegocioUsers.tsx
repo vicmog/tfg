@@ -6,11 +6,11 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     FlatList,
-    Alert,
     Modal,
     TextInput,
     ScrollView,
 } from "react-native";
+import { Platform, StatusBar } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
@@ -59,6 +59,8 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
     const [selectedRole, setSelectedRole] = useState<"trabajador" | "jefe">("trabajador");
     const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
     const [roleModalVisible, setRoleModalVisible] = useState(false);
+    const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+    const [selectedUserForDelete, setSelectedUserForDelete] = useState<UsuarioAcceso | null>(null);
     const [selectedUserForRole, setSelectedUserForRole] = useState<UsuarioAcceso | null>(null);
     const [roleToUpdate, setRoleToUpdate] = useState<"trabajador" | "jefe">("trabajador");
     const [roleUpdateError, setRoleUpdateError] = useState("");
@@ -170,7 +172,21 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
         setSelectedRole(TRABAJADOR_ROLE);
     };
 
-    const handleDeleteAccess = async (user: UsuarioAcceso) => {
+    const handleDeleteAccess = (user: UsuarioAcceso) => {
+        setSelectedUserForDelete(user);
+        setDeleteConfirmVisible(true);
+    };
+
+    const handleCloseDeleteConfirm = () => {
+        setDeleteConfirmVisible(false);
+        setSelectedUserForDelete(null);
+    };
+
+    const handleConfirmDeleteAccess = async () => {
+        if (!selectedUserForDelete) {
+            return;
+        }
+
         try {
             const token = await AsyncStorage.getItem("token");
             const response = await fetch(
@@ -182,12 +198,13 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
                         Authorization: `Bearer ${token}`,
                     },
                     body: JSON.stringify({
-                        id_usuario: user.id_usuario,
+                        id_usuario: selectedUserForDelete.id_usuario,
                     }),
                 }
             );
 
             if (response.ok) {
+                handleCloseDeleteConfirm();
                 await fetchUsuarios();
             } else {
                 const data = await response.json();
@@ -331,7 +348,7 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
                         onPress={() => handleOpenRoleModal(item)}
                         testID={`change-role-button-${item.id_usuario}`}
                     >
-                        <MaterialIcons name="manage-accounts" size={16} color="#1976D2" />
+                        <MaterialIcons name="edit" size={16} color="#fff" />
                     </TouchableOpacity>
                     {canDeleteAccess ? (
                         <TouchableOpacity
@@ -339,7 +356,7 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
                             onPress={() => handleDeleteAccess(item)}
                             testID={`delete-access-button-${item.id_usuario}`}
                         >
-                            <MaterialIcons name="delete" size={16} color="#f44336" />
+                            <MaterialIcons name="delete" size={16} color="#fff" />
                         </TouchableOpacity>
                     ) : null}</>
                 ) : null}
@@ -352,29 +369,33 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity
-                    style={styles.iconButton}
-                    onPress={() => navigation.goBack()}
-                    testID="back-button"
-                >
-                    <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>{USER_WITH_ACCESS}</Text>
-                <TouchableOpacity
-                    style={styles.addButton}
-                    onPress={handleAddUser}
-                    testID="add-user-button"
-                >
-                    <MaterialIcons name="person-add" size={20} color="#fff" />
-                    <Text style={styles.addButtonText}>{ADD_BUTTON_TEXT}</Text>
-                </TouchableOpacity>
+            <View style={styles.heroCard}>
+                <View style={styles.heroTopRow}>
+                    <TouchableOpacity
+                        style={styles.heroBackButton}
+                        onPress={() => navigation.goBack()}
+                        testID="back-button"
+                    >
+                        <MaterialIcons name="arrow-back" size={24} color="#0f172a" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={handleAddUser}
+                        testID="add-user-button"
+                    >
+                        <MaterialIcons name="person-add" size={18} color="#fff" style={{ marginRight: 6 }} />
+                        <Text style={styles.addButtonText}>{ADD_BUTTON_TEXT}</Text>
+                    </TouchableOpacity>
+                </View>
+
+                <View style={styles.heroBody}>
+                    <Text style={styles.title}>Gestión de permisos</Text>
+                    <Text style={styles.subtitle}>{NEGOCIO_LABEL} {negocio.nombre} · {usuarios.length} usuarios</Text>
+                    <Text style={styles.sectionLabel}>{USER_WITH_ACCESS}</Text>
+                </View>
             </View>
 
             <View style={styles.content}>
-                <Text style={styles.subtitle}>
-                    {NEGOCIO_LABEL} {negocio.nombre}
-                </Text>
 
                 {loading ? (
                     <View style={styles.loadingContainer}>
@@ -525,6 +546,48 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
             </Modal>
 
             <Modal
+                visible={deleteConfirmVisible}
+                animationType="fade"
+                transparent
+                onRequestClose={handleCloseDeleteConfirm}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.confirmModalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Eliminar permisos</Text>
+                            <TouchableOpacity onPress={handleCloseDeleteConfirm} style={styles.modalCloseButton} testID="close-delete-confirm-button">
+                                <MaterialIcons name="close" size={20} color="#6b7280" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={styles.confirmModalText}>
+                            {selectedUserForDelete
+                                ? `Vas a revocar el acceso de ${selectedUserForDelete.nombre_usuario} a este negocio. ¿Quieres continuar?`
+                                : "¿Quieres continuar con la revocación de permisos?"}
+                        </Text>
+
+                        <View style={styles.roleModalActions}>
+                            <TouchableOpacity
+                                style={styles.cancelRoleButton}
+                                onPress={handleCloseDeleteConfirm}
+                                testID="cancel-delete-access-button"
+                            >
+                                <Text style={styles.cancelRoleButtonText}>{CANCEL_BUTTON_TEXT}</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.confirmDeleteAccessButton}
+                                onPress={handleConfirmDeleteAccess}
+                                testID="confirm-delete-access-button"
+                            >
+                                <Text style={styles.confirmDeleteAccessText}>Eliminar</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal
                 visible={roleModalVisible}
                 animationType="fade"
                 transparent
@@ -532,7 +595,12 @@ const NegocioUsers: React.FC<NegocioUsersProps> = ({ route, navigation }) => {
             >
                 <View style={styles.modalOverlay}>
                     <View style={styles.roleModalContent}>
-                        <Text style={styles.modalTitle}>Editar rol</Text>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Editar rol</Text>
+                            <TouchableOpacity onPress={handleCloseRoleModal} style={styles.modalCloseButton} testID="close-role-modal-button">
+                                <MaterialIcons name="close" size={20} color="#6b7280" />
+                            </TouchableOpacity>
+                        </View>
                         <Text style={styles.roleModalSubtitle}>
                             {selectedUserForRole ? `${selectedUserForRole.nombre} (${ARROBA_SYMBOL}${selectedUserForRole.nombre_usuario})` : ""}
                         </Text>
@@ -608,68 +676,88 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#f7fafc",
     },
-    header: {
+    heroCard: {
+        marginHorizontal: 16,
+        marginBottom: 12,
+        padding: 16,
+        paddingTop: (Platform.OS === "android" ? (StatusBar.currentHeight || 24) + 12 : 36),
+        borderRadius: 20,
+        backgroundColor: "#fff",
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 18,
+        elevation: 4,
+    },
+    heroTopRow: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        paddingTop: 50,
-        backgroundColor: "#fff",
-        borderBottomWidth: 1,
-        borderBottomColor: "#e5e7eb",
+        gap: 12,
+    },
+    heroBody: {
+        marginTop: 14,
+        marginBottom: 6,
+    },
+    heroBackButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: "#eef4ff",
+        alignItems: "center",
+        justifyContent: "center",
     },
     deleteRoleButton: {
-        width: 30,
-        height: 30,
-        borderRadius: 15,
-        borderWidth: 1,
-        borderColor: "#f44336",
-        backgroundColor: "#ffebee",
+        width: 36,
+        height: 36,
+        borderRadius: 999,
+        backgroundColor: "#dc2626",
         justifyContent: "center",
         alignItems: "center",
-    },
-    iconButton: {
-        padding: 8,
-        borderRadius: 8,
-        backgroundColor: "#f0f7ff",
-    },
-    headerTitle: {
-        fontSize: 17,
-        fontWeight: "700",
-        color: "#374151",
-        flex: 1,
-        textAlign: "center",
     },
     addButton: {
         flexDirection: "row",
         alignItems: "center",
         gap: 6,
-        backgroundColor: "#1976D2",
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: 8,
+        backgroundColor: "#1d4ed8",
+        paddingVertical: 9,
+        paddingHorizontal: 14,
+        borderRadius: 999,
     },
     addButtonText: {
         color: "#fff",
         fontWeight: "600",
         fontSize: 14,
     },
+    title: {
+        fontSize: 24,
+        fontWeight: "800",
+        color: "#0f172a",
+        letterSpacing: -0.3,
+    },
     content: {
-        padding: 16,
+        paddingHorizontal: 16,
+        paddingBottom: 24,
         flex: 1,
+    },
+    loadingContainer: {
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingTop: 28,
     },
     subtitle: {
         fontSize: 14,
-        color: "#6b7280",
+        color: "#64748b",
         marginBottom: 12,
         fontWeight: "500",
     },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        paddingTop: 40,
+    sectionLabel: {
+        fontSize: 14,
+        color: "#0f172a",
+        fontWeight: "700",
     },
     loadingText: {
         marginTop: 12,
@@ -683,7 +771,7 @@ const styles = StyleSheet.create({
         paddingTop: 40,
     },
     emptyText: {
-        color: "#6b7280",
+        color: "#64748b",
         fontSize: 14,
     },
     errorText: {
@@ -696,25 +784,27 @@ const styles = StyleSheet.create({
     },
     userCard: {
         backgroundColor: "#fff",
-        borderRadius: 12,
+        borderRadius: 18,
         padding: 16,
         marginBottom: 12,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 3,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2,
     },
     userInfo: {
         flex: 1,
     },
     userUsernamePrimary: {
         fontSize: 16,
-        fontWeight: "700",
-        color: "#0D47A1",
+        fontWeight: "800",
+        color: "#0f172a",
     },
     roleBadge: {
         paddingHorizontal: 10,
@@ -757,29 +847,34 @@ const styles = StyleSheet.create({
         marginLeft: 12,
     },
     editRoleButton: {
-        width: 30,
-        height: 30,
-        borderRadius: 15,
-        borderWidth: 1,
-        borderColor: "#bfdbfe",
-        backgroundColor: "#eff6ff",
+        width: 36,
+        height: 36,
+        borderRadius: 999,
+        backgroundColor: "#2563eb",
         justifyContent: "center",
         alignItems: "center",
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        backgroundColor: "rgba(15, 23, 42, 0.42)",
         justifyContent: "center",
         alignItems: "center",
-        padding: 20,
+        padding: 16,
     },
     modalContent: {
         backgroundColor: "#fff",
-        borderRadius: 16,
-        padding: 20,
+        borderRadius: 20,
+        padding: 18,
         width: "100%",
         maxWidth: 420,
         maxHeight: "85%",
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 18,
+        elevation: 4,
     },
     modalHeader: {
         flexDirection: "row",
@@ -788,22 +883,23 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     modalTitle: {
-        fontSize: 18,
-        fontWeight: "700",
-        color: "#111827",
+        fontSize: 20,
+        fontWeight: "800",
+        color: "#0f172a",
     },
     modalCloseButton: {
         padding: 6,
-        borderRadius: 8,
+        borderRadius: 10,
         backgroundColor: "#f3f4f6",
     },
     searchInput: {
         borderWidth: 1,
         borderColor: "#e5e7eb",
-        borderRadius: 10,
-        padding: 10,
-        fontSize: 14,
-        backgroundColor: "#f9fafb",
+        borderRadius: 12,
+        padding: 12,
+        fontSize: 15,
+        backgroundColor: "#fafbfc",
+        color: "#0f172a",
         marginBottom: 12,
     },
     roleSelector: {
@@ -815,22 +911,22 @@ const styles = StyleSheet.create({
         flex: 1,
         borderWidth: 1,
         borderColor: "#e5e7eb",
-        paddingVertical: 8,
-        borderRadius: 8,
+        paddingVertical: 10,
+        borderRadius: 12,
         alignItems: "center",
         backgroundColor: "#fff",
     },
     roleOptionActive: {
-        borderColor: "#1976D2",
-        backgroundColor: "#e0f2fe",
+        borderColor: "#bfdbfe",
+        backgroundColor: "#eff6ff",
     },
     roleOptionText: {
-        color: "#6b7280",
+        color: "#475569",
         fontWeight: "600",
         textTransform: "capitalize",
     },
     roleOptionTextActive: {
-        color: "#1976D2",
+        color: "#1d4ed8",
     },
     modalError: {
         color: "#F44336",
@@ -840,11 +936,12 @@ const styles = StyleSheet.create({
     searchResults: {
         borderWidth: 1,
         borderColor: "#e5e7eb",
-        borderRadius: 10,
-        padding: 8,
+        borderRadius: 14,
+        padding: 10,
         minHeight: 140,
         maxHeight: 260,
         marginBottom: 12,
+        backgroundColor: "#fff",
     },
     emptySearchText: {
         color: "#9ca3af",
@@ -855,30 +952,30 @@ const styles = StyleSheet.create({
     searchResultItem: {
         paddingVertical: 10,
         paddingHorizontal: 10,
-        borderRadius: 8,
+        borderRadius: 12,
         borderWidth: 1,
         borderColor: "#f3f4f6",
         marginBottom: 8,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        backgroundColor: "#fff",
+        backgroundColor: "#fafbfc",
     },
     searchResultItemActive: {
-        borderColor: "#1976D2",
-        backgroundColor: "#f0f7ff",
+        borderColor: "#bfdbfe",
+        backgroundColor: "#eff6ff",
     },
     searchResultItemDisabled: {
         opacity: 0.6,
     },
     searchResultName: {
         fontSize: 14,
-        fontWeight: "600",
-        color: "#111827",
+        fontWeight: "800",
+        color: "#0f172a",
     },
     searchResultUsername: {
         fontSize: 12,
-        color: "#6b7280",
+        color: "#475569",
         marginTop: 2,
     },
     searchResultHint: {
@@ -892,9 +989,9 @@ const styles = StyleSheet.create({
         paddingTop: 20,
     },
     confirmButton: {
-        backgroundColor: "#1976D2",
+        backgroundColor: "#1d4ed8",
         paddingVertical: 12,
-        borderRadius: 10,
+        borderRadius: 12,
         alignItems: "center",
     },
     confirmButtonText: {
@@ -904,13 +1001,20 @@ const styles = StyleSheet.create({
     },
     roleModalContent: {
         backgroundColor: "#fff",
-        borderRadius: 16,
-        padding: 20,
+        borderRadius: 20,
+        padding: 18,
         width: "100%",
         maxWidth: 360,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 18,
+        elevation: 4,
     },
     roleModalSubtitle: {
-        color: "#6b7280",
+        color: "#64748b",
         marginTop: 4,
         marginBottom: 12,
         fontSize: 13,
@@ -924,8 +1028,10 @@ const styles = StyleSheet.create({
     cancelRoleButton: {
         paddingVertical: 10,
         paddingHorizontal: 12,
-        borderRadius: 8,
+        borderRadius: 12,
         backgroundColor: "#f3f4f6",
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
     },
     cancelRoleButtonText: {
         color: "#374151",
@@ -934,10 +1040,40 @@ const styles = StyleSheet.create({
     confirmRoleButton: {
         paddingVertical: 10,
         paddingHorizontal: 12,
-        borderRadius: 8,
-        backgroundColor: "#1976D2",
+        borderRadius: 12,
+        backgroundColor: "#1d4ed8",
     },
     confirmRoleButtonText: {
+        color: "#fff",
+        fontWeight: "700",
+    },
+    confirmModalContent: {
+        backgroundColor: "#fff",
+        borderRadius: 20,
+        padding: 18,
+        width: "100%",
+        maxWidth: 420,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 18,
+        elevation: 4,
+    },
+    confirmModalText: {
+        color: "#475569",
+        fontSize: 14,
+        marginBottom: 14,
+        lineHeight: 20,
+    },
+    confirmDeleteAccessButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderRadius: 12,
+        backgroundColor: "#dc2626",
+    },
+    confirmDeleteAccessText: {
         color: "#fff",
         fontWeight: "700",
     },

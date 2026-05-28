@@ -325,40 +325,45 @@ const Proveedores: React.FC<ProveedoresProps> = ({ route, navigation }) => {
         ? (isEditing ? SAVING_CHANGES_BUTTON_TEXT : SAVING_BUTTON_TEXT)
         : (isEditing ? SAVE_CHANGES_BUTTON_TEXT : SAVE_BUTTON_TEXT);
 
+    const roleLabel = normalizedRole === ADMIN_ROLE ? "Administrador" : normalizedRole === JEFE_ROLE ? "Jefe" : "Trabajador";
+
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity
-                    style={styles.iconButton}
-                    onPress={() => navigation.goBack()}
-                    testID="back-button"
-                >
-                    <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
-                </TouchableOpacity>
-                <Text style={styles.title}>{SCREEN_TITLE}</Text>
-                {canManageProveedores ? (
-                    <TouchableOpacity
-                        style={styles.addButton}
-                        onPress={handleOpenCreateModal}
-                        testID="toggle-proveedor-form-button"
-                    >
-                        <MaterialIcons name="local-shipping" size={18} color="#fff" style={{ marginRight: 6 }} />
-                        <Text style={styles.addButtonText}>{ADD_SUPPLIER_BUTTON}</Text>
+            <View style={styles.heroCard}>
+                <View style={styles.heroTopRow}>
+                    <TouchableOpacity style={styles.heroBackButton} onPress={() => navigation.goBack()} testID="back-button">
+                        <MaterialIcons name="arrow-back" size={24} color="#0f172a" />
                     </TouchableOpacity>
-                ) : null}
-            </View>
 
-            <View style={styles.searchContainer}>
-                <MaterialIcons name="search" size={20} color="#6b7280" style={styles.searchIcon} />
-                <TextInput
-                    placeholder={SEARCH_SUPPLIER}
-                    placeholderTextColor="#000000"
-                    value={searchText}
-                    onChangeText={setSearchText}
-                    style={styles.searchInput}
-                    autoCapitalize="none"
-                    testID="proveedor-search-input"
-                />
+                    {canManageProveedores ? (
+                        <TouchableOpacity
+                            style={styles.addButton}
+                            onPress={handleOpenCreateModal}
+                            testID="toggle-proveedor-form-button"
+                        >
+                            <MaterialIcons name="local-shipping" size={18} color="#fff" style={{ marginRight: 6 }} />
+                            <Text style={styles.addButtonText}>{ADD_SUPPLIER_BUTTON}</Text>
+                        </TouchableOpacity>
+                    ) : <View style={{ width: 1 }} />}
+                </View>
+
+                <View style={styles.heroBody}>
+                    <Text style={styles.title}>{SCREEN_TITLE}</Text>
+                    <Text style={styles.subtitle}>{roleLabel} · {proveedores.length} proveedores registrados</Text>
+                </View>
+
+                <View style={styles.searchContainer}>
+                    <MaterialIcons name="search" size={20} color="#64748b" style={styles.searchIcon} />
+                    <TextInput
+                        placeholder={SEARCH_SUPPLIER}
+                        placeholderTextColor="#94a3b8"
+                        value={searchText}
+                        onChangeText={setSearchText}
+                        style={styles.searchInput}
+                        autoCapitalize="none"
+                        testID="proveedor-search-input"
+                    />
+                </View>
             </View>
 
             <Modal
@@ -625,34 +630,54 @@ export default Proveedores;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f7fafc",
+        backgroundColor: "#f3f6fb",
         paddingTop: 12,
     },
-    header: {
+    heroCard: {
+        marginHorizontal: 16,
+        marginBottom: 12,
+        padding: 16,
+        borderRadius: 20,
+        backgroundColor: "#fff",
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 18,
+        elevation: 4,
+    },
+    heroTopRow: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 12,
-        marginBottom: 12,
+        justifyContent: "space-between",
+        gap: 12,
     },
-    iconButton: {
-        padding: 8,
-        borderRadius: 8,
-        backgroundColor: "#f0f7ff",
+    heroBody: {
+        marginTop: 14,
+        marginBottom: 14,
+    },
+    heroBackButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: "#eef4ff",
+        alignItems: "center",
+        justifyContent: "center",
     },
     title: {
-        flex: 1,
-        marginLeft: 12,
-        fontSize: 22,
-        color: "#0D47A1",
-        fontWeight: "700",
+        fontSize: 24,
+        fontWeight: "800",
+        color: "#0f172a",
+        letterSpacing: -0.3,
     },
     addButton: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#1976D2",
-        paddingHorizontal: 10,
-        paddingVertical: 8,
-        borderRadius: 8,
+        backgroundColor: "#1d4ed8",
+        paddingHorizontal: 14,
+        paddingVertical: 9,
+        borderRadius: 999,
     },
     addButtonText: {
         color: "#fff",
@@ -662,38 +687,40 @@ const styles = StyleSheet.create({
     searchContainer: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#fff",
-        marginHorizontal: 12,
-        marginBottom: 12,
-        borderRadius: 12,
+        backgroundColor: "#f8fafc",
+        borderRadius: 14,
         paddingHorizontal: 12,
         paddingVertical: 8,
         borderWidth: 1,
-        borderColor: "#e5e7eb",
+        borderColor: "#e2e8f0",
     },
     searchIcon: {
         marginRight: 8,
     },
     searchInput: {
         flex: 1,
-        color: "#111827",
+        fontSize: 15,
+        color: "#0f172a",
+        paddingVertical: 6,
     },
     formContainer: {
         backgroundColor: "#fff",
-        borderRadius: 12,
+        borderRadius: 20,
         marginHorizontal: 12,
-        padding: 12,
+        padding: 18,
         width: "90%",
         maxWidth: 420,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 3,
+        shadowRadius: 18,
+        elevation: 4,
     },
     modalBackdrop: {
         flex: 1,
-        backgroundColor: "rgba(0,0,0,0.35)",
+        backgroundColor: "rgba(15, 23, 42, 0.42)",
         justifyContent: "center",
         alignItems: "center",
         paddingHorizontal: 12,
@@ -704,41 +731,47 @@ const styles = StyleSheet.create({
         paddingHorizontal: 0,
     },
     modalCard: {
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
         borderBottomLeftRadius: 0,
         borderBottomRightRadius: 0,
         width: "100%",
         maxWidth: undefined,
         marginHorizontal: 0,
+        borderWidth: 1,
+        borderBottomWidth: 0,
+        borderColor: "#e5e7eb",
         shadowOpacity: 0,
         shadowRadius: 0,
         elevation: 0,
-        padding: 16,
+        padding: 18,
         maxHeight: "78%",
     },
     modalHeader: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        marginBottom: 8,
+        marginBottom: 16,
     },
     modalTitle: {
-        color: "#0D47A1",
-        fontSize: 18,
-        fontWeight: "700",
+        color: "#0f172a",
+        fontSize: 20,
+        fontWeight: "800",
+        letterSpacing: -0.3,
     },
     modalTitleEdit: {
-        color: "#111827",
+        color: "#0f172a",
     },
     input: {
         borderWidth: 1,
-        borderColor: "#d1d5db",
-        borderRadius: 10,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        marginBottom: 10,
-        backgroundColor: "#f9fafb",
+        borderColor: "#e5e7eb",
+        borderRadius: 12,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        marginBottom: 12,
+        backgroundColor: "#fafbfc",
+        color: "#0f172a",
+        fontSize: 15,
     },
     editScroll: {
         maxHeight: 420,
@@ -747,49 +780,54 @@ const styles = StyleSheet.create({
         gap: 10,
     },
     modalErrorText: {
-        color: "#b91c1c",
+        color: "#dc2626",
         fontWeight: "600",
-        marginBottom: 8,
+        marginBottom: 12,
+        fontSize: 14,
     },
     modalActionRow: {
-        marginTop: 10,
+        marginTop: 16,
         flexDirection: "row",
         flexWrap: "wrap",
-        gap: 8,
+        gap: 10,
     },
     primaryButton: {
-        backgroundColor: "#1976D2",
-        borderRadius: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        backgroundColor: "#1d4ed8",
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
     },
     primaryButtonText: {
         color: "#fff",
         fontWeight: "700",
     },
     secondaryButton: {
-        backgroundColor: "#e5e7eb",
-        borderRadius: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        backgroundColor: "#f3f4f6",
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
         flexDirection: "row",
         alignItems: "center",
         gap: 6,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
     },
     secondaryButtonText: {
-        color: "#1f2937",
-        fontWeight: "700",
+        color: "#374151",
+        fontWeight: "600",
     },
     saveButton: {
-        backgroundColor: "#1976D2",
-        borderRadius: 10,
-        paddingVertical: 12,
+        backgroundColor: "#1d4ed8",
+        borderRadius: 12,
+        paddingVertical: 14,
         alignItems: "center",
         justifyContent: "center",
         flexDirection: "row",
+        gap: 8,
     },
     saveButtonDisabled: {
         backgroundColor: "#93c5fd",
+        opacity: 0.7,
     },
     saveButtonText: {
         color: "#fff",
@@ -845,8 +883,8 @@ const styles = StyleSheet.create({
         paddingRight: 10,
     },
     supplierName: {
-        fontWeight: "700",
-        color: "#0D47A1",
+        fontWeight: "800",
+        color: "#0f172a",
         fontSize: 16,
         marginBottom: 6,
     },
