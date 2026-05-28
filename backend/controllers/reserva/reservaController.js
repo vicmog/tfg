@@ -124,6 +124,7 @@ export const createReserva = async (req, res) => {
         id_recurso,
         id_cliente,
         id_servicio,
+        id_ps,
         fecha_hora_inicio,
         duracion_minutos,
         capacidad_solicitada,
@@ -147,9 +148,10 @@ export const createReserva = async (req, res) => {
         return res.status(400).json({ message: RESERVA_ERRORS.FECHA_INICIO_REQUIRED });
     }
 
-    const idServicioInt = parseOptionalServicioId(id_servicio);
-    const servicioFueEnviado = `${id_servicio ?? ""}`.trim() !== "";
-    if (servicioFueEnviado && idServicioInt === null && `${id_servicio}`.trim() !== "0") {
+    const servicioBodyId = id_ps ?? id_servicio;
+    const idServicioInt = parseOptionalServicioId(servicioBodyId);
+    const servicioFueEnviado = `${servicioBodyId ?? ""}`.trim() !== "";
+    if (servicioFueEnviado && idServicioInt === null && `${servicioBodyId}`.trim() !== "0") {
         return res.status(400).json({ message: RESERVA_ERRORS.SERVICIO_ID_REQUIRED });
     }
 
@@ -205,7 +207,9 @@ export const createReserva = async (req, res) => {
             return res.status(400).json({ message: RESERVA_ERRORS.RESOURCE_CLIENT_NEGOCIO_MISMATCH });
         }
 
-        if (servicio && servicio.base?.id_negocio !== recurso.id_negocio) {
+        const servicioIdNegocio = servicio?.base?.id_negocio ?? servicio?.id_negocio;
+
+        if (servicio && servicioIdNegocio !== recurso.id_negocio) {
             return res.status(400).json({ message: RESERVA_ERRORS.SERVICIO_NEGOCIO_MISMATCH });
         }
 
@@ -316,7 +320,7 @@ export const createReserva = async (req, res) => {
 
                 if (idServicioInt) {
                     await ServicioReserva.create({
-                        id_servicio: idServicioInt,
+                        id_ps: idServicioInt,
                         id_reserva: reserva.id_reserva,
                     }, { transaction });
                 }
@@ -379,6 +383,7 @@ export const updateReserva = async (req, res) => {
         id_recurso,
         id_cliente,
         id_servicio,
+        id_ps,
         fecha_hora_inicio,
         duracion_minutos,
         capacidad_solicitada,
@@ -405,9 +410,10 @@ export const updateReserva = async (req, res) => {
         return res.status(400).json({ message: RESERVA_ERRORS.FECHA_INICIO_REQUIRED });
     }
 
-    const idServicioInt = parseOptionalServicioId(id_servicio);
-    const servicioFueEnviado = `${id_servicio ?? ""}`.trim() !== "";
-    if (servicioFueEnviado && idServicioInt === null && `${id_servicio}`.trim() !== "0") {
+    const servicioBodyId = id_ps ?? id_servicio;
+    const idServicioInt = parseOptionalServicioId(servicioBodyId);
+    const servicioFueEnviado = `${servicioBodyId ?? ""}`.trim() !== "";
+    if (servicioFueEnviado && idServicioInt === null && `${servicioBodyId}`.trim() !== "0") {
         return res.status(400).json({ message: RESERVA_ERRORS.SERVICIO_ID_REQUIRED });
     }
 
@@ -452,7 +458,9 @@ export const updateReserva = async (req, res) => {
             return res.status(400).json({ message: RESERVA_ERRORS.RESOURCE_CLIENT_NEGOCIO_MISMATCH });
         }
 
-        if (servicio && servicio.base?.id_negocio !== recurso.id_negocio) {
+        const servicioIdNegocio = servicio?.base?.id_negocio ?? servicio?.id_negocio;
+
+        if (servicio && servicioIdNegocio !== recurso.id_negocio) {
             return res.status(400).json({ message: RESERVA_ERRORS.SERVICIO_NEGOCIO_MISMATCH });
         }
 
@@ -533,7 +541,7 @@ export const updateReserva = async (req, res) => {
         await ServicioReserva.destroy({ where: { id_reserva: idReservaInt } });
         if (idServicioInt) {
             await ServicioReserva.create({
-                id_servicio: idServicioInt,
+                id_ps: idServicioInt,
                 id_reserva: idReservaInt,
             });
         }
@@ -691,7 +699,7 @@ export const hacerCaja = async (req, res) => {
         try {
             for (const reserva of reservas) {
                 const serviciosReserva = await ServicioReserva.findAll({ where: { id_reserva: reserva.id_reserva }, transaction });
-                const servicioIds = serviciosReserva.map((sr) => sr.id_servicio);
+                const servicioIds = serviciosReserva.map((sr) => sr.id_ps);
 
                 // If no services linked to the reservation, mark as completed but don't create a sale
                 if (!servicioIds.length) {
@@ -872,13 +880,13 @@ export const getReservasByNegocio = async (req, res) => {
                 ? await ServicioReserva.findAll({ where: { id_reserva: reservaIds } })
                 : [];
 
-            const servicioIds = [...new Set(serviciosReserva.map((item) => item.id_servicio))];
+            const servicioIds = [...new Set(serviciosReserva.map((item) => item.id_ps))];
             const servicios = servicioIds.length
                 ? await Servicio.findAll({ where: { id_ps: servicioIds }, include: [{ association: "base" }] })
                 : [];
 
             const servicioById = new Map(servicios.map((servicio) => [servicio.id_ps, servicio]));
-            const servicioIdByReservaId = new Map(serviciosReserva.map((item) => [item.id_reserva, item.id_servicio]));
+            const servicioIdByReservaId = new Map(serviciosReserva.map((item) => [item.id_reserva, item.id_ps]));
 
             const reservasSerialized = reservas.map((reserva) => {
                 const idServicio = servicioIdByReservaId.get(reserva.id_reserva) || null;

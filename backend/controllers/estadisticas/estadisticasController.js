@@ -566,11 +566,11 @@ export const getReservaStats = async (req, res) => {
 
         // Top 3 servicios más reservados (total del negocio)
         const serviciosMasReservados = await sequelize.query(
-            `SELECT ps.id_ps as id_servicio, ps.nombre, COUNT(sr.id_servicio) as cantidad
+            `SELECT ps.id_ps as id_servicio, ps.nombre, COUNT(sr.id_ps) as cantidad
              FROM "ServicioReserva" sr
              JOIN "Reserva" r ON sr.id_reserva = r.id_reserva
              JOIN "Cliente" c ON r.id_cliente = c.id_cliente
-             JOIN "Servicio" s ON sr.id_servicio = s.id_ps
+             JOIN "Servicio" s ON sr.id_ps = s.id_ps
              JOIN "ProductoServicio" ps ON s.id_ps = ps.id_ps
              WHERE c.id_negocio = :id_negocio
              GROUP BY ps.id_ps, ps.nombre
@@ -740,7 +740,7 @@ export const getServiceStats = async (req, res) => {
         const rangeEnd = dateRange?.[Op.between]?.[1];
 
             const serviciosMasVendidos = await sequelize.query(
-                `SELECT ps.id_ps as id_servicio, ps.nombre, COUNT(psv.id_ps) as cantidad_ventas, SUM(ps.precio) as facturacion_total
+                 `SELECT ps.id_ps as id_servicio, ps.nombre, COUNT(psv.id_ps) as cantidad_ventas, SUM(ps.precio) as facturacion_total
                  FROM "ProductoServicioVenta" psv
                  JOIN "Venta" v ON psv.id_venta = v.id_venta
                  JOIN "Cliente" c ON v.id_cliente = c.id_cliente
@@ -750,7 +750,7 @@ export const getServiceStats = async (req, res) => {
                     AND NOT EXISTS (
                         SELECT 1
                         FROM "ServicioReserva" sr
-                        WHERE sr.id_servicio = s.id_ps
+                        WHERE sr.id_ps = s.id_ps
                     )
                  GROUP BY ps.id_ps, ps.nombre
              ORDER BY cantidad_ventas DESC
@@ -762,7 +762,7 @@ export const getServiceStats = async (req, res) => {
         );
 
         const serviciosMenosVendidos = await sequelize.query(
-            `SELECT ps.id_ps as id_servicio, ps.nombre, COUNT(psv.id_ps) as cantidad_ventas, SUM(ps.precio) as facturacion_total
+             `SELECT ps.id_ps as id_servicio, ps.nombre, COUNT(psv.id_ps) as cantidad_ventas, SUM(ps.precio) as facturacion_total
              FROM "ProductoServicioVenta" psv
              JOIN "Venta" v ON psv.id_venta = v.id_venta
              JOIN "Servicio" s ON psv.id_ps = s.id_ps
@@ -772,7 +772,7 @@ export const getServiceStats = async (req, res) => {
                 AND NOT EXISTS (
                     SELECT 1
                     FROM "ServicioReserva" sr
-                    WHERE sr.id_servicio = s.id_ps
+                    WHERE sr.id_ps = s.id_ps
                 )
              GROUP BY ps.id_ps, ps.nombre
              ORDER BY cantidad_ventas ASC
@@ -1143,7 +1143,7 @@ export const getClientStats = async (req, res) => {
              LEFT JOIN "Venta" v ON c.id_cliente = v.id_cliente
              LEFT JOIN "Reserva" r ON c.id_cliente = r.id_cliente
              LEFT JOIN "ServicioReserva" sr ON r.id_reserva = sr.id_reserva
-                      LEFT JOIN "Servicio" s ON sr.id_servicio = s.id_ps
+                      LEFT JOIN "Servicio" s ON sr.id_ps = s.id_ps
                       LEFT JOIN "ProductoServicio" ps ON s.id_ps = ps.id_ps
              WHERE c.id_negocio = :id_negocio
              GROUP BY c.id_cliente, c.nombre, c.apellido1

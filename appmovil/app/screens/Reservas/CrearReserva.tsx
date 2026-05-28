@@ -188,7 +188,7 @@ const CrearReserva: React.FC<CrearReservaProps> = ({ route, navigation }) => {
                 return null;
             }
 
-            return servicios.find((servicio) => toNumericId(servicio.id_servicio) === selectedId) || null;
+            return servicios.find((servicio) => toNumericId(servicio.id_servicio ?? servicio.id_ps) === selectedId) || null;
         },
         [servicios, selectedServicioId]
     );
@@ -436,7 +436,7 @@ const CrearReserva: React.FC<CrearReservaProps> = ({ route, navigation }) => {
         }
 
         setSelectedServicioId(normalizedServiceId);
-        const servicio = servicios.find((item) => toNumericId(item.id_servicio) === normalizedServiceId);
+        const servicio = servicios.find((item) => toNumericId(item.id_servicio ?? item.id_ps) === normalizedServiceId);
 
         if (servicio?.duracion) {
             setDuracionMinutos(`${servicio.duracion}`);
@@ -511,7 +511,7 @@ const CrearReserva: React.FC<CrearReservaProps> = ({ route, navigation }) => {
                 body: JSON.stringify({
                     id_recurso: selectedRecursoId,
                     id_cliente: selectedClienteId,
-                    id_servicio: isNoServicioSelected ? undefined : selectedServicioId,
+                    id_ps: isNoServicioSelected ? undefined : selectedServicioId,
                     fecha_hora_inicio: selectedSlotInicioIso,
                     duracion_minutos: duracionMinutos.trim(),
                     capacidad_solicitada: requiresCapacity
@@ -934,10 +934,10 @@ const CrearReserva: React.FC<CrearReservaProps> = ({ route, navigation }) => {
                                 <Text style={styles.emptyText}>No hay servicios que coincidan</Text>
                             ) : filteredServicios.map((servicio) => (
                                 <TouchableOpacity
-                                    key={servicio.id_servicio}
+                                    key={servicio.id_servicio ?? servicio.id_ps}
                                     style={styles.optionRow}
-                                    onPress={() => handleSelectServicio(servicio.id_servicio)}
-                                    testID={`reservas-select-servicio-${servicio.id_servicio}`}
+                                    onPress={() => handleSelectServicio(servicio.id_servicio ?? servicio.id_ps)}
+                                    testID={`reservas-select-servicio-${servicio.id_servicio ?? servicio.id_ps}`}
                                 >
                                     <Text style={styles.optionText}>{servicio.nombre}</Text>
                                     <Text style={styles.optionMeta}>Duracion: {servicio.duracion} min</Text>

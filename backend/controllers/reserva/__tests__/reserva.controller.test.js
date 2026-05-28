@@ -55,14 +55,14 @@ describe("ReservaController Unit Tests", () => {
             UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioNegocio);
             Reserva.findOne.mockResolvedValue(null);
             Reserva.create.mockResolvedValue(mockReserva);
-            ServicioReserva.create.mockResolvedValue({ id_servicio: 3, id_reserva: 11 });
+            ServicioReserva.create.mockResolvedValue({ id_ps: 3, id_reserva: 11 });
 
             const { res, jsonMock } = buildRes();
             await createReserva(createReservaReq, res);
 
             expect(Reserva.create).toHaveBeenCalled();
             expect(ServicioReserva.create).toHaveBeenCalledWith(
-                { id_servicio: 3, id_reserva: 11 },
+                { id_ps: 3, id_reserva: 11 },
                 expect.objectContaining({ transaction: expect.any(Object) })
             );
             expect(sendClienteEmail).toHaveBeenCalledWith(
@@ -252,7 +252,7 @@ describe("ReservaController Unit Tests", () => {
             UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioNegocio);
             Recurso.findAll.mockResolvedValue([{ id_recurso: 7 }]);
             Reserva.findAll.mockResolvedValue([mockReserva]);
-            ServicioReserva.findAll.mockResolvedValue([{ id_reserva: 11, id_servicio: 3 }]);
+            ServicioReserva.findAll.mockResolvedValue([{ id_reserva: 11, id_ps: 3 }]);
             Servicio.findAll.mockResolvedValue([mockServicio]);
 
             const { res, jsonMock } = buildRes();
@@ -280,14 +280,14 @@ describe("ReservaController Unit Tests", () => {
             UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioNegocio);
             Reserva.findOne.mockResolvedValue(null);
             ServicioReserva.destroy.mockResolvedValue(1);
-            ServicioReserva.create.mockResolvedValue({ id_servicio: 3, id_reserva: 11 });
+            ServicioReserva.create.mockResolvedValue({ id_ps: 3, id_reserva: 11 });
 
             const { res, jsonMock } = buildRes();
             await updateReserva(updateReservaReq, res);
 
             expect(updateMock).toHaveBeenCalled();
             expect(ServicioReserva.destroy).toHaveBeenCalledWith({ where: { id_reserva: 11 } });
-            expect(ServicioReserva.create).toHaveBeenCalledWith({ id_servicio: 3, id_reserva: 11 });
+            expect(ServicioReserva.create).toHaveBeenCalledWith({ id_ps: 3, id_reserva: 11 });
             expect(res.status).toHaveBeenCalledWith(200);
             expect(jsonMock).toHaveBeenCalledWith({
                 message: "Reserva actualizada correctamente",

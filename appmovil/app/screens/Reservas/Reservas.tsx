@@ -275,7 +275,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
     );
 
     const selectedServicio = useMemo(
-        () => servicios.find((servicio) => servicio.id_servicio === selectedServicioId) || null,
+        () => servicios.find((servicio) => (servicio.id_servicio ?? servicio.id_ps) === selectedServicioId) || null,
         [servicios, selectedServicioId]
     );
 
@@ -495,7 +495,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
     );
 
     const servicioById = useMemo(
-        () => new Map(servicios.map((servicio) => [servicio.id_servicio, servicio])),
+        () => new Map(servicios.map((servicio) => [servicio.id_servicio ?? servicio.id_ps, servicio])),
         [servicios]
     );
 
@@ -628,8 +628,9 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
     };
 
     const handleSelectServicio = (idServicio: number) => {
-        setSelectedServicioId(idServicio);
-        const servicio = servicios.find((item) => item.id_servicio === idServicio);
+        const normalized = toNumericId(idServicio);
+        setSelectedServicioId(normalized);
+        const servicio = servicios.find((item) => (item.id_servicio ?? item.id_ps) === normalized);
 
         if (servicio?.duracion) {
             setDuracionMinutos(`${servicio.duracion}`);
@@ -784,7 +785,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                 body: JSON.stringify({
                     id_recurso: selectedRecursoId,
                     id_cliente: selectedClienteId,
-                    id_servicio: selectedServicioId,
+                    id_ps: selectedServicioId,
                     fecha_hora_inicio: selectedSlotInicioIso,
                     duracion_minutos: duracionMinutos.trim(),
                 }),
@@ -1372,9 +1373,7 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                     {`${DETAIL_RECURSO_LABEL} `}{recursoById.get(selectedReservaDetail.id_recurso)?.nombre || `#${selectedReservaDetail.id_recurso}`}
                                 </Text>
                                 <Text style={styles.detailLine}>
-                                    {`${DETAIL_SERVICIO_LABEL} `}{selectedReservaDetail.servicio_nombre || (selectedReservaDetail.id_servicio
-                                        ? servicioById.get(selectedReservaDetail.id_servicio)?.nombre
-                                        : "-") || "-"}
+                                    {`${DETAIL_SERVICIO_LABEL} `}{selectedReservaDetail.servicio_nombre || servicioById.get(selectedReservaDetail.id_servicio ?? selectedReservaDetail.id_ps)?.nombre || "-"}
                                 </Text>
                                 <Text style={styles.detailLine}>{`${DETAIL_INICIO_LABEL} ${toDateTimeDisplay(selectedReservaDetail.fecha_hora_inicio)}`}</Text>
                                 <Text style={styles.detailLine}>{`${DETAIL_FIN_LABEL} ${toDateTimeDisplay(selectedReservaDetail.fecha_hora_fin)}`}</Text>
@@ -1582,10 +1581,10 @@ const Reservas: React.FC<ReservasProps> = ({ route, navigation }) => {
                                 <Text style={styles.emptyText}>{EMPTY_SERVICIOS_FILTERED_MESSAGE}</Text>
                             ) : filteredServicios.map((servicio) => (
                                 <TouchableOpacity
-                                    key={servicio.id_servicio}
+                                    key={servicio.id_servicio ?? servicio.id_ps}
                                     style={styles.optionRow}
-                                    onPress={() => handleSelectServicio(servicio.id_servicio)}
-                                    testID={`reservas-select-servicio-${servicio.id_servicio}`}
+                                    onPress={() => handleSelectServicio(servicio.id_servicio ?? servicio.id_ps)}
+                                    testID={`reservas-select-servicio-${servicio.id_servicio ?? servicio.id_ps}`}
                                 >
                                     <Text style={styles.optionText}>{servicio.nombre}</Text>
                                     <Text style={styles.optionMeta}>{`${SERVICIO_DURACION_PREFIX} ${servicio.duracion} ${SERVICIO_DURACION_SUFFIX}`}</Text>

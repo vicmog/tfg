@@ -147,7 +147,7 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
 
     const [selectedClienteId, setSelectedClienteId] = useState<number | null>(reserva.id_cliente);
     const [selectedRecursoId, setSelectedRecursoId] = useState<number | null>(reserva.id_recurso);
-    const [selectedServicioId, setSelectedServicioId] = useState<number | null>(reserva.id_servicio || null);
+    const [selectedServicioId, setSelectedServicioId] = useState<number | null>(reserva.id_ps ?? reserva.id_servicio ?? null);
     const [selectedFecha, setSelectedFecha] = useState<string>(toLocalDateKey(reserva.fecha_hora_inicio));
     const [selectedSlotInicioIso, setSelectedSlotInicioIso] = useState<string | null>(reserva.fecha_hora_inicio);
     const [duracionMinutos, setDuracionMinutos] = useState<string>(getInitialDuration(reserva));
@@ -183,7 +183,7 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
                 return null;
             }
 
-            return servicios.find((servicio) => toNumericId(servicio.id_servicio) === selectedId) || null;
+            return servicios.find((servicio) => toNumericId(servicio.id_servicio ?? servicio.id_ps) === selectedId) || null;
         },
         [servicios, selectedServicioId]
     );
@@ -387,7 +387,7 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
         }
 
         setSelectedServicioId(normalizedServiceId);
-        const servicio = servicios.find((item) => toNumericId(item.id_servicio) === normalizedServiceId);
+        const servicio = servicios.find((item) => toNumericId(item.id_servicio ?? item.id_ps) === normalizedServiceId);
 
         if (servicio?.duracion) {
             setDuracionMinutos(`${servicio.duracion}`);
@@ -459,10 +459,10 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({
+                    body: JSON.stringify({
                     id_recurso: selectedRecursoId,
                     id_cliente: selectedClienteId,
-                    id_servicio: isNoServicioSelected ? undefined : selectedServicioId,
+                    id_ps: isNoServicioSelected ? undefined : selectedServicioId,
                     fecha_hora_inicio: selectedSlotInicioIso,
                     duracion_minutos: duracionMinutos.trim(),
                     capacidad_solicitada: requiresCapacity
@@ -790,9 +790,9 @@ const EditarReserva: React.FC<EditarReservaProps> = ({ route, navigation }) => {
                                 <Text style={styles.emptyText}>No hay servicios que coincidan</Text>
                             ) : filteredServicios.map((servicio) => (
                                 <TouchableOpacity
-                                    key={servicio.id_servicio}
+                                    key={servicio.id_servicio ?? servicio.id_ps}
                                     style={styles.optionRow}
-                                    onPress={() => handleSelectServicio(servicio.id_servicio)}
+                                    onPress={() => handleSelectServicio(servicio.id_servicio ?? servicio.id_ps)}
                                 >
                                     <Text style={styles.optionText}>{servicio.nombre}</Text>
                                     <Text style={styles.optionMeta}>Duracion: {servicio.duracion} min</Text>
