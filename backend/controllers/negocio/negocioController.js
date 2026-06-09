@@ -10,7 +10,6 @@ import { Recurso } from "../../models/Recurso.js";
 import { Ajuste } from "../../models/Ajuste.js";
 import { Op, fn, col, where } from "sequelize";
 import {
-    DEFAULT_ADMIN_USER_ID,
     NEGOCIO_ERRORS,
     NEGOCIO_MESSAGES,
     NEGOCIO_ROLES,
@@ -68,11 +67,15 @@ export const createNegocio = async (req, res) => {
             rol: NEGOCIO_ROLES.JEFE
         });
 
-        if (id_usuario !== DEFAULT_ADMIN_USER_ID) {
+        const adminPrincipal = await Usuario.findOne({
+            where: { nombre_usuario: "admin" },
+        });
+
+        if (adminPrincipal && adminPrincipal.id_usuario !== id_usuario) {
             await UsuarioNegocio.create({
-                id_usuario: DEFAULT_ADMIN_USER_ID,
+                id_usuario: adminPrincipal.id_usuario,
                 id_negocio: negocio.id_negocio,
-                rol: NEGOCIO_ROLES.ADMIN
+                rol: NEGOCIO_ROLES.ADMIN,
             });
         }
 
