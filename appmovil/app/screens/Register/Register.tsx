@@ -16,6 +16,7 @@ import {
   DEFAULT_REGISTER_ERROR,
   EMPTY_FIELDS_ERROR,
   PASSWORD_MISMATCH_ERROR,
+  PRIVACY_ACCEPTANCE_ERROR,
   REGISTER_ROUTE,
   REGISTER_SUCCESS_MESSAGE,
   SERVER_CONNECTION_ERROR,
@@ -29,6 +30,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -54,6 +56,11 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       return;
     }
 
+    if (!privacyAccepted) {
+      setError(PRIVACY_ACCEPTANCE_ERROR);
+      return;
+    }
+
     try {
       const response = await fetch(
         REGISTER_ROUTE,
@@ -69,7 +76,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
             email: email,
             numero_telefono: phone,
             contrasena: password,
-            consentimiento: false,
+            consentimiento: privacyAccepted,
           }),
         },
       );
@@ -191,6 +198,21 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
             />
           </View>
 
+          <TouchableOpacity
+            style={styles.privacyRow}
+            onPress={() => setPrivacyAccepted(!privacyAccepted)}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons
+              name={privacyAccepted ? "check-box" : "check-box-outline-blank"}
+              size={24}
+              color={privacyAccepted ? "#1976D2" : "#6b7280"}
+            />
+            <Text style={styles.privacyText}>
+              Acepto la política de privacidad y el tratamiento de mis datos personales, incluyendo DNI/NIE y CIF cuando corresponda.
+            </Text>
+          </TouchableOpacity>
+
           {error ? (
             <View style={styles.errorContainer}>
               <MaterialIcons name="error-outline" size={20} color="#dc2626" />
@@ -277,6 +299,21 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 16,
     color: "#111827",
+  },
+  privacyRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    marginTop: 4,
+    marginBottom: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  privacyText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    color: "#374151",
   },
   errorContainer: {
     flexDirection: "row",

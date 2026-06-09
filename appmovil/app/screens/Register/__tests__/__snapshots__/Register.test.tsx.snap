@@ -407,6 +407,65 @@ exports[`RegisterScreen coincide con el snapshot 1`] = `
           onStartShouldSetResponder={[Function]}
           style={
             {
+              "alignItems": "flex-start",
+              "flexDirection": "row",
+              "gap": 10,
+              "marginBottom": 16,
+              "marginTop": 4,
+              "opacity": 1,
+              "paddingHorizontal": 4,
+              "paddingVertical": 8,
+            }
+          }
+        >
+          <MaterialIcons
+            color="#6b7280"
+            name="check-box-outline-blank"
+            size={24}
+          />
+          <Text
+            style={
+              {
+                "color": "#374151",
+                "flex": 1,
+                "fontSize": 13,
+                "lineHeight": 18,
+              }
+            }
+          >
+            Acepto la política de privacidad y el tratamiento de mis datos personales, incluyendo DNI/NIE y CIF cuando corresponda.
+          </Text>
+        </View>
+        <View
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": undefined,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          collapsable={false}
+          focusable={true}
+          onClick={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            {
               "alignItems": "center",
               "backgroundColor": "#1976D2",
               "borderRadius": 10,

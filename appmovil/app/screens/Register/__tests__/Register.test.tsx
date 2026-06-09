@@ -32,6 +32,7 @@ describe("RegisterScreen", () => {
     expect(getByPlaceholderText("Ej: 600123456")).toBeTruthy();
     expect(getByPlaceholderText("Mínimo 6 caracteres")).toBeTruthy();
     expect(getByPlaceholderText("Repite la contraseña")).toBeTruthy();
+    expect(getByText(/Acepto la política de privacidad/i)).toBeTruthy();
     expect(getAllByText("Crear Cuenta").length).toBeGreaterThan(0);
     expect(getByText("¿Ya tienes cuenta? Inicia sesión")).toBeTruthy();
   });
@@ -44,6 +45,25 @@ describe("RegisterScreen", () => {
     const submitButtons = getAllByText("Crear Cuenta");
     fireEvent.press(submitButtons[submitButtons.length - 1]);
     expect(getByText("Completa todos los campos")).toBeTruthy();
+  });
+
+  it("muestra error si no acepta la política de privacidad", () => {
+    const { getAllByText, getByText, getByPlaceholderText } = render(
+      <RegisterScreen navigation={mockNavigation} route={mockRoute} />
+    );
+
+    fireEvent.changeText(getByPlaceholderText("Elige un nombre de usuario"), "usuario1");
+    fireEvent.changeText(getByPlaceholderText("Tu nombre y apellidos"), "Juan Perez");
+    fireEvent.changeText(getByPlaceholderText("Ej: 12345678A"), "12345678A");
+    fireEvent.changeText(getByPlaceholderText("tu@email.com"), "juan@test.com");
+    fireEvent.changeText(getByPlaceholderText("Ej: 600123456"), "600123456");
+    fireEvent.changeText(getByPlaceholderText("Mínimo 6 caracteres"), "123456");
+    fireEvent.changeText(getByPlaceholderText("Repite la contraseña"), "123456");
+
+    const submitButtons = getAllByText("Crear Cuenta");
+    fireEvent.press(submitButtons[submitButtons.length - 1]);
+
+    expect(getByText("Debes aceptar la política de privacidad y los términos")).toBeTruthy();
   });
 
   /*it("muestra error si las contraseñas no coinciden", () => {
@@ -76,6 +96,7 @@ describe("RegisterScreen", () => {
     fireEvent.changeText(getByPlaceholderText("Ej: 600123456"), "600123456");
     fireEvent.changeText(getByPlaceholderText("Mínimo 6 caracteres"), "123456");
     fireEvent.changeText(getByPlaceholderText("Repite la contraseña"), "123456");
+    fireEvent.press(getByText(/Acepto la política de privacidad/i));
 
     const submitButtons = getAllByText("Crear Cuenta");
     fireEvent.press(submitButtons[submitButtons.length - 1]);
@@ -108,6 +129,7 @@ describe("RegisterScreen", () => {
     fireEvent.changeText(getByPlaceholderText("Ej: 600123456"), "600123456");
     fireEvent.changeText(getByPlaceholderText("Mínimo 6 caracteres"), "123456");
     fireEvent.changeText(getByPlaceholderText("Repite la contraseña"), "123456");
+    fireEvent.press(getByText(/Acepto la política de privacidad/i));
 
     const submitButtons = getAllByText("Crear Cuenta");
     fireEvent.press(submitButtons[submitButtons.length - 1]);
