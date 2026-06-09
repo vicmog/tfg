@@ -8,7 +8,9 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    Platform,
 } from "react-native";
+import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
@@ -68,6 +70,10 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
     const [porcentaje, setPorcentaje] = useState("");
     const [fechaInicio, setFechaInicio] = useState("");
     const [fechaFin, setFechaFin] = useState("");
+    const [fechaInicioPickerVisible, setFechaInicioPickerVisible] = useState(false);
+    const [fechaFinPickerVisible, setFechaFinPickerVisible] = useState(false);
+    const [fechaInicioCalendarCursor, setFechaInicioCalendarCursor] = useState<Date>(new Date());
+    const [fechaFinCalendarCursor, setFechaFinCalendarCursor] = useState<Date>(new Date());
     const [loading, setLoading] = useState(false);
     const [loadingDescuentos, setLoadingDescuentos] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -219,6 +225,91 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
         }
 
         return true;
+    };
+
+    const DATE_FILTER_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+    const toApiDate = (date: Date) => {
+        const year = date.getFullYear();
+        const month = `${date.getMonth() + 1}`.padStart(2, "0");
+        const day = `${date.getDate()}`.padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    };
+
+    const parseApiDate = (dateString: string) => {
+        if (!DATE_FILTER_REGEX.test(dateString)) {
+            return null;
+        }
+
+        const [year, month, day] = dateString.split("-").map(Number);
+        return new Date(year, month - 1, day);
+    };
+
+    const buildCalendarMatrix = (cursor: Date) => {
+        const year = cursor.getFullYear();
+        const month = cursor.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const startWeekDay = (firstDay.getDay() + 6) % 7; // make Monday first
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const cells: Array<number | null> = [];
+
+        for (let i = 0; i < startWeekDay; i += 1) cells.push(null);
+        for (let day = 1; day <= daysInMonth; day += 1) cells.push(day);
+        while (cells.length % 7 !== 0) cells.push(null);
+
+        return cells;
+    };
+
+    const webCalendarCellsInicio = useMemo(() => buildCalendarMatrix(fechaInicioCalendarCursor), [fechaInicioCalendarCursor]);
+    const webCalendarCellsFin = useMemo(() => buildCalendarMatrix(fechaFinCalendarCursor), [fechaFinCalendarCursor]);
+
+    const selectedInicio = parseApiDate(fechaInicio);
+    const selectedFin = parseApiDate(fechaFin);
+
+    const handleSelectWebDateInicio = (day: number) => {
+        const selected = new Date(fechaInicioCalendarCursor.getFullYear(), fechaInicioCalendarCursor.getMonth(), day);
+        setFechaInicio(toApiDate(selected));
+        setFechaInicioPickerVisible(false);
+        setError("");
+    };
+
+    const handleSelectWebDateFin = (day: number) => {
+        const selected = new Date(fechaFinCalendarCursor.getFullYear(), fechaFinCalendarCursor.getMonth(), day);
+        setFechaFin(toApiDate(selected));
+        setFechaFinPickerVisible(false);
+        setError("");
+    };
+
+    const handleDateChangeInicio = (event: DateTimePickerEvent, selected?: Date) => {
+        if (Platform.OS !== "ios") {
+            setFechaInicioPickerVisible(false);
+        }
+
+        if (event.type === "dismissed" || !selected) return;
+
+        setFechaInicio(toApiDate(selected));
+        setError("");
+    };
+
+    const handleOpenFechaInicioPicker = () => {
+        setFechaInicioPickerVisible(true);
+        setFechaInicioCalendarCursor(parseApiDate(fechaInicio) || new Date());
+    };
+
+    const handleDateChangeFin = (event: DateTimePickerEvent, selected?: Date) => {
+        if (Platform.OS !== "ios") {
+            setFechaFinPickerVisible(false);
+        }
+
+        if (event.type === "dismissed" || !selected) return;
+
+        setFechaFin(toApiDate(selected));
+        setError("");
+    };
+
+    const handleOpenFechaFinPicker = () => {
+        setFechaFinPickerVisible(true);
+        setFechaFinCalendarCursor(parseApiDate(fechaFin) || new Date());
     };
 
     const handleSave = async () => {
@@ -516,21 +607,159 @@ const Descuentos: React.FC<DescuentosProps> = ({ route, navigation }) => {
 
                         <Text style={styles.sectionLabel}>Vigencia del descuento (opcional)</Text>
 
-                        <TextInput
+                        <TouchableOpacity
                             style={styles.input}
-                            placeholder={DATE_START_PLACEHOLDER}
-                            value={fechaInicio}
-                            onChangeText={setFechaInicio}
+                            onPress={handleOpenFechaInicioPicker}
                             testID="descuento-fecha-inicio-input"
-                        />
+                        >
+                            <View style={styles.datePickerRow}>
+                                <MaterialIcons name="calendar-month" size={18} color="#4b5563" />
+                                <Text style={fechaInicio ? styles.datePickerText : styles.datePickerPlaceholder}>
+                                    {fechaInicio || DATE_START_PLACEHOLDER}
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
 
-                        <TextInput
+                        {fechaInicioPickerVisible && Platform.OS !== "web" ? (
+                            <DateTimePicker
+                                testID="descuento-fecha-inicio-date-picker"
+                                value={parseApiDate(fechaInicio) || new Date()}
+                                mode="date"
+                                display={Platform.OS === "ios" ? "spinner" : "default"}
+                                onChange={handleDateChangeInicio}
+                            />
+                        ) : null}
+
+                        {fechaInicioPickerVisible && Platform.OS === "web" ? (
+                            <View style={styles.webCalendarCard} testID="descuento-fecha-inicio-date-picker-web">
+                                <View style={styles.webCalendarHeader}>
+                                    <TouchableOpacity
+                                        style={styles.webCalendarNavButton}
+                                        onPress={() => setFechaInicioCalendarCursor(new Date(fechaInicioCalendarCursor.getFullYear(), fechaInicioCalendarCursor.getMonth() - 1, 1))}
+                                        testID="descuento-fecha-inicio-calendar-prev-month"
+                                    >
+                                        <MaterialIcons name="chevron-left" size={18} color="#374151" />
+                                    </TouchableOpacity>
+                                    <Text style={styles.webCalendarTitle}>
+                                        {fechaInicioCalendarCursor.toLocaleDateString("es-ES", { month: "long", year: "numeric" })}
+                                    </Text>
+                                    <TouchableOpacity
+                                        style={styles.webCalendarNavButton}
+                                        onPress={() => setFechaInicioCalendarCursor(new Date(fechaInicioCalendarCursor.getFullYear(), fechaInicioCalendarCursor.getMonth() + 1, 1))}
+                                        testID="descuento-fecha-inicio-calendar-next-month"
+                                    >
+                                        <MaterialIcons name="chevron-right" size={18} color="#374151" />
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View style={styles.webWeekdaysRow}>
+                                    {["L", "M", "X", "J", "V", "S", "D"].map((label) => (
+                                        <Text key={label} style={styles.webWeekdayLabel}>{label}</Text>
+                                    ))}
+                                </View>
+
+                                <View style={styles.webCalendarGrid}>
+                                    {webCalendarCellsInicio.map((day, index) => {
+                                        if (!day) {
+                                            return <View key={`empty-${index}`} style={styles.webCalendarDayEmpty} />;
+                                        }
+
+                                        const isSelected = !!selectedInicio
+                                            && selectedInicio.getFullYear() === fechaInicioCalendarCursor.getFullYear()
+                                            && selectedInicio.getMonth() === fechaInicioCalendarCursor.getMonth()
+                                            && selectedInicio.getDate() === day;
+
+                                        return (
+                                            <TouchableOpacity
+                                                key={`day-${day}`}
+                                                style={[styles.webCalendarDayButton, isSelected && styles.webCalendarDayButtonSelected]}
+                                                onPress={() => handleSelectWebDateInicio(day)}
+                                                testID={`descuento-fecha-inicio-calendar-day-${day}`}
+                                            >
+                                                <Text style={[styles.webCalendarDayText, isSelected && styles.webCalendarDayTextSelected]}>{day}</Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </View>
+                            </View>
+                        ) : null}
+
+                        <TouchableOpacity
                             style={styles.input}
-                            placeholder={DATE_END_PLACEHOLDER}
-                            value={fechaFin}
-                            onChangeText={setFechaFin}
+                            onPress={handleOpenFechaFinPicker}
                             testID="descuento-fecha-fin-input"
-                        />
+                        >
+                            <View style={styles.datePickerRow}>
+                                <MaterialIcons name="calendar-month" size={18} color="#4b5563" />
+                                <Text style={fechaFin ? styles.datePickerText : styles.datePickerPlaceholder}>
+                                    {fechaFin || DATE_END_PLACEHOLDER}
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+
+                        {fechaFinPickerVisible && Platform.OS !== "web" ? (
+                            <DateTimePicker
+                                testID="descuento-fecha-fin-date-picker"
+                                value={parseApiDate(fechaFin) || new Date()}
+                                mode="date"
+                                display={Platform.OS === "ios" ? "spinner" : "default"}
+                                onChange={handleDateChangeFin}
+                            />
+                        ) : null}
+
+                        {fechaFinPickerVisible && Platform.OS === "web" ? (
+                            <View style={styles.webCalendarCard} testID="descuento-fecha-fin-date-picker-web">
+                                <View style={styles.webCalendarHeader}>
+                                    <TouchableOpacity
+                                        style={styles.webCalendarNavButton}
+                                        onPress={() => setFechaFinCalendarCursor(new Date(fechaFinCalendarCursor.getFullYear(), fechaFinCalendarCursor.getMonth() - 1, 1))}
+                                        testID="descuento-fecha-fin-calendar-prev-month"
+                                    >
+                                        <MaterialIcons name="chevron-left" size={18} color="#374151" />
+                                    </TouchableOpacity>
+                                    <Text style={styles.webCalendarTitle}>
+                                        {fechaFinCalendarCursor.toLocaleDateString("es-ES", { month: "long", year: "numeric" })}
+                                    </Text>
+                                    <TouchableOpacity
+                                        style={styles.webCalendarNavButton}
+                                        onPress={() => setFechaFinCalendarCursor(new Date(fechaFinCalendarCursor.getFullYear(), fechaFinCalendarCursor.getMonth() + 1, 1))}
+                                        testID="descuento-fecha-fin-calendar-next-month"
+                                    >
+                                        <MaterialIcons name="chevron-right" size={18} color="#374151" />
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View style={styles.webWeekdaysRow}>
+                                    {["L", "M", "X", "J", "V", "S", "D"].map((label) => (
+                                        <Text key={label} style={styles.webWeekdayLabel}>{label}</Text>
+                                    ))}
+                                </View>
+
+                                <View style={styles.webCalendarGrid}>
+                                    {webCalendarCellsFin.map((day, index) => {
+                                        if (!day) {
+                                            return <View key={`empty-${index}`} style={styles.webCalendarDayEmpty} />;
+                                        }
+
+                                        const isSelected = !!selectedFin
+                                            && selectedFin.getFullYear() === fechaFinCalendarCursor.getFullYear()
+                                            && selectedFin.getMonth() === fechaFinCalendarCursor.getMonth()
+                                            && selectedFin.getDate() === day;
+
+                                        return (
+                                            <TouchableOpacity
+                                                key={`day-${day}`}
+                                                style={[styles.webCalendarDayButton, isSelected && styles.webCalendarDayButtonSelected]}
+                                                onPress={() => handleSelectWebDateFin(day)}
+                                                testID={`descuento-fecha-fin-calendar-day-${day}`}
+                                            >
+                                                <Text style={[styles.webCalendarDayText, isSelected && styles.webCalendarDayTextSelected]}>{day}</Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </View>
+                            </View>
+                        ) : null}
 
                         <Text style={styles.helperTextSmall}>Formato de fecha: YYYY-MM-DD (Ejemplo: 2026-12-31)</Text>
 
@@ -835,6 +1064,78 @@ const styles = StyleSheet.create({
         color: "#6b7280",
         marginTop: -4,
         marginBottom: 12,
+    },
+    datePickerRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+    },
+    datePickerText: {
+        marginLeft: 8,
+        color: "#0f172a",
+    },
+    datePickerPlaceholder: {
+        marginLeft: 8,
+        color: "#94a3b8",
+    },
+    webCalendarCard: {
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        borderRadius: 14,
+        backgroundColor: "#fff",
+        padding: 12,
+    },
+    webCalendarHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 8,
+    },
+    webCalendarNavButton: {
+        padding: 6,
+        borderRadius: 10,
+        backgroundColor: "#f3f4f6",
+    },
+    webCalendarTitle: {
+        color: "#0f172a",
+        fontWeight: "800",
+        textTransform: "capitalize",
+    },
+    webWeekdaysRow: {
+        flexDirection: "row",
+        marginBottom: 6,
+    },
+    webWeekdayLabel: {
+        flex: 1,
+        textAlign: "center",
+        color: "#6b7280",
+        fontSize: 12,
+        fontWeight: "700",
+    },
+    webCalendarGrid: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+    },
+    webCalendarDayEmpty: {
+        width: "14.2857%",
+        height: 34,
+    },
+    webCalendarDayButton: {
+        width: "14.2857%",
+        height: 34,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 10,
+    },
+    webCalendarDayButtonSelected: {
+        backgroundColor: "#1d4ed8",
+    },
+    webCalendarDayText: {
+        color: "#1f2937",
+    },
+    webCalendarDayTextSelected: {
+        color: "#fff",
+        fontWeight: "700",
     },
     sectionLabel: {
         fontSize: 14,
