@@ -23,6 +23,10 @@ export async function up(queryInterface) {
   `);
 
   await queryInterface.sequelize.query(`
+    DROP TABLE IF EXISTS "VentaServicio" CASCADE
+  `);
+
+  await queryInterface.sequelize.query(`
     ALTER TABLE "ServicioReserva"
     ADD CONSTRAINT "ServicioReserva_id_ps_fkey"
     FOREIGN KEY ("id_ps") REFERENCES "Servicio"("id_ps") ON DELETE CASCADE

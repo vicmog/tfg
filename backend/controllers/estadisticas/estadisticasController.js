@@ -1,6 +1,5 @@
 import { Venta } from "../../models/Venta.js";
 import { VentaProducto } from "../../models/VentaProducto.js";
-import { VentaServicio } from "../../models/VentaServicio.js";
 import { Reserva } from "../../models/Reserva.js";
 import { Producto } from "../../models/Producto.js";
 import { Servicio } from "../../models/Servicio.js";

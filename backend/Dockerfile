@@ -16,6 +16,4 @@ COPY . .
 # Exponemos el puerto
 EXPOSE 3000
 
-# Ejecutar migraciones en development mode con variables de Railway
-# Luego iniciar en production
 CMD sh -c "NODE_ENV=development npm run migrate && NODE_ENV=production npm run start"
