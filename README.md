@@ -62,6 +62,7 @@ POSTGRES_PASSWORD=root
 POSTGRES_DB=postgres
 BACKEND_PORT=3000
 JWT_SECRET=tu_jwt_secret
+ADMIN_PASSWORD=tu_password_admin
 
 # Opcionales
 POSTGRES_DB_TEST=negocio360_test

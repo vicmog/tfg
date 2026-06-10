@@ -5,9 +5,13 @@ const ADMIN_USERNAME = "admin";
 const ADMIN_NAME = "Administrador";
 const ADMIN_DNI = "00000000T";
 const ADMIN_EMAIL = "admin@miapp.com";
-const ADMIN_PASSWORD = "Admin1234!";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 export async function up(queryInterface) {
+  if (!ADMIN_PASSWORD) {
+    throw new Error("ADMIN_PASSWORD is required");
+  }
+
   const [existingUsers] = await queryInterface.sequelize.query(
     `SELECT id_usuario FROM "Usuario" WHERE nombre_usuario = :username LIMIT 1`,
     {
