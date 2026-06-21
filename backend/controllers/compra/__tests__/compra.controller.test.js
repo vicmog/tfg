@@ -3,6 +3,7 @@ import { Compra } from "../../../models/Compra.js";
 import { CompraProducto } from "../../../models/CompraProducto.js";
 import { Producto } from "../../../models/Producto.js";
 import { Proveedor } from "../../../models/Proveedor.js";
+import { Servicio } from "../../../models/Servicio.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
 import { sequelize } from "../../../models/db.js";
 import {
@@ -31,6 +32,7 @@ jest.mock("../../../models/Compra.js");
 jest.mock("../../../models/CompraProducto.js");
 jest.mock("../../../models/Producto.js");
 jest.mock("../../../models/Proveedor.js");
+jest.mock("../../../models/Servicio.js");
 jest.mock("../../../models/UsuarioNegocio.js");
 
 describe("CompraController Unit Tests", () => {
@@ -39,6 +41,7 @@ describe("CompraController Unit Tests", () => {
     beforeEach(() => {
         jest.clearAllMocks();
         transactionSpy = jest.spyOn(sequelize, "transaction").mockImplementation(async (callback) => callback({}));
+        Servicio.findAll.mockResolvedValue([]);
     });
 
     afterEach(() => {
@@ -72,8 +75,8 @@ describe("CompraController Unit Tests", () => {
         );
         expect(CompraProducto.bulkCreate).toHaveBeenCalledWith(
             expect.arrayContaining([
-                expect.objectContaining({ id_producto: 7, cantidad_esperada: 10, cantidad_llegada: 0 }),
-                expect.objectContaining({ id_producto: 9, cantidad_esperada: 4, cantidad_llegada: 1 }),
+                expect.objectContaining({ id_ps: 7, cantidad_esperada: 10, cantidad_llegada: 0 }),
+                expect.objectContaining({ id_ps: 9, cantidad_esperada: 4, cantidad_llegada: 1 }),
             ]),
             expect.any(Object)
         );
@@ -103,7 +106,7 @@ describe("CompraController Unit Tests", () => {
             ...createCompraReqAdmin,
             body: {
                 ...createCompraReqAdmin.body,
-                productos: [{ id_producto: 7, cantidad_esperada: 10, cantidad_llegada: 0 }],
+                productos: [{ id_ps: 7, cantidad_esperada: 10, cantidad_llegada: 0 }],
             },
         };
         const { res } = buildRes();
@@ -130,7 +133,7 @@ describe("CompraController Unit Tests", () => {
             ...createCompraReq,
             body: {
                 ...createCompraReq.body,
-                productos: [{ id_producto: 7, cantidad_esperada: 10, cantidad_llegada: 10 }],
+                productos: [{ id_ps: 7, cantidad_esperada: 10, cantidad_llegada: 10 }],
             },
         };
         const { res } = buildRes();
@@ -247,10 +250,10 @@ describe("CompraController Unit Tests", () => {
             count: 1,
         });
         CompraProducto.findAll.mockResolvedValue([
-            { id_compra: 100, id_producto: 7, cantidad_esperada: 2, cantidad_llegada: 1 },
+            { id_compra: 100, id_ps: 7, cantidad_esperada: 2, cantidad_llegada: 1 },
         ]);
         Producto.findAll.mockResolvedValue([
-            { id_producto: 7, id_proveedor: 20, nombre: "Champu" },
+            { id_ps: 7, id_proveedor: 20, base: { nombre: "Champu" } },
         ]);
         Proveedor.findAll.mockResolvedValue([
             { id_proveedor: 20, nombre: "Proveedor Norte" },
@@ -290,10 +293,10 @@ describe("CompraController Unit Tests", () => {
         });
         UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioJefe);
         CompraProducto.findAll.mockResolvedValue([
-            { id_compra: 100, id_producto: 7, cantidad_esperada: 2, cantidad_llegada: 1 },
+            { id_compra: 100, id_ps: 7, cantidad_esperada: 2, cantidad_llegada: 1 },
         ]);
         Producto.findAll.mockResolvedValue([
-            { id_producto: 7, id_proveedor: 20, nombre: "Champu" },
+            { id_ps: 7, id_proveedor: 20, base: { nombre: "Champu" } },
         ]);
         Proveedor.findAll.mockResolvedValue([
             { id_proveedor: 20, nombre: "Proveedor Norte" },
@@ -314,7 +317,7 @@ describe("CompraController Unit Tests", () => {
                 compra: expect.objectContaining({
                     id_compra: 100,
                     proveedor: "Proveedor Norte",
-                    productos: [expect.objectContaining({ id_producto: 7 })],
+                    productos: [expect.objectContaining({ id_ps: 7 })],
                 }),
             })
         );
@@ -397,7 +400,7 @@ describe("CompraController Unit Tests", () => {
         );
         expect(CompraProducto.bulkCreate).toHaveBeenCalledWith(
             expect.arrayContaining([
-                expect.objectContaining({ id_producto: 7, cantidad_esperada: 6 }),
+                expect.objectContaining({ id_ps: 7, cantidad_esperada: 6 }),
             ]),
             expect.any(Object)
         );

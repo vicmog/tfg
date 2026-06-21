@@ -9,10 +9,7 @@ export async function up(queryInterface) {
       onDelete: "CASCADE",
       allowNull: false
     },
-    nombre: { type: DataTypes.STRING, allowNull: false },
-    descripcion: { type: DataTypes.STRING },
     precio_compra: { type: DataTypes.FLOAT, allowNull: false },
-    precio_venta: { type: DataTypes.FLOAT, allowNull: false },
     stock: { type: DataTypes.INTEGER, defaultValue: 0 },
     stock_minimo: { type: DataTypes.INTEGER, defaultValue: 0 },
     createdAt: { type: DataTypes.DATE, allowNull: false },
