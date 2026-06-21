@@ -1018,7 +1018,7 @@ export const getCompraStats = async (req, res) => {
             `SELECT ps.id_ps as id_producto, ps.nombre, SUM(cp.cantidad_esperada) as cantidad_esperada, SUM(cp.cantidad_llegada) as cantidad_llegada, SUM(c.importe_total) as importe_total
              FROM "CompraProducto" cp
              JOIN "Compra" c ON cp.id_compra = c.id_compra
-             JOIN "Producto" p ON cp.id_producto = p.id_ps
+             JOIN "Producto" p ON cp.id_ps = p.id_ps
              JOIN "ProductoServicio" ps ON p.id_ps = ps.id_ps
              WHERE c.id_negocio = :id_negocio AND c.fecha BETWEEN :startDate AND :endDate
              GROUP BY ps.id_ps, ps.nombre
@@ -1070,7 +1070,7 @@ export const getCompraStats = async (req, res) => {
                 `SELECT p.id_proveedor, p.nombre, COUNT(DISTINCT c.id_compra) as cantidad, COALESCE(SUM(c.importe_total),0) as total
                  FROM "Compra" c
                  JOIN "CompraProducto" cp ON c.id_compra = cp.id_compra
-                 JOIN "Producto" pr ON cp.id_producto = pr.id_ps
+                                 JOIN "Producto" pr ON cp.id_ps = pr.id_ps
                  JOIN "Proveedor" p ON pr.id_proveedor = p.id_proveedor
                  WHERE c.id_negocio = :id_negocio
                    AND c.estado = 'completada'
