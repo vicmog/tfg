@@ -154,18 +154,23 @@ describe("ReservaController Unit Tests", () => {
             });
         });
 
-        it("deberia exigir capacidad solicitada cuando el servicio la requiere", async () => {
+        it("deberia usar capacidad por defecto cuando el servicio la requiere", async () => {
             Recurso.findByPk.mockResolvedValue(mockRecurso);
             Cliente.findByPk.mockResolvedValue(mockCliente);
             Servicio.findByPk.mockResolvedValue({ ...mockServicio, requiere_capacidad: true });
+            UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioNegocio);
+            Reserva.findOne.mockResolvedValue(null);
+            Reserva.create.mockResolvedValue(mockReserva);
+            ServicioReserva.create.mockResolvedValue({ id_ps: 3, id_reserva: 11 });
 
             const { res, jsonMock } = buildRes();
             await createReserva(createReservaReq, res);
 
-            expect(res.status).toHaveBeenCalledWith(400);
-            expect(jsonMock).toHaveBeenCalledWith({
-                message: "La capacidad solicitada es obligatoria cuando no se selecciona servicio o el servicio requiere capacidad",
-            });
+            expect(res.status).toHaveBeenCalledWith(201);
+            expect(jsonMock).toHaveBeenCalledWith(expect.objectContaining({
+                message: "Reserva registrada correctamente",
+                reserva: expect.objectContaining({ id_reserva: 11 }),
+            }));
         });
 
         it("deberia crear una recurrencia y devolver todas las reservas", async () => {
@@ -347,7 +352,7 @@ describe("ReservaController Unit Tests", () => {
             });
         });
 
-        it("deberia exigir capacidad al actualizar cuando el servicio la requiere", async () => {
+        it("deberia usar capacidad por defecto al actualizar cuando el servicio la requiere", async () => {
             const updateMock = jest.fn().mockResolvedValue({});
             const reservaInstance = {
                 ...mockReserva,
@@ -358,14 +363,20 @@ describe("ReservaController Unit Tests", () => {
             Recurso.findByPk.mockResolvedValue(mockRecurso);
             Cliente.findByPk.mockResolvedValue(mockCliente);
             Servicio.findByPk.mockResolvedValue({ ...mockServicio, requiere_capacidad: true });
+            UsuarioNegocio.findOne.mockResolvedValue(mockUsuarioNegocio);
+            Reserva.findOne.mockResolvedValue(null);
+            ServicioReserva.destroy.mockResolvedValue(1);
+            ServicioReserva.create.mockResolvedValue({ id_ps: 3, id_reserva: 11 });
 
             const { res, jsonMock } = buildRes();
             await updateReserva(updateReservaReq, res);
 
-            expect(res.status).toHaveBeenCalledWith(400);
-            expect(jsonMock).toHaveBeenCalledWith({
-                message: "La capacidad solicitada es obligatoria cuando no se selecciona servicio o el servicio requiere capacidad",
-            });
+            expect(updateMock).toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith(expect.objectContaining({
+                message: "Reserva actualizada correctamente",
+                reserva: expect.objectContaining({ id_reserva: 11 }),
+            }));
         });
 
         it("deberia rechazar capacidad insuficiente al actualizar sin servicio", async () => {

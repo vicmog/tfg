@@ -209,7 +209,21 @@ const EditarVenta: React.FC<EditarVentaProps> = ({ route, navigation }) => {
 
           // Inicializar items con los que estaban en la venta
           if (ventaCompleta.items && ventaCompleta.items.length > 0) {
-            setSelectedItems(ventaCompleta.items);
+            const normalizedItems: VentaItem[] = ventaCompleta.items.map((item: any) => {
+              const itemType = `${item?.tipo ?? ventaCompleta.tipo ?? ventaType}`.toLowerCase();
+              const itemId = item?.id_ps ?? item?.id_producto ?? item?.id_servicio ?? 0;
+
+              if (itemType === "servicio") {
+                return { id_servicio: itemId };
+              }
+
+              return {
+                id_producto: itemId,
+                cantidad: item?.cantidad && item.cantidad > 0 ? item.cantidad : 1,
+              };
+            });
+
+            setSelectedItems(normalizedItems);
           } else {
             setSelectedItems([createEmptyVentaItem(ventaType)]);
           }
@@ -273,6 +287,25 @@ const EditarVenta: React.FC<EditarVentaProps> = ({ route, navigation }) => {
     const newItems = [...selectedItems];
     newItems[index] = { ...newItems[index], [field]: value };
     setSelectedItems(newItems);
+  };
+
+  const handleCantidadChange = (index: number, text: string) => {
+    const numericText = text.replace(/\D/g, "");
+
+    if (!numericText) {
+      handleUpdateItem(index, "cantidad", undefined);
+      return;
+    }
+
+    handleUpdateItem(index, "cantidad", Number.parseInt(numericText, 10));
+  };
+
+  const handleCantidadBlur = (index: number) => {
+    const cantidadActual = selectedItems[index]?.cantidad;
+
+    if (!cantidadActual || cantidadActual < 1) {
+      handleUpdateItem(index, "cantidad", 1);
+    }
   };
 
   const handleSave = async () => {
@@ -505,10 +538,9 @@ const EditarVenta: React.FC<EditarVentaProps> = ({ route, navigation }) => {
                     style={styles.cantidadInput}
                     keyboardType="number-pad"
                     placeholder="1"
-                    value={`${item.cantidad || 1}`}
-                    onChangeText={(text) =>
-                      handleUpdateItem(index, "cantidad", text ? parseInt(text) : 1)
-                    }
+                    value={item.cantidad && item.cantidad > 0 ? `${item.cantidad}` : ""}
+                    onChangeText={(text) => handleCantidadChange(index, text)}
+                    onBlur={() => handleCantidadBlur(index)}
                   />
                 </View>
               )}
