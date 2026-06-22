@@ -3,6 +3,7 @@ import { ProductoServicio } from "../../../models/ProductoServicio.js";
 import { Servicio } from "../../../models/Servicio.js";
 import { Recurso } from "../../../models/Recurso.js";
 import { UsuarioNegocio } from "../../../models/UsuarioNegocio.js";
+import { sequelize } from "../../../models/db.js";
 import {
     buildRes,
     createServicioReq,
@@ -40,8 +41,15 @@ jest.mock("../../../models/Recurso.js");
 jest.mock("../../../models/UsuarioNegocio.js");
 
 describe("ServicioController Unit Tests", () => {
+    let transactionSpy;
+
     beforeEach(() => {
         jest.clearAllMocks();
+        transactionSpy = jest.spyOn(sequelize, "transaction").mockImplementation(async (callback) => callback({}));
+    });
+
+    afterEach(() => {
+        transactionSpy.mockRestore();
     });
 
     describe("createServicio", () => {

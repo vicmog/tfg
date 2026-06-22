@@ -143,20 +143,26 @@ describe("EditarReserva", () => {
         const { getByTestId } = render(<EditarReserva navigation={mockNavigation} route={mockRoute} />);
 
         await waitFor(() => {
-            expect(getByTestId("editar-reserva-capacidad-input")).toBeTruthy();
+            expect(getByTestId("editar-reserva-save-button")).toBeTruthy();
         });
 
         fireEvent.changeText(getByTestId("editar-reserva-capacidad-input"), "6");
-        fireEvent.press(getByTestId("editar-reserva-slot-0800"));
         fireEvent.press(getByTestId("editar-reserva-save-button"));
 
         await waitFor(() => {
-            const putCall = (fetch as jest.Mock).mock.calls.find((call) => call[1]?.method === "PUT");
-            expect(putCall).toBeTruthy();
-
-            const payload = JSON.parse(putCall?.[1].body);
-            expect(payload.id_servicio).toBe(3);
-            expect(payload.capacidad_solicitada).toBe(6);
+            expect(fetch).toHaveBeenCalledWith(
+                API_ROUTES.updateReservaById(11),
+                expect.objectContaining({
+                    method: "PUT",
+                    headers: expect.objectContaining({
+                        "Content-Type": "application/json",
+                        Authorization: "Bearer mock-token",
+                    }),
+                    body: expect.stringContaining('"capacidad_solicitada":6'),
+                })
+            );
         });
+
+        expect(mockNavigation.goBack).toHaveBeenCalled();
     });
 });
