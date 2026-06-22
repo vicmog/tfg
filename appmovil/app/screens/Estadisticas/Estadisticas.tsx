@@ -78,7 +78,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
   const currentMonth = now.getMonth() + 1;
 
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
-  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(currentMonth);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [activePicker, setActivePicker] = useState<PickerType | null>(null);
   const [loading, setLoading] = useState(false);
@@ -163,7 +163,6 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     if (selectedDay && selectedDay > daysInMonth) {
       setSelectedDay(daysInMonth);
     }
-    setSelectedDay(null);
   };
 
   const applyMonth = (month: number | null) => {
