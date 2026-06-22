@@ -28,6 +28,7 @@ describe("NegocioController Unit Tests", () => {
     jest.clearAllMocks();
     (Ajuste.create).mockResolvedValue({});
     (ProductoServicio.bulkCreate).mockResolvedValue([{ id_ps: 201 }]);
+    (UsuarioNegocio.findOne).mockResolvedValue(null);
   });
 
   describe("createNegocio", () => {
@@ -47,7 +48,7 @@ describe("NegocioController Unit Tests", () => {
           nombre: "Mi Negocio",
           CIF: "B12345678",
         },
-        user: { id_usuario: 2 },
+        user: { id_usuario: 2, nombre_usuario: "trabajador" },
       };
 
       const { res, jsonMock } = buildRes();
@@ -83,6 +84,52 @@ describe("NegocioController Unit Tests", () => {
         id_negocio: 1,
         rol: "admin",
       });
+    });
+
+    it("debería crear el negocio con rol admin si el creador ya es admin", async () => {
+      (Negocio.findOne).mockResolvedValue(null);
+      (Usuario.findOne).mockResolvedValue({ id_usuario: 99, nombre_usuario: "admin", nombre: "Admin" });
+      (Negocio.create).mockResolvedValue({
+        id_negocio: 7,
+        nombre: "Negocio Admin",
+        CIF: "B99999999",
+        id_plantilla: 0,
+      });
+      (UsuarioNegocio.create).mockResolvedValue({});
+
+      const req = {
+        body: {
+          nombre: "Negocio Admin",
+          CIF: "B99999999",
+        },
+        user: { id_usuario: 1, nombre_usuario: "admin" },
+      };
+
+      const { res, jsonMock } = buildRes();
+
+      await createNegocio(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Negocio creado correctamente",
+        negocio: {
+          id_negocio: 7,
+          nombre: "Negocio Admin",
+          CIF: "B99999999",
+          id_plantilla: 0,
+        },
+      });
+      expect(UsuarioNegocio.create).toHaveBeenCalledWith({
+        id_usuario: 1,
+        id_negocio: 7,
+        rol: "admin",
+      });
+      expect(UsuarioNegocio.create).toHaveBeenCalledWith({
+        id_usuario: 99,
+        id_negocio: 7,
+        rol: "admin",
+      });
+      expect(UsuarioNegocio.create).not.toHaveBeenCalledWith(expect.objectContaining({ rol: "jefe" }));
     });
 
     it("debería crear negocio con plantilla y copiar servicios y recursos", async () => {

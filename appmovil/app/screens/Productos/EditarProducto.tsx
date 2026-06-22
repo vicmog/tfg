@@ -274,11 +274,7 @@ const EditarProducto: React.FC<EditarProductoProps> = ({ route, navigation }) =>
             </View>
 
             <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-                {!canManageProductos ? (
-                    <Text style={styles.errorText} testID="productos-editar-no-access-message">
-                        {NO_ACCESS_MESSAGE}
-                    </Text>
-                ) : (
+                {canManageProductos ? (
                     <>
                         <Text style={styles.formTitle}>{FORM_TITLE}</Text>
 
@@ -455,7 +451,7 @@ const EditarProducto: React.FC<EditarProductoProps> = ({ route, navigation }) =>
                             <Text style={styles.saveButtonText}>{saving ? SAVING_CHANGES_BUTTON_TEXT : SAVE_CHANGES_BUTTON_TEXT}</Text>
                         </TouchableOpacity>
                     </>
-                )}
+                ) : null}
             </ScrollView>
         </View>
     );

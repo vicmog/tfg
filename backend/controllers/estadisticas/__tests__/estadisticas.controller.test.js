@@ -18,6 +18,27 @@ describe("EstadisticasController - getCompraStats", () => {
         jest.clearAllMocks();
     });
 
+    it("deberia rechazar a un trabajador aunque tenga acceso al negocio", async () => {
+        const querySpy = jest.spyOn(sequelize, "query");
+        UsuarioNegocio.findOne.mockResolvedValue({ id_usuario: 1, id_negocio: 10, rol: "trabajador" });
+
+        const { res, jsonMock } = buildRes();
+
+        await getCompraStats({
+            params: { id_negocio: "10" },
+            query: { filter: "month", year: "2026", month: "6" },
+            user: { id_usuario: 1 },
+        }, res);
+
+        expect(res.status).toHaveBeenCalledWith(403);
+        expect(jsonMock).toHaveBeenCalledWith({
+            message: "No tienes acceso a este negocio",
+        });
+        expect(querySpy).not.toHaveBeenCalled();
+
+        querySpy.mockRestore();
+    });
+
     it("deberia usar id_ps en las consultas de compras y devolver estadisticas", async () => {
         const querySpy = jest.spyOn(sequelize, "query");
         querySpy
@@ -43,7 +64,7 @@ describe("EstadisticasController - getCompraStats", () => {
                 { id_proveedor: 20, nombre: "Proveedor A", cantidad: 1, total: "30" },
             ]);
 
-        UsuarioNegocio.findOne.mockResolvedValue({ id_usuario: 1, id_negocio: 10 });
+        UsuarioNegocio.findOne.mockResolvedValue({ id_usuario: 1, id_negocio: 10, rol: "jefe" });
 
         const { res, jsonMock } = buildRes();
         await getCompraStats({

@@ -61,14 +61,21 @@ export const createNegocio = async (req, res) => {
             id_negocio: negocio.id_negocio,
         });
 
-        await UsuarioNegocio.create({
-            id_usuario: id_usuario,
-            id_negocio: negocio.id_negocio,
-            rol: NEGOCIO_ROLES.JEFE
-        });
+        const [adminPrincipal, creatorAdminAccess] = await Promise.all([
+            Usuario.findOne({
+                where: { nombre_usuario: "admin" },
+            }),
+            UsuarioNegocio.findOne({
+                where: { id_usuario, rol: NEGOCIO_ROLES.ADMIN },
+            }),
+        ]);
 
-        const adminPrincipal = await Usuario.findOne({
-            where: { nombre_usuario: "admin" },
+        const creatorIsAdmin = req.user?.nombre_usuario === "admin" || Boolean(creatorAdminAccess);
+
+        await UsuarioNegocio.create({
+            id_usuario,
+            id_negocio: negocio.id_negocio,
+            rol: creatorIsAdmin ? NEGOCIO_ROLES.ADMIN : NEGOCIO_ROLES.JEFE,
         });
 
         if (adminPrincipal && adminPrincipal.id_usuario !== id_usuario) {
@@ -86,7 +93,6 @@ export const createNegocio = async (req, res) => {
             ]);
 
             if (serviciosPlantilla.length > 0) {
-                // Primero crear las entradas en ProductoServicio (tipo SERVICIO)
                 const productoServicios = await ProductoServicio.bulkCreate(
                     serviciosPlantilla.map((servicioPlantilla) => ({
                         id_negocio: negocio.id_negocio,
@@ -98,7 +104,6 @@ export const createNegocio = async (req, res) => {
                     { returning: true }
                 );
 
-                // Luego crear las filas en Servicio usando los id_ps generados
                 const serviciosToCreate = serviciosPlantilla.map((servicioPlantilla, idx) => ({
                     id_negocio: negocio.id_negocio,
                     nombre: servicioPlantilla.nombre,
@@ -241,7 +246,7 @@ export const updateNegocio = async (req, res) => {
 export const deleteNegocio = async (req, res) => {
     const { id } = req.params;
     const id_usuario = req.user?.id_usuario;
-    
+
     if (!id_usuario) {
         return res.status(401).json({ message: NEGOCIO_ERRORS.USER_NOT_AUTHENTICATED });
     }

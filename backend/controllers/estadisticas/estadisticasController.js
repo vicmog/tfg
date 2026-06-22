@@ -15,6 +15,7 @@ import {
     ESTADISTICAS_MESSAGES,
     FILTER_TYPES,
 } from "./constants.js";
+import { NEGOCIO_ROLES } from "../negocio/constants.js";
 
 const INTEGER_REGEX = /^\d+$/;
 
@@ -30,7 +31,7 @@ const hasAccessToNegocio = async (id_usuario, id_negocio) => {
     const usuarioNegocio = await UsuarioNegocio.findOne({
         where: { id_usuario, id_negocio },
     });
-    return !!usuarioNegocio;
+    return [NEGOCIO_ROLES.ADMIN, NEGOCIO_ROLES.JEFE].includes(`${usuarioNegocio?.rol ?? ""}`.toLowerCase());
 };
 
 const getDateRange = (filterType, startDate = null, endDate = null) => {

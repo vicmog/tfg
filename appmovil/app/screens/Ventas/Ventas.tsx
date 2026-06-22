@@ -566,12 +566,10 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
           <TouchableOpacity style={styles.heroBackButton} onPress={() => navigation.goBack()}>
             <MaterialIcons name="arrow-back" size={24} color="#0f172a" />
           </TouchableOpacity>
-          {canManageVentas && (
-            <TouchableOpacity style={styles.addButton} onPress={handleOpenVentaModal}>
-              <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 6 }} />
-              <Text style={styles.addButtonText}>Añadir Venta</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity style={styles.addButton} onPress={handleOpenVentaModal}>
+            <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 6 }} />
+            <Text style={styles.addButtonText}>Añadir Venta</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.heroBody}>

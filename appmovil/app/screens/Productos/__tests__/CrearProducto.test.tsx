@@ -188,7 +188,7 @@ describe("CrearProducto", () => {
             <CrearProducto navigation={mockNavigation} route={mockRouteTrabajador} />
         );
 
-        expect(getByTestId("productos-no-access-message")).toBeTruthy();
         expect(queryByTestId("producto-save-button")).toBeNull();
+        expect(queryByTestId("producto-nombre-input")).toBeNull();
     });
 });

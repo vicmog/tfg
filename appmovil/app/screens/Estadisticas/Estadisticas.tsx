@@ -73,6 +73,8 @@ type DashboardResponse = {
 
 const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
   const { negocio } = route.params;
+  const canViewStats = negocio.rol === "admin" || negocio.rol === "jefe";
+  const accessDeniedMessage = "No tienes acceso a las estadísticas de este negocio";
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
@@ -251,6 +253,10 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
   };
 
   const loadDashboard = useCallback(async () => {
+    if (!canViewStats) {
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -289,9 +295,13 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     } finally {
       setLoading(false);
     }
-  }, [negocio.id_negocio, selectedDay, selectedMonth, selectedYear]);
+  }, [canViewStats, negocio.id_negocio, selectedDay, selectedMonth, selectedYear]);
 
   const loadGastoStats = useCallback(async () => {
+    if (!canViewStats) {
+      return;
+    }
+
     setLoadingGastos(true);
     setGastoError("");
 
@@ -312,9 +322,13 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     } finally {
       setLoadingGastos(false);
     }
-  }, [negocio.id_negocio, selectedMonth, selectedYear]);
+  }, [canViewStats, negocio.id_negocio, selectedMonth, selectedYear]);
 
   const loadCompraStats = useCallback(async () => {
+    if (!canViewStats) {
+      return;
+    }
+
     setLoadingCompras(true);
     setCompraError("");
 
@@ -336,9 +350,13 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     } finally {
       setLoadingCompras(false);
     }
-  }, [negocio.id_negocio, selectedMonth, selectedYear]);
+  }, [canViewStats, negocio.id_negocio, selectedMonth, selectedYear]);
 
   const loadClientStats = useCallback(async () => {
+    if (!canViewStats) {
+      return;
+    }
+
     setLoadingClientes(true);
     setClienteError("");
 
@@ -363,9 +381,13 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     } finally {
       setLoadingClientes(false);
     }
-  }, [negocio.id_negocio, selectedDay, selectedMonth, selectedYear]);
+  }, [canViewStats, negocio.id_negocio, selectedDay, selectedMonth, selectedYear]);
 
   const loadReservaStats = useCallback(async () => {
+    if (!canViewStats) {
+      return;
+    }
+
     setLoadingReservas(true);
     setReservaError("");
 
@@ -387,9 +409,13 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     } finally {
       setLoadingReservas(false);
     }
-  }, [negocio.id_negocio, selectedDay, selectedMonth, selectedYear]);
+  }, [canViewStats, negocio.id_negocio, selectedDay, selectedMonth, selectedYear]);
 
   const loadServiceStats = useCallback(async () => {
+    if (!canViewStats) {
+      return;
+    }
+
     setLoadingServices(true);
     setServiceError("");
 
@@ -412,7 +438,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     } finally {
       setLoadingServices(false);
     }
-  }, [negocio.id_negocio, selectedDay, selectedMonth, selectedYear]);
+  }, [canViewStats, negocio.id_negocio, selectedDay, selectedMonth, selectedYear]);
 
   
 
@@ -435,6 +461,10 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
   };
 
   const loadProductStats = useCallback(async () => {
+    if (!canViewStats) {
+      return;
+    }
+
     setLoadingProducts(true);
     setProductError("");
 
@@ -457,9 +487,13 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     } finally {
       setLoadingProducts(false);
     }
-  }, [negocio.id_negocio, selectedDay, selectedMonth, selectedYear]);
+  }, [canViewStats, negocio.id_negocio, selectedDay, selectedMonth, selectedYear]);
 
   const loadResourceStats = useCallback(async () => {
+    if (!canViewStats) {
+      return;
+    }
+
     setLoadingResources(true);
     setResourceError("");
 
@@ -482,10 +516,15 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     } finally {
       setLoadingResources(false);
     }
-  }, [negocio.id_negocio, selectedDay, selectedMonth, selectedYear]);
+  }, [canViewStats, negocio.id_negocio, selectedDay, selectedMonth, selectedYear]);
 
   useFocusEffect(
     useCallback(() => {
+      if (!canViewStats) {
+        setError(accessDeniedMessage);
+        return;
+      }
+
       loadDashboard();
       loadProductStats();
       loadServiceStats();
@@ -494,10 +533,15 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
       loadCompraStats();
       loadClientStats();
         loadReservaStats();
-      }, [loadDashboard, loadProductStats, loadServiceStats, loadResourceStats, loadGastoStats, loadCompraStats, loadClientStats, loadReservaStats])
+      }, [canViewStats, accessDeniedMessage, loadDashboard, loadProductStats, loadServiceStats, loadResourceStats, loadGastoStats, loadCompraStats, loadClientStats, loadReservaStats])
   );
 
   useEffect(() => {
+    if (!canViewStats) {
+      setError(accessDeniedMessage);
+      return;
+    }
+
     loadDashboard();
     loadProductStats();
     loadServiceStats();
@@ -506,7 +550,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     loadCompraStats();
     loadClientStats();
       loadReservaStats();
-    }, [loadDashboard, loadProductStats, loadServiceStats, loadResourceStats, loadGastoStats, loadCompraStats, loadClientStats, loadReservaStats]);
+    }, [canViewStats, accessDeniedMessage, loadDashboard, loadProductStats, loadServiceStats, loadResourceStats, loadGastoStats, loadCompraStats, loadClientStats, loadReservaStats]);
 
   const barData = useMemo(() => {
     return chartData.map((item) => ({
@@ -524,6 +568,30 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     const minBenefit = Math.min(...chartData.map((item) => item.beneficio));
     return Math.min(0, minBenefit);
   }, [chartData]);
+
+  if (!canViewStats) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
+            <MaterialIcons name="arrow-back" size={24} color="#1976D2" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Estadísticas</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+
+        <View style={styles.accessDeniedContainer}>
+          <View style={styles.accessDeniedCard}>
+            <View style={styles.accessDeniedIconWrap}>
+              <MaterialIcons name="lock" size={28} color="#b91c1c" />
+            </View>
+            <Text style={styles.accessDeniedTitle}>Acceso restringido</Text>
+            <Text style={styles.accessDeniedText}>{accessDeniedMessage}</Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -1580,6 +1648,49 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: "#eef2ff",
     marginRight: 4,
+  },
+  accessDeniedContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  accessDeniedCard: {
+    width: "100%",
+    maxWidth: 420,
+    alignItems: "center",
+    padding: 24,
+    borderRadius: 24,
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#fecaca",
+    shadowColor: "#7f1d1d",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  accessDeniedIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fef2f2",
+    marginBottom: 16,
+  },
+  accessDeniedTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#7f1d1d",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  accessDeniedText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: "#991b1b",
+    textAlign: "center",
   },
   content: {
     flex: 1,

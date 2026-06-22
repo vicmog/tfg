@@ -129,7 +129,7 @@ describe("EditarProducto", () => {
             <EditarProducto navigation={mockNavigation} route={mockEditarRouteTrabajador} />
         );
 
-        expect(getByTestId("productos-editar-no-access-message")).toBeTruthy();
         expect(queryByTestId("producto-editar-save-button")).toBeNull();
+        expect(queryByTestId("producto-editar-nombre-input")).toBeNull();
     });
 });
