@@ -78,6 +78,17 @@ const parseOptionalServicioId = (value) => {
     return parsePositiveInteger(raw);
 };
 
+const RESERVA_MODERN_ATTRIBUTES = [
+    "id_reserva",
+    "id_recurso",
+    "id_cliente",
+    "fecha_hora_inicio",
+    "fecha_hora_fin",
+    "estado",
+    "createdAt",
+    "updatedAt",
+];
+
 const formatDateForEmail = (value) => {
     const date = new Date(value);
 
@@ -91,7 +102,9 @@ const formatDateForEmail = (value) => {
 };
 
 const resolveReservaForUser = async (idReservaInt, idUsuario) => {
-    const reserva = await Reserva.findByPk(idReservaInt);
+    const reserva = await Reserva.findByPk(idReservaInt, {
+        attributes: RESERVA_MODERN_ATTRIBUTES,
+    });
     if (!reserva) {
         return { error: { status: 404, message: RESERVA_ERRORS.RESERVA_NOT_FOUND } };
     }
@@ -216,7 +229,8 @@ export const createReserva = async (req, res) => {
         const requiereCapacidad = !servicio || Boolean(servicio.requiere_capacidad);
 
         if (requiereCapacidad) {
-            const capacidadSolicitada = parsePositiveInteger(capacidad_solicitada);
+            const capacidadDefault = servicio ? 1 : null;
+            const capacidadSolicitada = parsePositiveInteger(capacidad_solicitada) ?? capacidadDefault;
 
             if (!capacidadSolicitada) {
                 const rawCapacidad = `${capacidad_solicitada ?? ""}`.trim();
@@ -285,6 +299,7 @@ export const createReserva = async (req, res) => {
                         { fecha_hora_fin: { [Op.gt]: ocurrencia.inicio } },
                     ],
                 },
+                attributes: ["id_reserva"],
             });
 
             if (overlappingReserva) {
@@ -311,9 +326,6 @@ export const createReserva = async (req, res) => {
                 const reserva = await Reserva.create({
                     id_recurso,
                     id_cliente,
-                    fecha: toLegacyDate(ocurrencia.inicio),
-                    hora_inicio: toLegacyTime(ocurrencia.inicio),
-                    hora_fin: toLegacyTime(ocurrencia.fin),
                     fecha_hora_inicio: ocurrencia.inicio,
                     fecha_hora_fin: ocurrencia.fin,
                 }, { transaction });
@@ -373,6 +385,7 @@ export const createReserva = async (req, res) => {
             reservas: reservasSerializadas,
         });
     } catch (error) {
+        console.error("Error creando reserva:", error);
         return res.status(500).json({ message: RESERVA_ERRORS.SERVER_ERROR });
     }
 };
@@ -428,7 +441,9 @@ export const updateReserva = async (req, res) => {
     }
 
     try {
-        const reserva = await Reserva.findByPk(idReservaInt);
+        const reserva = await Reserva.findByPk(idReservaInt, {
+            attributes: RESERVA_MODERN_ATTRIBUTES,
+        });
         if (!reserva) {
             return res.status(404).json({ message: RESERVA_ERRORS.RESERVA_NOT_FOUND });
         }
@@ -467,7 +482,8 @@ export const updateReserva = async (req, res) => {
         const requiereCapacidad = !servicio || Boolean(servicio.requiere_capacidad);
 
         if (requiereCapacidad) {
-            const capacidadSolicitada = parsePositiveInteger(capacidad_solicitada);
+            const capacidadDefault = servicio ? 1 : null;
+            const capacidadSolicitada = parsePositiveInteger(capacidad_solicitada) ?? capacidadDefault;
 
             if (!capacidadSolicitada) {
                 const rawCapacidad = `${capacidad_solicitada ?? ""}`.trim();
@@ -522,6 +538,7 @@ export const updateReserva = async (req, res) => {
                     { fecha_hora_fin: { [Op.gt]: inicioDate } },
                 ],
             },
+            attributes: ["id_reserva"],
         });
 
         if (overlappingReserva) {
@@ -531,9 +548,6 @@ export const updateReserva = async (req, res) => {
         await reserva.update({
             id_recurso,
             id_cliente,
-            fecha: toLegacyDate(inicioDate),
-            hora_inicio: toLegacyTime(inicioDate),
-            hora_fin: toLegacyTime(finDate),
             fecha_hora_inicio: inicioDate,
             fecha_hora_fin: finDate,
         });
@@ -687,6 +701,7 @@ export const hacerCaja = async (req, res) => {
                 estado: "pendiente",
                 fecha_hora_inicio: { [Op.gte]: todayStart, [Op.lte]: todayEnd },
             },
+            attributes: RESERVA_MODERN_ATTRIBUTES,
         });
 
         if (!reservas.length) {
@@ -829,6 +844,7 @@ export const getReservasByNegocio = async (req, res) => {
         try {
             reservas = await Reserva.findAll({
                 where: { id_recurso: idRecursos, estado: { [Op.ne]: "cancelada" } },
+                attributes: RESERVA_MODERN_ATTRIBUTES,
                 order: [["fecha_hora_inicio", "DESC"]],
             });
         } catch (queryError) {

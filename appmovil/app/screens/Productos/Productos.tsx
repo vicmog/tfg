@@ -45,7 +45,6 @@ import {
     DELETE_SUCCESS_MESSAGE,
     EMPTY_PRODUCTS_MESSAGE,
     JEFE_ROLE,
-    NO_ACCESS_MESSAGE,
     SCREEN_TITLE,
     SEARCH_PRODUCT,
     deleteProductoByIdRoute,
@@ -93,12 +92,6 @@ const Productos: React.FC<ProductosProps> = ({ route, navigation }) => {
     }, [productos, searchText]);
 
     const fetchProductos = useCallback(async () => {
-        if (!canManageProductos) {
-            setProductos([]);
-            setListError(NO_ACCESS_MESSAGE);
-            return;
-        }
-
         setLoading(true);
         setListError("");
 
@@ -125,7 +118,7 @@ const Productos: React.FC<ProductosProps> = ({ route, navigation }) => {
         } finally {
             setLoading(false);
         }
-    }, [canManageProductos, negocio.id_negocio]);
+    }, [negocio.id_negocio]);
 
     useFocusEffect(
         useCallback(() => {
@@ -276,20 +269,18 @@ const Productos: React.FC<ProductosProps> = ({ route, navigation }) => {
                     </Text>
                 </View>
 
-                {canManageProductos ? (
-                    <View style={styles.searchContainer}>
-                        <MaterialIcons name="search" size={20} color="#64748b" style={styles.searchIcon} />
-                        <TextInput
-                            placeholder={SEARCH_PRODUCT}
-                            placeholderTextColor="#94a3b8"
-                            value={searchText}
-                            onChangeText={setSearchText}
-                            style={styles.searchInput}
-                            autoCapitalize="none"
-                            testID="productos-search-input"
-                        />
-                    </View>
-                ) : null}
+                <View style={styles.searchContainer}>
+                    <MaterialIcons name="search" size={20} color="#64748b" style={styles.searchIcon} />
+                    <TextInput
+                        placeholder={SEARCH_PRODUCT}
+                        placeholderTextColor="#94a3b8"
+                        value={searchText}
+                        onChangeText={setSearchText}
+                        style={styles.searchInput}
+                        autoCapitalize="none"
+                        testID="productos-search-input"
+                    />
+                </View>
             </View>
 
             {listError ? (
@@ -462,28 +453,30 @@ const Productos: React.FC<ProductosProps> = ({ route, navigation }) => {
                                     <Text style={styles.productMeta}>Stock: {producto.stock}</Text>
                                 </TouchableOpacity>
 
-                                <View style={styles.actionsRow}>
-                                    <TouchableOpacity
-                                        style={[styles.actionButton, styles.editButton]}
-                                        onPress={() => navigation.navigate("EditarProducto", { negocio, producto })}
-                                        testID={`producto-edit-button-${producto.id_producto}`}
-                                    >
-                                        <MaterialIcons name="edit" size={16} color="#fff" />
-                                    </TouchableOpacity>
+                                {canManageProductos ? (
+                                    <View style={styles.actionsRow}>
+                                        <TouchableOpacity
+                                            style={[styles.actionButton, styles.editButton]}
+                                            onPress={() => navigation.navigate("EditarProducto", { negocio, producto })}
+                                            testID={`producto-edit-button-${producto.id_producto}`}
+                                        >
+                                            <MaterialIcons name="edit" size={16} color="#fff" />
+                                        </TouchableOpacity>
 
-                                    <TouchableOpacity
-                                        style={[styles.actionButton, styles.deleteButton]}
-                                        onPress={() => handleAskDeleteProducto(producto.id_producto)}
-                                        disabled={isDeleting}
-                                        testID={`producto-delete-button-${producto.id_producto}`}
-                                    >
-                                        {isDeleting ? (
-                                            <ActivityIndicator size="small" color="#fff" />
-                                        ) : (
-                                            <MaterialIcons name="delete" size={16} color="#fff" />
-                                        )}
-                                    </TouchableOpacity>
-                                </View>
+                                        <TouchableOpacity
+                                            style={[styles.actionButton, styles.deleteButton]}
+                                            onPress={() => handleAskDeleteProducto(producto.id_producto)}
+                                            disabled={isDeleting}
+                                            testID={`producto-delete-button-${producto.id_producto}`}
+                                        >
+                                            {isDeleting ? (
+                                                <ActivityIndicator size="small" color="#fff" />
+                                            ) : (
+                                                <MaterialIcons name="delete" size={16} color="#fff" />
+                                            )}
+                                        </TouchableOpacity>
+                                    </View>
+                                ) : null}
 
                                 {confirmDeleteProductoId === producto.id_producto ? (
                                     <View style={styles.confirmBox} testID={`producto-delete-confirm-${producto.id_producto}`}>

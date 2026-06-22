@@ -4,14 +4,6 @@ import { sequelize } from "./db.js";
 export const Servicio = sequelize.define(
     "Servicio",
     {
-        id_negocio: {
-            type: DataTypes.INTEGER,
-            references: { model: "Negocio", key: "id_negocio" },
-            onDelete: "CASCADE",
-            allowNull: false,
-        },
-        nombre: { type: DataTypes.STRING, allowNull: false },
-        precio: { type: DataTypes.FLOAT, allowNull: false },
         id_ps: {
             type: DataTypes.INTEGER,
             primaryKey: true,

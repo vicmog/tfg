@@ -79,10 +79,6 @@ const ensureNegocioAccess = async (id_usuario, id_negocio) => {
         return { status: 403, message: VENTA_ERRORS.NO_ACCESS_TO_NEGOCIO };
     }
 
-    if (!canManageVentas(`${usuarioNegocio.rol ?? ""}`.toLowerCase())) {
-        return { status: 403, message: VENTA_ERRORS.NO_MANAGE_PERMISSION };
-    }
-
     return { usuarioNegocio };
 };
 

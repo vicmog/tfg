@@ -329,6 +329,14 @@ describe("ServicioController Unit Tests", () => {
                 }),
                 expect.objectContaining({ transaction: expect.any(Object) })
             );
+            expect(Recurso.findOne).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: {
+                        id_recurso: 8,
+                        id_negocio: 10,
+                    },
+                })
+            );
             expect(res.status).toHaveBeenCalledWith(200);
         });
 

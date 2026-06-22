@@ -51,7 +51,7 @@ describe("DescuentoController Unit Tests", () => {
         await createDescuento(createDescuentoReq, res);
 
         expect(Descuento.create).toHaveBeenCalledWith({
-            id_producto: 55,
+            id_ps: 55,
             porcentaje_descuento: 15,
         });
         expect(res.status).toHaveBeenCalledWith(201);
@@ -59,9 +59,8 @@ describe("DescuentoController Unit Tests", () => {
             message: "Descuento aplicado correctamente",
             descuento: {
                 id_descuento: 1,
-                id_producto: 55,
+                id_ps: 55,
                 porcentaje_descuento: 15,
-                tipo_descuento: "porcentaje",
                 fecha_inicio: mockDescuento.fecha_inicio,
                 fecha_fin: mockDescuento.fecha_fin,
             },
@@ -80,7 +79,7 @@ describe("DescuentoController Unit Tests", () => {
         await createDescuento(createDescuentoReqAdmin, res);
 
         expect(Descuento.create).toHaveBeenCalledWith({
-            id_producto: 55,
+            id_ps: 55,
             porcentaje_descuento: 25,
         });
         expect(res.status).toHaveBeenCalledWith(201);
@@ -141,11 +140,11 @@ describe("DescuentoController Unit Tests", () => {
     it("deberia actualizar descuento existente para el producto", async () => {
         const descuentoActualizado = {
             id_descuento: 1,
-            id_producto: 55,
+            id_ps: 55,
             porcentaje_descuento: 30,
             update: jest.fn().mockResolvedValue({
                 id_descuento: 1,
-                id_producto: 55,
+                id_ps: 55,
                 porcentaje_descuento: 30,
             }),
         };
@@ -160,7 +159,7 @@ describe("DescuentoController Unit Tests", () => {
         await createDescuento(
             {
                 body: {
-                    id_producto: 55,
+                    id_ps: 55,
                     porcentaje_descuento: "30",
                 },
                 user: { id_usuario: 1 },
@@ -175,7 +174,7 @@ describe("DescuentoController Unit Tests", () => {
             message: "Descuento aplicado correctamente",
             descuento: {
                 id_descuento: 1,
-                id_producto: 55,
+                id_ps: 55,
                 porcentaje_descuento: 30,
             },
         });
@@ -207,7 +206,7 @@ describe("DescuentoController Unit Tests", () => {
             await getDescuentosByProducto(getDescuentosReq, res);
 
             expect(Descuento.findAll).toHaveBeenCalledWith({
-                where: { id_producto: 55 },
+                where: { id_ps: 55 },
                 order: [['createdAt', 'DESC']],
             });
             expect(res.status).toHaveBeenCalledWith(200);
@@ -216,7 +215,7 @@ describe("DescuentoController Unit Tests", () => {
                 descuentos: expect.arrayContaining([
                     expect.objectContaining({
                         id_descuento: expect.any(Number),
-                        id_producto: 55,
+                        id_ps: 55,
                         porcentaje_descuento: expect.any(Number),
                     }),
                 ]),
@@ -265,7 +264,7 @@ describe("DescuentoController Unit Tests", () => {
             });
         });
 
-        it("deberia fallar si id_producto es invalido", async () => {
+        it("deberia fallar si id_ps es invalido", async () => {
             const { res, jsonMock } = buildRes();
 
             await getDescuentosByProducto(getDescuentosReqProductoInvalido, res);

@@ -787,14 +787,16 @@ const Compras: React.FC<ComprasProps> = ({ route, navigation }) => {
                     >
                         <MaterialIcons name="arrow-back" size={24} color="#0f172a" />
                     </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.addButton}
-                        onPress={() => navigation.navigate("CrearCompra", { negocio })}
-                        testID="compras-go-create-button"
-                    >
-                        <MaterialIcons name="add-shopping-cart" size={18} color="#fff" style={{ marginRight: 6 }} />
-                        <Text style={styles.addButtonText}>{ADD_COMPRA_BUTTON}</Text>
-                    </TouchableOpacity>
+                    {canManageCompras ? (
+                        <TouchableOpacity
+                            style={styles.addButton}
+                            onPress={() => navigation.navigate("CrearCompra", { negocio })}
+                            testID="compras-go-create-button"
+                        >
+                            <MaterialIcons name="add-shopping-cart" size={18} color="#fff" style={{ marginRight: 6 }} />
+                            <Text style={styles.addButtonText}>{ADD_COMPRA_BUTTON}</Text>
+                        </TouchableOpacity>
+                    ) : null}
                 </View>
 
                 <View style={styles.heroBody}>

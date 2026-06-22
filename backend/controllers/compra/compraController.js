@@ -4,6 +4,7 @@ import { Compra } from "../../models/Compra.js";
 import { CompraProducto } from "../../models/CompraProducto.js";
 import { Producto } from "../../models/Producto.js";
 import { Proveedor } from "../../models/Proveedor.js";
+import { Servicio } from "../../models/Servicio.js";
 import { UsuarioNegocio } from "../../models/UsuarioNegocio.js";
 import { COMPRA_ERRORS, COMPRA_MESSAGES, COMPRA_ROLES } from "./constants.js";
 
@@ -11,9 +12,75 @@ const INTEGER_REGEX = /^\d+$/;
 const VALID_SORT_BY = ["fecha", "importe_total", "estado", "proveedor"];
 const VALID_SORT_ORDER = ["asc", "desc"];
 
-const getProductoId = (producto) => producto.id_ps ?? producto.id_producto ?? null;
+const getCompraItemId = (item) => item.id_ps ?? item.id_producto ?? item.id_servicio ?? null;
 
 const canManageCompras = (rol) => [COMPRA_ROLES.ADMIN, COMPRA_ROLES.JEFE].includes(rol);
+
+const loadCompraItems = async (itemIds) => {
+    if (!itemIds.length) {
+        return {
+            itemsById: new Map(),
+            productos: [],
+            servicios: [],
+        };
+    }
+
+    const [productos, servicios] = await Promise.all([
+        Producto.findAll({
+            where: {
+                id_ps: {
+                    [Op.in]: itemIds,
+                },
+            },
+            include: [
+                {
+                    association: "base",
+                },
+                {
+                    association: "proveedor",
+                },
+            ],
+        }),
+        Servicio.findAll({
+            where: {
+                id_ps: {
+                    [Op.in]: itemIds,
+                },
+            },
+            include: [
+                {
+                    association: "base",
+                },
+            ],
+        }),
+    ]);
+
+    const itemsById = new Map();
+
+    for (const producto of productos) {
+        itemsById.set(producto.id_ps, {
+            tipo: "PRODUCTO",
+            registro: producto,
+            base: producto.base,
+            nombre: producto.base?.nombre || null,
+        });
+    }
+
+    for (const servicio of servicios) {
+        itemsById.set(servicio.id_ps, {
+            tipo: "SERVICIO",
+            registro: servicio,
+            base: servicio.base,
+            nombre: servicio.base?.nombre || null,
+        });
+    }
+
+    return {
+        itemsById,
+        productos,
+        servicios,
+    };
+};
 
 const resolveCompraEstado = (productos) => {
     const isCompleted = productos.every(
@@ -102,24 +169,8 @@ const buildCompraRelations = async (compraIds) => {
         },
     });
 
-    const productoIds = [...new Set(compraProductos.map((item) => item.id_producto))];
-    const productos = productoIds.length
-        ? await Producto.findAll({
-            where: {
-                id_ps: {
-                    [Op.in]: productoIds,
-                },
-            },
-            include: [
-                {
-                    association: "base",
-                },
-                {
-                    association: "proveedor",
-                },
-            ],
-        })
-        : [];
+    const itemIds = [...new Set(compraProductos.map((item) => getCompraItemId(item)).filter(Boolean))];
+    const { itemsById, productos } = await loadCompraItems(itemIds);
 
     const providerIds = [...new Set(productos.map((producto) => producto.id_proveedor))];
     const proveedores = providerIds.length
@@ -133,7 +184,6 @@ const buildCompraRelations = async (compraIds) => {
         })
         : [];
 
-    const productoMap = new Map(productos.map((producto) => [getProductoId(producto), producto]));
     const proveedorMap = new Map(proveedores.map((proveedor) => [proveedor.id_proveedor, proveedor]));
 
     const productosByCompra = new Map();
@@ -141,16 +191,22 @@ const buildCompraRelations = async (compraIds) => {
     const proveedorPrincipalByCompra = new Map();
 
     for (const item of compraProductos) {
+        const itemId = getCompraItemId(item);
+
         if (!productosByCompra.has(item.id_compra)) {
             productosByCompra.set(item.id_compra, []);
         }
 
-        const producto = productoMap.get(item.id_producto);
+        const compraItem = itemId ? itemsById.get(itemId) : null;
+        const producto = compraItem?.tipo === "PRODUCTO" ? compraItem.registro : null;
         const proveedor = producto ? proveedorMap.get(producto.id_proveedor) : null;
 
         productosByCompra.get(item.id_compra).push({
-            id_producto: item.id_producto,
-            nombre: producto?.base?.nombre || null,
+            id_ps: itemId,
+            id_producto: itemId,
+            id_servicio: compraItem?.tipo === "SERVICIO" ? itemId : undefined,
+            tipo: compraItem?.tipo || null,
+            nombre: compraItem?.nombre || null,
             id_proveedor: producto?.id_proveedor || null,
             proveedor_nombre: proveedor?.nombre || null,
             cantidad_esperada: item.cantidad_esperada,
@@ -216,7 +272,7 @@ const normalizeProductos = (productos) => {
     const duplicatedGuard = new Set();
 
     for (const producto of productos) {
-        const idProducto = parseInteger(producto?.id_ps ?? producto?.id_producto);
+        const idProducto = parseInteger(producto?.id_ps ?? producto?.id_producto ?? producto?.id_servicio);
 
         if (!idProducto || idProducto <= 0) {
             return { error: COMPRA_ERRORS.PRODUCTO_ID_REQUIRED };
@@ -245,7 +301,7 @@ const normalizeProductos = (productos) => {
 
         duplicatedGuard.add(idProducto);
         normalizedProductos.push({
-            id_producto: idProducto,
+            id_ps: idProducto,
             cantidad_esperada: cantidadEsperada,
             cantidad_llegada: cantidadLlegada,
         });
@@ -299,24 +355,10 @@ export const createCompra = async (req, res) => {
             return res.status(403).json({ message: COMPRA_ERRORS.NO_MANAGE_PERMISSION });
         }
 
-        const productIds = productosResult.value.map((producto) => producto.id_producto);
-        const productos = await Producto.findAll({
-            where: {
-                id_ps: {
-                    [Op.in]: productIds,
-                },
-            },
-            include: [
-                {
-                    association: "base",
-                },
-                {
-                    association: "proveedor",
-                },
-            ],
-        });
+        const itemIds = productosResult.value.map((producto) => producto.id_ps);
+        const { itemsById, productos } = await loadCompraItems(itemIds);
 
-        if (productos.length !== productIds.length) {
+        if (itemsById.size !== itemIds.length) {
             return res.status(400).json({ message: COMPRA_ERRORS.PRODUCTOS_NOT_FOUND });
         }
 
@@ -344,12 +386,15 @@ export const createCompra = async (req, res) => {
             }
         }
 
-        const cantidadMap = new Map(productosResult.value.map((producto) => [producto.id_producto, producto]));
         const estado = resolveCompraEstado(productosResult.value);
 
-        const importeTotal = productos.reduce((acc, producto) => {
-            const productoCompra = cantidadMap.get(getProductoId(producto));
-            return acc + (producto.precio_compra * productoCompra.cantidad_esperada);
+        const importeTotal = productosResult.value.reduce((acc, compraItem) => {
+            const item = itemsById.get(compraItem.id_ps);
+            const unitPrice = item?.tipo === "PRODUCTO"
+                ? item.registro.precio_compra
+                : item?.base?.precio ?? 0;
+
+            return acc + (unitPrice * compraItem.cantidad_esperada);
         }, 0);
 
         const compra = await sequelize.transaction(async (transaction) => {
@@ -367,7 +412,7 @@ export const createCompra = async (req, res) => {
             await CompraProducto.bulkCreate(
                 productosResult.value.map((producto) => ({
                     id_compra: createdCompra.id_compra,
-                    id_producto: producto.id_producto,
+                    id_ps: producto.id_ps,
                     cantidad_esperada: producto.cantidad_esperada,
                     cantidad_llegada: producto.cantidad_llegada,
                 })),
@@ -377,14 +422,23 @@ export const createCompra = async (req, res) => {
             return createdCompra;
         });
 
-        const productosSerialized = productos.map((producto) => {
-            const productoCompra = cantidadMap.get(getProductoId(producto));
+        const productosSerialized = productosResult.value.map((producto) => {
+            const item = itemsById.get(producto.id_ps);
+            const productoBase = item?.tipo === "PRODUCTO" ? item.registro : null;
+            const servicioBase = item?.tipo === "SERVICIO" ? item.registro : null;
 
             return {
-                id_producto: getProductoId(producto),
-                nombre: producto.base?.nombre || null,
-                cantidad_esperada: productoCompra.cantidad_esperada,
-                cantidad_llegada: productoCompra.cantidad_llegada,
+                id_ps: producto.id_ps,
+                id_producto: producto.id_ps,
+                id_servicio: item?.tipo === "SERVICIO" ? producto.id_ps : undefined,
+                tipo: item?.tipo || null,
+                nombre: item?.nombre || null,
+                id_proveedor: productoBase?.id_proveedor || null,
+                proveedor_nombre: productoBase?.proveedor?.nombre || null,
+                duracion: servicioBase?.duracion ?? null,
+                requiere_capacidad: servicioBase?.requiere_capacidad ?? null,
+                cantidad_esperada: producto.cantidad_esperada,
+                cantidad_llegada: producto.cantidad_llegada,
             };
         });
 
@@ -522,7 +576,7 @@ export const getCompras = async (req, res) => {
             })
             .filter(Boolean)
             .sort((a, b) => {
-                const byName = a.proveedor.localeCompare(b.proveedor, "es", { sensitivity: "base" });
+                const byName = (a.proveedor || "").localeCompare(b.proveedor || "", "es", { sensitivity: "base" });
                 return sortOrder === "asc" ? byName : -byName;
             });
 
@@ -638,24 +692,10 @@ export const updateCompra = async (req, res) => {
             return res.status(403).json({ message: COMPRA_ERRORS.NO_MANAGE_PERMISSION });
         }
 
-        const productIds = productosResult.value.map((producto) => producto.id_producto);
-        const productos = await Producto.findAll({
-            where: {
-                id_ps: {
-                    [Op.in]: productIds,
-                },
-            },
-            include: [
-                {
-                    association: "base",
-                },
-                {
-                    association: "proveedor",
-                },
-            ],
-        });
+        const itemIds = productosResult.value.map((producto) => producto.id_ps);
+        const { itemsById, productos } = await loadCompraItems(itemIds);
 
-        if (productos.length !== productIds.length) {
+        if (itemsById.size !== itemIds.length) {
             return res.status(400).json({ message: COMPRA_ERRORS.PRODUCTOS_NOT_FOUND });
         }
 
@@ -683,14 +723,17 @@ export const updateCompra = async (req, res) => {
             }
         }
 
-        const cantidadMap = new Map(productosResult.value.map((producto) => [producto.id_producto, producto]));
         const estadoAnterior = compra.estado;
         const estado = resolveCompraEstado(productosResult.value);
         const esCompraCompletada = estadoAnterior !== "completada" && estado === "completada";
 
-        const importeTotal = productos.reduce((acc, producto) => {
-            const productoCompra = cantidadMap.get(getProductoId(producto));
-            return acc + (producto.precio_compra * productoCompra.cantidad_esperada);
+        const importeTotal = productosResult.value.reduce((acc, compraItem) => {
+            const item = itemsById.get(compraItem.id_ps);
+            const unitPrice = item?.tipo === "PRODUCTO"
+                ? item.registro.precio_compra
+                : item?.base?.precio ?? 0;
+
+            return acc + (unitPrice * compraItem.cantidad_esperada);
         }, 0);
 
         await sequelize.transaction(async (transaction) => {
@@ -714,7 +757,7 @@ export const updateCompra = async (req, res) => {
             await CompraProducto.bulkCreate(
                 productosResult.value.map((producto) => ({
                     id_compra: compra.id_compra,
-                    id_producto: producto.id_producto,
+                    id_ps: producto.id_ps,
                     cantidad_esperada: producto.cantidad_esperada,
                     cantidad_llegada: producto.cantidad_llegada,
                 })),
@@ -724,9 +767,9 @@ export const updateCompra = async (req, res) => {
             // Actualizar stock de productos si la compra se completó
             if (esCompraCompletada) {
                 for (const productoData of productosResult.value) {
-                    const producto = productos.find((p) => getProductoId(p) === productoData.id_producto);
-                    if (producto) {
-                        await producto.increment("stock", {
+                    const item = itemsById.get(productoData.id_ps);
+                    if (item?.tipo === "PRODUCTO") {
+                        await item.registro.increment("stock", {
                             by: productoData.cantidad_llegada,
                             transaction,
                         });
@@ -735,14 +778,23 @@ export const updateCompra = async (req, res) => {
             }
         });
 
-        const productosSerialized = productos.map((producto) => {
-            const productoCompra = cantidadMap.get(getProductoId(producto));
+        const productosSerialized = productosResult.value.map((producto) => {
+            const item = itemsById.get(producto.id_ps);
+            const productoBase = item?.tipo === "PRODUCTO" ? item.registro : null;
+            const servicioBase = item?.tipo === "SERVICIO" ? item.registro : null;
 
             return {
-                id_producto: getProductoId(producto),
-                nombre: producto.base?.nombre || null,
-                cantidad_esperada: productoCompra.cantidad_esperada,
-                cantidad_llegada: productoCompra.cantidad_llegada,
+                id_ps: producto.id_ps,
+                id_producto: producto.id_ps,
+                id_servicio: item?.tipo === "SERVICIO" ? producto.id_ps : undefined,
+                tipo: item?.tipo || null,
+                nombre: item?.nombre || null,
+                id_proveedor: productoBase?.id_proveedor || null,
+                proveedor_nombre: productoBase?.proveedor?.nombre || null,
+                duracion: servicioBase?.duracion ?? null,
+                requiere_capacidad: servicioBase?.requiere_capacidad ?? null,
+                cantidad_esperada: producto.cantidad_esperada,
+                cantidad_llegada: producto.cantidad_llegada,
             };
         });
 

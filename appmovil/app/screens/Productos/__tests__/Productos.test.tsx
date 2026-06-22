@@ -284,12 +284,38 @@ describe("Productos listado", () => {
         });
     });
 
-    it("bloquea la gestion si el rol no es jefe ni admin", async () => {
-        const { getByTestId, queryByTestId } = render(
+    it("muestra productos y busqueda para trabajador sin acciones de gestion", async () => {
+        (fetch as jest.Mock).mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+                productos: [
+                    {
+                        id_producto: 11,
+                        id_proveedor: 7,
+                        nombre: "Champu",
+                        referencia: "CH-001",
+                        categoria: "Cosmetica",
+                        precio_venta: 10,
+                        stock: 8,
+                        stock_minimo: 1,
+                        precio_compra: 5,
+                        proveedor_nombre: "Proveedor Norte",
+                    },
+                ],
+            }),
+        });
+
+        const { getByTestId, queryByTestId, getByText } = render(
             <Productos navigation={mockNavigation} route={mockRouteTrabajador} />
         );
 
-        expect(getByTestId("productos-list-error-message")).toBeTruthy();
+        await waitFor(() => {
+            expect(getByTestId("productos-search-input")).toBeTruthy();
+            expect(getByText("Champu")).toBeTruthy();
+        });
+
         expect(queryByTestId("productos-add-button")).toBeNull();
+        expect(queryByTestId("producto-edit-button-11")).toBeNull();
+        expect(queryByTestId("producto-delete-button-11")).toBeNull();
     });
 });

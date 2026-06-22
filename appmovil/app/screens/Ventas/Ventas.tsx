@@ -455,7 +455,6 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
         return;
       }
 
-      // Enviar email si está activado
       if (sendEmail && data.venta?.id_venta) {
         try {
           await fetch(API_ROUTES.sendVentaEmailById(data.venta.id_venta), {
@@ -466,7 +465,6 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
             },
           });
         } catch (emailError) {
-          // Email no crítico, continuar
           console.log("Email no enviado:", emailError);
         }
       }
@@ -548,13 +546,17 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
   };
 
   const getVentaItemLabel = (item: VentaItem) => {
-    if (selectedVenta?.tipo === "producto") {
-      const producto = productos.find((entry) => entry.id_producto === item.id_producto);
-      return producto?.nombre || `Producto #${item.id_producto ?? "?"}`;
+    const rawItem = item as VentaItem & { id_ps?: number; tipo?: string };
+    const itemId = rawItem.id_ps ?? item.id_producto ?? item.id_servicio ?? null;
+    const itemTipo = `${rawItem.tipo ?? selectedVenta?.tipo ?? ""}`.toLowerCase();
+
+    if (itemTipo === "producto") {
+      const producto = productos.find((entry) => entry.id_producto === itemId);
+      return producto?.nombre || `Producto #${itemId ?? "?"}`;
     }
 
-    const servicio = servicios.find((entry) => entry.id_servicio === item.id_servicio);
-    return servicio?.nombre || `Servicio #${item.id_servicio ?? "?"}`;
+    const servicio = servicios.find((entry) => entry.id_servicio === itemId);
+    return servicio?.nombre || `Servicio #${itemId ?? "?"}`;
   };
 
   return (
@@ -564,12 +566,10 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
           <TouchableOpacity style={styles.heroBackButton} onPress={() => navigation.goBack()}>
             <MaterialIcons name="arrow-back" size={24} color="#0f172a" />
           </TouchableOpacity>
-          {canManageVentas && (
-            <TouchableOpacity style={styles.addButton} onPress={handleOpenVentaModal}>
-              <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 6 }} />
-              <Text style={styles.addButtonText}>Añadir Venta</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity style={styles.addButton} onPress={handleOpenVentaModal}>
+            <MaterialIcons name="add" size={18} color="#fff" style={{ marginRight: 6 }} />
+            <Text style={styles.addButtonText}>Añadir Venta</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.heroBody}>
@@ -1264,19 +1264,29 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
                   {selectedVenta.items && selectedVenta.items.length > 0 ? (
                     selectedVenta.items.map((item, index) => (
                       <View key={`${selectedVenta.id_venta}-${index}`} style={styles.ventaItemRow}>
+                        {(() => {
+                          const rawItem = item as VentaItem & { tipo?: string };
+                          const itemTipo = `${rawItem.tipo ?? selectedVenta.tipo ?? ""}`.toLowerCase();
+                          const isProducto = itemTipo === "producto";
+
+                          return (
+                            <>
                         <View style={styles.ventaItemTextBlock}>
                           <Text style={styles.ventaItemName}>{getVentaItemLabel(item)}</Text>
-                          {selectedVenta.tipo === "producto" ? (
+                          {isProducto ? (
                             <Text style={styles.ventaItemMeta}>
                               Cantidad: {item.cantidad ?? 1}
                             </Text>
                           ) : null}
                         </View>
                         <MaterialIcons
-                          name={selectedVenta.tipo === "producto" ? "inventory-2" : "room-service"}
+                          name={isProducto ? "inventory-2" : "room-service"}
                           size={20}
                           color="#2563eb"
                         />
+                            </>
+                          );
+                        })()}
                       </View>
                     ))
                   ) : (

@@ -3,7 +3,7 @@ export const mockUsuarioAdmin = { id_usuario: 3, id_negocio: 10, rol: "admin" };
 export const mockUsuarioTrabajador = { id_usuario: 2, id_negocio: 10, rol: "trabajador" };
 
 export const mockProducto = {
-    id_producto: 55,
+    id_ps: 55,
     id_proveedor: 7,
     nombre: "Champu profesional",
 };
@@ -16,9 +16,8 @@ export const mockProveedor = {
 
 export const mockDescuento = {
     id_descuento: 1,
-    id_producto: 55,
+    id_ps: 55,
     porcentaje_descuento: 15,
-    tipo_descuento: "porcentaje",
     fecha_inicio: new Date("2026-01-01"),
     fecha_fin: new Date("2026-12-31"),
     createdAt: new Date("2026-01-01"),
@@ -28,9 +27,8 @@ export const mockDescuento = {
 export const mockDescuentos = [
     {
         id_descuento: 1,
-        id_producto: 55,
+        id_ps: 55,
         porcentaje_descuento: 15,
-        tipo_descuento: "porcentaje",
         fecha_inicio: new Date("2026-01-01"),
         fecha_fin: new Date("2026-12-31"),
         createdAt: new Date("2026-01-01"),
@@ -38,9 +36,8 @@ export const mockDescuentos = [
     },
     {
         id_descuento: 2,
-        id_producto: 55,
+        id_ps: 55,
         porcentaje_descuento: 10,
-        tipo_descuento: "porcentaje",
         fecha_inicio: new Date("2026-03-01"),
         fecha_fin: null,
         createdAt: new Date("2026-03-01"),
@@ -50,7 +47,7 @@ export const mockDescuentos = [
 
 export const createDescuentoReq = {
     body: {
-        id_producto: 55,
+        id_ps: 55,
         porcentaje_descuento: "15",
     },
     user: { id_usuario: 1 },
@@ -58,7 +55,7 @@ export const createDescuentoReq = {
 
 export const createDescuentoReqAdmin = {
     body: {
-        id_producto: 55,
+        id_ps: 55,
         porcentaje_descuento: 25,
     },
     user: { id_usuario: 3 },
@@ -66,7 +63,7 @@ export const createDescuentoReqAdmin = {
 
 export const createDescuentoReqSinAuth = {
     body: {
-        id_producto: 55,
+        id_ps: 55,
         porcentaje_descuento: "15",
     },
     user: null,
@@ -81,7 +78,7 @@ export const createDescuentoReqSinProducto = {
 
 export const createDescuentoReqPorcentajeInvalido = {
     body: {
-        id_producto: 55,
+        id_ps: 55,
         porcentaje_descuento: "150",
     },
     user: { id_usuario: 1 },
@@ -89,29 +86,29 @@ export const createDescuentoReqPorcentajeInvalido = {
 
 export const createDescuentoReqSinPermiso = {
     body: {
-        id_producto: 55,
+        id_ps: 55,
         porcentaje_descuento: "15",
     },
     user: { id_usuario: 2 },
 };
 
 export const getDescuentosReq = {
-    params: { id_producto: "55" },
+    params: { id_ps: "55" },
     user: { id_usuario: 1 },
 };
 
 export const getDescuentosReqSinAuth = {
-    params: { id_producto: "55" },
+    params: { id_ps: "55" },
     user: null,
 };
 
 export const getDescuentosReqSinPermiso = {
-    params: { id_producto: "55" },
+    params: { id_ps: "55" },
     user: { id_usuario: 2 },
 };
 
 export const getDescuentosReqProductoInvalido = {
-    params: { id_producto: "invalid" },
+    params: { id_ps: "invalid" },
     user: { id_usuario: 1 },
 };
 

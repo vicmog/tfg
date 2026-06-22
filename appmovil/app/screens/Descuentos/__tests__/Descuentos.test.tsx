@@ -9,6 +9,8 @@ jest.mock("@expo/vector-icons", () => ({
     MaterialIcons: "MaterialIcons",
 }));
 
+jest.mock("@react-native-community/datetimepicker", () => "DateTimePicker");
+
 jest.mock("@react-native-async-storage/async-storage", () => ({
     getItem: jest.fn(),
     setItem: jest.fn(),

@@ -283,11 +283,7 @@ const CrearProducto: React.FC<CrearProductoProps> = ({ route, navigation }) => {
             </View>
 
             <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-                {!canManageProductos ? (
-                    <Text style={styles.errorText} testID="productos-no-access-message">
-                        {NO_ACCESS_MESSAGE}
-                    </Text>
-                ) : (
+                {canManageProductos ? (
                     <>
                         <Text style={styles.formTitle}>{FORM_TITLE}</Text>
 
@@ -464,7 +460,7 @@ const CrearProducto: React.FC<CrearProductoProps> = ({ route, navigation }) => {
                             <Text style={styles.saveButtonText}>{saving ? SAVING_BUTTON_TEXT : SAVE_BUTTON_TEXT}</Text>
                         </TouchableOpacity>
                     </>
-                )}
+                ) : null}
             </ScrollView>
         </View>
     );

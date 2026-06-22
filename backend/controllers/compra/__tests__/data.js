@@ -4,13 +4,13 @@ export const mockUsuarioTrabajador = { id_usuario: 3, id_negocio: 10, rol: "trab
 
 export const mockProductos = [
     {
-        id_producto: 7,
+        id_ps: 7,
         id_proveedor: 20,
         nombre: "Champu",
         precio_compra: 5,
     },
     {
-        id_producto: 9,
+        id_ps: 9,
         id_proveedor: 21,
         nombre: "Mascarilla",
         precio_compra: 3,
@@ -29,8 +29,8 @@ export const createCompraReq = {
         descripcion: "Reposicion mensual",
         fecha: "2026-04-02T10:00:00.000Z",
         productos: [
-            { id_producto: 7, cantidad_esperada: 10, cantidad_llegada: 0 },
-            { id_producto: 9, cantidad_esperada: 4, cantidad_llegada: 1 },
+            { id_ps: 7, cantidad_esperada: 10, cantidad_llegada: 0 },
+            { id_ps: 9, cantidad_esperada: 4, cantidad_llegada: 1 },
         ],
     },
 };
@@ -66,7 +66,7 @@ export const createCompraReqCantidadEsperadaInvalida = {
     body: {
         ...createCompraReq.body,
         productos: [
-            { id_producto: 7, cantidad_esperada: 0, cantidad_llegada: 0 },
+            { id_ps: 7, cantidad_esperada: 0, cantidad_llegada: 0 },
         ],
     },
 };
@@ -76,7 +76,7 @@ export const createCompraReqCantidadLlegadaInvalida = {
     body: {
         ...createCompraReq.body,
         productos: [
-            { id_producto: 7, cantidad_esperada: 2, cantidad_llegada: 3 },
+            { id_ps: 7, cantidad_esperada: 2, cantidad_llegada: 3 },
         ],
     },
 };
@@ -86,8 +86,8 @@ export const createCompraReqProductoDuplicado = {
     body: {
         ...createCompraReq.body,
         productos: [
-            { id_producto: 7, cantidad_esperada: 1, cantidad_llegada: 0 },
-            { id_producto: 7, cantidad_esperada: 2, cantidad_llegada: 0 },
+            { id_ps: 7, cantidad_esperada: 1, cantidad_llegada: 0 },
+            { id_ps: 7, cantidad_esperada: 2, cantidad_llegada: 0 },
         ],
     },
 };
@@ -103,8 +103,8 @@ export const updateCompraReq = {
         descripcion: "Compra actualizada",
         fecha: "2026-04-05T10:00:00.000Z",
         productos: [
-            { id_producto: 7, cantidad_esperada: 6, cantidad_llegada: 1 },
-            { id_producto: 9, cantidad_esperada: 2, cantidad_llegada: 0 },
+            { id_ps: 7, cantidad_esperada: 6, cantidad_llegada: 1 },
+            { id_ps: 9, cantidad_esperada: 2, cantidad_llegada: 0 },
         ],
     },
 };
@@ -127,8 +127,8 @@ export const updateCompraReqCompletada = {
     body: {
         ...updateCompraReq.body,
         productos: [
-            { id_producto: 7, cantidad_esperada: 6, cantidad_llegada: 6 },
-            { id_producto: 9, cantidad_esperada: 2, cantidad_llegada: 2 },
+            { id_ps: 7, cantidad_esperada: 6, cantidad_llegada: 6 },
+            { id_ps: 9, cantidad_esperada: 2, cantidad_llegada: 2 },
         ],
     },
 };

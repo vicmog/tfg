@@ -6,12 +6,12 @@ const router = express.Router();
 
 router.post("/", authenticateToken, createNegocio);
 router.get("/", authenticateToken, getNegocios);
+router.get("/:id", authenticateToken, getNegocioById);
+router.put("/:id", authenticateToken, updateNegocio);
+router.delete("/:id", authenticateToken, deleteNegocio);
 router.get("/users/:id", authenticateToken, getUsersByNegocioId);
 router.post("/users/:id", authenticateToken, addUserToNegocio);
 router.put("/users/:id", authenticateToken, updateUserRoleInNegocio);
 router.delete("/users/:id", authenticateToken, removeUserFromNegocio);
-router.get("/:id", authenticateToken, getNegocioById);
-router.put("/:id", authenticateToken, updateNegocio);
-router.delete("/:id", authenticateToken, deleteNegocio);
 
 export default router;

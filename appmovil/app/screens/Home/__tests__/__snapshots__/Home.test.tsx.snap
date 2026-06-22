@@ -32,10 +32,16 @@ exports[`HomeScreen coincide con el snapshot 1`] = `
         }
       }
       style={
-        {
-          "height": 710,
-          "width": 710,
-        }
+        [
+          {
+            "maxHeight": 280,
+            "maxWidth": "100%",
+          },
+          {
+            "height": 280,
+            "width": 280,
+          },
+        ]
       }
     />
   </View>

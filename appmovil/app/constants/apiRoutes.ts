@@ -134,13 +134,18 @@ export const API_ROUTES = {
     if (month) params.append("month", String(month));
     return `${API_BASE_URL}${API_PREFIX}/estadisticas/compras/${idNegocio}?${params.toString()}`;
   },
-  estadisticasClientes: (idNegocio: number) => {
-    return `${API_BASE_URL}${API_PREFIX}/estadisticas/clientes/${idNegocio}`;
+  estadisticasClientes: (idNegocio: number, filter?: string, startDate?: string, endDate?: string) => {
+    const params = new URLSearchParams();
+    if (filter) params.append("filter", filter);
+    if (startDate) params.append("startDate", startDate);
+    if (endDate) params.append("endDate", endDate);
+    return `${API_BASE_URL}${API_PREFIX}/estadisticas/clientes/${idNegocio}?${params.toString()}`;
   },
-  estadisticasReservas: (idNegocio: number, year?: number, month?: number) => {
+  estadisticasReservas: (idNegocio: number, year?: number, month?: number | null, day?: number | null) => {
     const params = new URLSearchParams();
     if (year) params.append("year", String(year));
     if (month) params.append("month", String(month));
+    if (day) params.append("day", String(day));
     return `${API_BASE_URL}${API_PREFIX}/estadisticas/reservas/${idNegocio}?${params.toString()}`;
   },
   estadisticasRecursos: (idNegocio: number, filter?: string, startDate?: string, endDate?: string) => {

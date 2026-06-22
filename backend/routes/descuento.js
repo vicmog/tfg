@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.post("/", authenticateToken, createDescuento);
 router.get("/negocio/:id_negocio", authenticateToken, getDescuentosByNegocio);
-router.get("/:id_producto", authenticateToken, getDescuentosByProducto);
+router.get("/:id_ps", authenticateToken, getDescuentosByProducto);
 router.delete("/:id_descuento", authenticateToken, deleteDescuento);
 
 export default router;

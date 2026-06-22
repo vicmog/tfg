@@ -344,8 +344,10 @@ export const updateServicio = async (req, res) => {
             return res.status(404).json({ message: SERVICIO_ERRORS.SERVICIO_NOT_FOUND });
         }
 
+        const servicioNegocioId = servicio.base?.id_negocio ?? servicio.id_negocio;
+
         const usuarioNegocio = await UsuarioNegocio.findOne({
-            where: { id_usuario, id_negocio: servicio.base?.id_negocio ?? servicio.id_negocio },
+            where: { id_usuario, id_negocio: servicioNegocioId },
         });
 
         if (!usuarioNegocio) {
@@ -373,7 +375,7 @@ export const updateServicio = async (req, res) => {
             const recursoFavorito = await Recurso.findOne({
                 where: {
                     id_recurso: servicioFieldsResult.value.id_recurso_favorito,
-                    id_negocio: servicio.id_negocio,
+                    id_negocio: servicioNegocioId,
                 },
             });
 
@@ -397,7 +399,7 @@ export const updateServicio = async (req, res) => {
 
                 await servicio.update(
                     {
-                        id_negocio: servicio.base?.id_negocio ?? servicio.id_negocio,
+                        id_negocio: servicioNegocioId,
                     nombre: servicioFieldsResult.value.nombre,
                     precio: servicioFieldsResult.value.precio,
                     id_recurso_favorito: servicioFieldsResult.value.id_recurso_favorito,
