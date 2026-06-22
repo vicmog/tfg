@@ -4,8 +4,6 @@ import { sequelize } from "./db.js";
 export const Producto = sequelize.define(
     "Producto",
     {
-        nombre: { type: DataTypes.STRING, allowNull: false },
-        descripcion: { type: DataTypes.STRING, allowNull: true },
         id_ps: {
             type: DataTypes.INTEGER,
             primaryKey: true,
@@ -22,7 +20,6 @@ export const Producto = sequelize.define(
         referencia: { type: DataTypes.STRING, allowNull: false, defaultValue: "" },
         categoria: { type: DataTypes.STRING, allowNull: false, defaultValue: "" },
         precio_compra: { type: DataTypes.FLOAT, allowNull: false },
-        precio_venta: { type: DataTypes.FLOAT, allowNull: false },
         stock: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
         stock_minimo: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
     },

@@ -1,6 +1,7 @@
 export const AUTH_ERRORS = {
   DNI_REQUIRED: "El DNI es obligatorio",
   REQUIRED_FIELDS: "Faltan campos obligatorios",
+  PRIVACY_CONSENT_REQUIRED: "Debes aceptar la política de privacidad y los términos",
   USERNAME_ALREADY_REGISTERED: "Usuario ya registrado con este nombre de usuario",
   USER_NOT_FOUND: "Usuario no encontrado",
   WRONG_PASSWORD: "Contraseña incorrecta",

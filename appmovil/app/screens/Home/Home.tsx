@@ -6,14 +6,17 @@ import {
   Image,
   TouchableOpacity,
   StatusBar,
-  Dimensions,
+  useWindowDimensions,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { HomeScreenProps } from "./types";
-import { HOME_SUBTITLE, LOGIN, LOGIN_MESSAGE, REGISTER_MESSAGE, WELCOME, REGISTER, WINDOW_DIMENSIONS } from "./constants";
+import { HOME_SUBTITLE, LOGIN, LOGIN_MESSAGE, REGISTER_MESSAGE, WELCOME, REGISTER } from "./constants";
 
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
+  const { width } = useWindowDimensions();
+  const logoSize = Math.min(Math.max(width * 0.55, 160), 280);
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f7fafc" />
@@ -21,7 +24,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       <View style={styles.logoContainer}>
         <Image
           source={require("./../../../assets/images/logoapp.png")}
-          style={styles.logo}
+          style={[styles.logo, { width: logoSize, height: logoSize }]}
           resizeMode="contain"
         />
       </View>
@@ -73,8 +76,8 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   logo: {
-    width: WINDOW_DIMENSIONS.width - 40,
-    height: WINDOW_DIMENSIONS.width - 40,
+    maxWidth: "100%",
+    maxHeight: 280,
   },
   contentContainer: {
     alignItems: "center",

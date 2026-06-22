@@ -193,6 +193,24 @@ describe("Compras", () => {
         expect(mockNavigation.navigate).toHaveBeenCalledWith("CrearCompra", { negocio: mockRoute.params.negocio });
     });
 
+    it("oculta el boton de crear compra para trabajador", async () => {
+        (fetch as jest.Mock).mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                compras: [],
+                pagination: { page: 1, limit: 20, total: 0, has_more: false },
+            }),
+        });
+
+        const { queryByTestId } = render(
+            <Compras navigation={mockNavigation} route={mockRouteTrabajador} />
+        );
+
+        await waitFor(() => {
+            expect(queryByTestId("compras-go-create-button")).toBeNull();
+        });
+    });
+
     it("elimina compra desde listado con confirmacion", async () => {
         (fetch as jest.Mock)
             .mockResolvedValueOnce({

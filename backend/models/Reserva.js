@@ -17,10 +17,6 @@ export const Reserva = sequelize.define(
             onDelete: "CASCADE",
             allowNull: false,
         },
-        // Legacy schema fields still present in some databases.
-        fecha: { type: DataTypes.DATEONLY, allowNull: true },
-        hora_inicio: { type: DataTypes.TIME, allowNull: true },
-        hora_fin: { type: DataTypes.TIME, allowNull: true },
         fecha_hora_inicio: { type: DataTypes.DATE, allowNull: false },
         fecha_hora_fin: { type: DataTypes.DATE, allowNull: false },
         estado: { type: DataTypes.STRING, allowNull: false, defaultValue: "pendiente" },

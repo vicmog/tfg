@@ -28,11 +28,13 @@ describe("NegocioController Unit Tests", () => {
     jest.clearAllMocks();
     (Ajuste.create).mockResolvedValue({});
     (ProductoServicio.bulkCreate).mockResolvedValue([{ id_ps: 201 }]);
+    (UsuarioNegocio.findOne).mockResolvedValue(null);
   });
 
   describe("createNegocio", () => {
     it("debería crear un negocio correctamente", async () => {
       (Negocio.findOne).mockResolvedValue(null);
+      (Usuario.findOne).mockResolvedValue({ id_usuario: 1, nombre_usuario: "admin", nombre: "Admin" });
       (Negocio.create).mockResolvedValue({
         id_negocio: 1,
         nombre: "Mi Negocio",
@@ -46,7 +48,7 @@ describe("NegocioController Unit Tests", () => {
           nombre: "Mi Negocio",
           CIF: "B12345678",
         },
-        user: { id_usuario: 2 },
+        user: { id_usuario: 2, nombre_usuario: "trabajador" },
       };
 
       const { res, jsonMock } = buildRes();
@@ -68,6 +70,9 @@ describe("NegocioController Unit Tests", () => {
         CIF: "B12345678",
         id_plantilla: null,
       });
+      expect(Usuario.findOne).toHaveBeenCalledWith({
+        where: { nombre_usuario: "admin" },
+      });
       expect(UsuarioNegocio.create).toHaveBeenCalledTimes(2);
       expect(UsuarioNegocio.create).toHaveBeenCalledWith({
         id_usuario: 2,
@@ -81,22 +86,23 @@ describe("NegocioController Unit Tests", () => {
       });
     });
 
-    it("debería crear negocio sin duplicar admin si el creador es admin", async () => {
+    it("debería crear el negocio con rol admin si el creador ya es admin", async () => {
       (Negocio.findOne).mockResolvedValue(null);
+      (Usuario.findOne).mockResolvedValue({ id_usuario: 99, nombre_usuario: "admin", nombre: "Admin" });
       (Negocio.create).mockResolvedValue({
-        id_negocio: 1,
-        nombre: "Mi Negocio",
-        CIF: "B12345678",
+        id_negocio: 7,
+        nombre: "Negocio Admin",
+        CIF: "B99999999",
         id_plantilla: 0,
       });
       (UsuarioNegocio.create).mockResolvedValue({});
 
       const req = {
         body: {
-          nombre: "Mi Negocio",
-          CIF: "B12345678",
+          nombre: "Negocio Admin",
+          CIF: "B99999999",
         },
-        user: { id_usuario: 1 },
+        user: { id_usuario: 1, nombre_usuario: "admin" },
       };
 
       const { res, jsonMock } = buildRes();
@@ -104,12 +110,26 @@ describe("NegocioController Unit Tests", () => {
       await createNegocio(req, res);
 
       expect(res.status).toHaveBeenCalledWith(201);
-      expect(UsuarioNegocio.create).toHaveBeenCalledTimes(1);
+      expect(jsonMock).toHaveBeenCalledWith({
+        message: "Negocio creado correctamente",
+        negocio: {
+          id_negocio: 7,
+          nombre: "Negocio Admin",
+          CIF: "B99999999",
+          id_plantilla: 0,
+        },
+      });
       expect(UsuarioNegocio.create).toHaveBeenCalledWith({
         id_usuario: 1,
-        id_negocio: 1,
-        rol: "jefe",
+        id_negocio: 7,
+        rol: "admin",
       });
+      expect(UsuarioNegocio.create).toHaveBeenCalledWith({
+        id_usuario: 99,
+        id_negocio: 7,
+        rol: "admin",
+      });
+      expect(UsuarioNegocio.create).not.toHaveBeenCalledWith(expect.objectContaining({ rol: "jefe" }));
     });
 
     it("debería crear negocio con plantilla y copiar servicios y recursos", async () => {

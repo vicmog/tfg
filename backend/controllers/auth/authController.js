@@ -11,6 +11,9 @@ export const register = async (req, res) => {
             message: AUTH_ERRORS.DNI_REQUIRED,
         });
     }
+    if (consentimiento !== true) {
+        return res.status(400).json({ message: AUTH_ERRORS.PRIVACY_CONSENT_REQUIRED });
+    }
     if (!nombre_usuario || !nombre || !email || !contrasena) {
         return res.status(400).json({ message: AUTH_ERRORS.REQUIRED_FIELDS });
     }
@@ -32,7 +35,7 @@ export const register = async (req, res) => {
             numero_telefono,
             email,
             contrasena: hashedPassword,
-            consentimiento: consentimiento || false,
+            consentimiento: true,
             codigo_validacion: codigo_validacion,
         });
 

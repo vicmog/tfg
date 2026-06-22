@@ -46,23 +46,27 @@ El proyecto ya no esta en fase inicial. Actualmente cuenta con backend y app mov
 - Node.js 20 o superior
 - npm 10 o superior
 - PostgreSQL 16 recomendado
+- Docker y Docker Compose para levantar backend y base de datos
 
 ## Configuracion de entorno
 
-Crear el archivo backend/.env con variables como estas (ajustadas a tu entorno):
+### Backend
 
-POSTGRES_HOST=localhost
+Crear el archivo [backend/.env](backend/.env) con estas variables, ajustadas a tu entorno:
+
+```env
+POSTGRES_HOST=db
 POSTGRES_PORT=5432
-POSTGRES_USER=tu_usuario
-POSTGRES_PASSWORD=tu_password
-POSTGRES_DB=negocio360_dev
-POSTGRES_DB_TEST=negocio360_test
-POSTGRES_DB_PROD=negocio360_prod
+POSTGRES_USER=root
+POSTGRES_PASSWORD=root
+POSTGRES_DB=postgres
 BACKEND_PORT=3000
 JWT_SECRET=tu_jwt_secret
+ADMIN_PASSWORD=tu_password_admin
 
-Opcional para envio de correo:
-
+# Opcionales
+POSTGRES_DB_TEST=negocio360_test
+POSTGRES_DB_PROD=negocio360_prod
 SMTP_HOST=
 SMTP_PORT=587
 SMTP_SECURE=false
@@ -70,17 +74,36 @@ SMTP_USER=
 SMTP_PASS=
 FROM_EMAIL=
 SMTP_ALLOW_SELF_SIGNED=false
+```
+
+### AppMovil
+
+La app movil no usa un archivo `.env` actualmente. La URL del backend esta definida en [AppMovil/app/constants/apiRoutes.ts](AppMovil/app/constants/apiRoutes.ts) como `http://localhost:3000`.
+
+Si ejecutas la app en un emulador o dispositivo fisico, ajusta esa constante para que apunte a la IP de tu equipo o al backend que estes usando.
 
 ## Puesta en marcha local
 
-### 1) Backend
+### 1) Backend y PostgreSQL con Docker
 
-Desde la carpeta backend:
+Desde la raiz del proyecto:
 
 ```bash
-npm install
-npm run migrate
-npm start
+docker compose up --build -d
+```
+
+Eso levanta PostgreSQL y el backend. El backend ejecuta las migraciones automaticamente al arrancar.
+
+Para ver los logs:
+
+```bash
+docker compose logs -f backend
+```
+
+Para parar y borrar tambien los datos de PostgreSQL:
+
+```bash
+docker compose down -v
 ```
 
 API disponible en:
@@ -96,10 +119,12 @@ npm install
 npm run start
 ```
 
+La app movil se arranca con `npm run start`.
+
 Notas:
 
-- La app usa por defecto la URL base http://localhost:3000.
-- Si pruebas desde emulador o dispositivo fisico, ajusta la URL de API para que apunte a la IP de tu equipo.
+- Si el backend esta corriendo en Docker, la app puede seguir apuntando a `http://localhost:3000` desde el mismo equipo.
+- Si usas un emulador o dispositivo fisico, revisa la constante de API para que apunte a la IP correcta.
 
 ## Scripts utiles
 
@@ -122,10 +147,6 @@ npm run web
 npm run lint
 npm test
 ```
-
-## Docker
-
-Existe un docker-compose.yml para levantar servicios. Antes de usarlo, revisa credenciales y variables de entorno para asegurar que backend y PostgreSQL queden alineados.
 
 ## Capturas
 

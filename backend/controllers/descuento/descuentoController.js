@@ -32,7 +32,7 @@ const normalizePorcentaje = (value) => {
     return { value: parsedPorcentaje };
 };
 
-const normalizeProductoId = (value) => {
+const normalizePsId = (value) => {
     const productoIdValue = `${value ?? ""}`.trim();
 
     if (!productoIdValue || !INTEGER_REGEX.test(productoIdValue)) {
@@ -124,7 +124,7 @@ export const getDescuentosByNegocio = async (req, res) => {
         });
 
         const descuentos = await Descuento.findAll({
-            where: { id_producto: productoIds },
+            where: { id_ps: productoIds },
             order: [['createdAt', 'DESC']],
         });
 
@@ -132,11 +132,10 @@ export const getDescuentosByNegocio = async (req, res) => {
             message: DESCUENTO_MESSAGES.DESCUENTOS_RETRIEVED,
             descuentos: descuentos.map(d => ({
                 id_descuento: d.id_descuento,
-                id_producto: d.id_producto,
-                producto_nombre: productoMap[d.id_producto]?.nombre || 'Producto no encontrado',
-                producto_referencia: productoMap[d.id_producto]?.referencia || '',
+                id_ps: d.id_ps,
+                producto_nombre: productoMap[d.id_ps]?.nombre || 'Producto no encontrado',
+                producto_referencia: productoMap[d.id_ps]?.referencia || '',
                 porcentaje_descuento: d.porcentaje_descuento,
-                tipo_descuento: d.tipo_descuento,
                 fecha_inicio: d.fecha_inicio,
                 fecha_fin: d.fecha_fin,
                 createdAt: d.createdAt,
@@ -149,14 +148,14 @@ export const getDescuentosByNegocio = async (req, res) => {
 };
 
 export const getDescuentosByProducto = async (req, res) => {
-    const { id_producto } = req.params;
+    const idPsRaw = req.params?.id_ps ?? req.params?.id_producto;
     const id_usuario = req.user?.id_usuario;
 
     if (!id_usuario) {
         return res.status(401).json({ message: DESCUENTO_ERRORS.USER_NOT_AUTHENTICATED });
     }
 
-    const productoIdResult = normalizeProductoId(id_producto);
+    const productoIdResult = normalizePsId(idPsRaw);
 
     if (productoIdResult.error) {
         return res.status(400).json({ message: productoIdResult.error });
@@ -191,7 +190,7 @@ export const getDescuentosByProducto = async (req, res) => {
         }
 
         const descuentos = await Descuento.findAll({
-            where: { id_producto: productoId },
+            where: { id_ps: productoId },
             order: [['createdAt', 'DESC']],
         });
 
@@ -199,9 +198,8 @@ export const getDescuentosByProducto = async (req, res) => {
             message: DESCUENTO_MESSAGES.DESCUENTOS_RETRIEVED,
             descuentos: descuentos.map(d => ({
                 id_descuento: d.id_descuento,
-                id_producto: d.id_producto,
+                id_ps: d.id_ps,
                 porcentaje_descuento: d.porcentaje_descuento,
-                tipo_descuento: d.tipo_descuento,
                 fecha_inicio: d.fecha_inicio,
                 fecha_fin: d.fecha_fin,
                 createdAt: d.createdAt,
@@ -214,14 +212,15 @@ export const getDescuentosByProducto = async (req, res) => {
 };
 
 export const createDescuento = async (req, res) => {
-    const { id_producto, porcentaje_descuento, tipo_descuento, fecha_inicio, fecha_fin } = req.body;
+    const { porcentaje_descuento, fecha_inicio, fecha_fin } = req.body;
+    const idPsRaw = req.body?.id_ps ?? req.body?.id_producto;
     const id_usuario = req.user?.id_usuario;
 
     if (!id_usuario) {
         return res.status(401).json({ message: DESCUENTO_ERRORS.USER_NOT_AUTHENTICATED });
     }
 
-    const productoIdResult = normalizeProductoId(id_producto);
+    const productoIdResult = normalizePsId(idPsRaw);
 
     if (productoIdResult.error) {
         return res.status(400).json({ message: productoIdResult.error });
@@ -262,16 +261,12 @@ export const createDescuento = async (req, res) => {
         }
 
         const descuentoExistente = await Descuento.findOne({
-            where: { id_producto: productoId },
+            where: { id_ps: productoId },
         });
 
         const descuentoData = {
             porcentaje_descuento: porcentajeResult.value,
         };
-
-        if (tipo_descuento !== undefined) {
-            descuentoData.tipo_descuento = tipo_descuento || "porcentaje";
-        }
 
         if (fecha_inicio !== undefined) {
             descuentoData.fecha_inicio = fecha_inicio ? new Date(fecha_inicio) : new Date();
@@ -284,7 +279,7 @@ export const createDescuento = async (req, res) => {
         const descuento = descuentoExistente
             ? await descuentoExistente.update(descuentoData)
             : await Descuento.create({
-                id_producto: productoId,
+                id_ps: productoId,
                 ...descuentoData,
             });
 
@@ -292,9 +287,8 @@ export const createDescuento = async (req, res) => {
             message: DESCUENTO_MESSAGES.DESCUENTO_CREATED,
             descuento: {
                 id_descuento: descuento.id_descuento,
-                id_producto: descuento.id_producto,
+                id_ps: descuento.id_ps,
                 porcentaje_descuento: descuento.porcentaje_descuento,
-                tipo_descuento: descuento.tipo_descuento,
                 fecha_inicio: descuento.fecha_inicio,
                 fecha_fin: descuento.fecha_fin,
             },
@@ -325,7 +319,7 @@ export const deleteDescuento = async (req, res) => {
             return res.status(404).json({ message: DESCUENTO_ERRORS.DESCUENTO_NOT_FOUND });
         }
 
-        const producto = await Producto.findByPk(descuento.id_producto, {
+        const producto = await Producto.findByPk(descuento.id_ps, {
             include: [{ association: "base" }],
         });
 

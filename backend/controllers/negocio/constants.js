@@ -38,5 +38,3 @@ export const NEGOCIO_ROLES = {
   JEFE: "jefe",
   TRABAJADOR: "trabajador",
 };
-
-export const DEFAULT_ADMIN_USER_ID = 1;

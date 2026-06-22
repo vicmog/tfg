@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import HomeScreen from "./screens/Home/Home";
 import LoginScreen from "./screens/Login/Login";
@@ -75,19 +75,93 @@ export type NavigationScreenList = {
 
 const Stack = createNativeStackNavigator<NavigationScreenList>();
 
+const getTokenExpirationMs = (token: string) => {
+  try {
+    const payloadPart = token.split(".")[1];
+    if (!payloadPart) {
+      return null;
+    }
+
+    const normalizedPayload = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+    const paddedPayload = normalizedPayload.padEnd(
+      normalizedPayload.length + ((4 - (normalizedPayload.length % 4)) % 4),
+      "="
+    );
+    const payloadJson = globalThis.atob(paddedPayload);
+    const payload = JSON.parse(payloadJson) as { exp?: number };
+
+    return typeof payload.exp === "number" ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+};
+
 const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isAuth, setIsAuth] = useState(false);
+  const sessionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const checkToken = async () => {
+  const clearSession = useCallback(async () => {
+    if (sessionTimeoutRef.current) {
+      clearTimeout(sessionTimeoutRef.current);
+      sessionTimeoutRef.current = null;
+    }
+
+    await AsyncStorage.removeItem("token");
+    await AsyncStorage.removeItem("id_usuario");
+    setIsAuth(false);
+  }, []);
+
+  const syncSessionFromToken = useCallback(async () => {
     const storedToken = await AsyncStorage.getItem("token");
-    setIsAuth(!!storedToken);
+
+    if (!storedToken) {
+      await clearSession();
+      setLoading(false);
+      return;
+    }
+
+    const expiresAt = getTokenExpirationMs(storedToken);
+    if (expiresAt && expiresAt <= Date.now()) {
+      await clearSession();
+      setLoading(false);
+      return;
+    }
+
+    if (sessionTimeoutRef.current) {
+      clearTimeout(sessionTimeoutRef.current);
+      sessionTimeoutRef.current = null;
+    }
+
+    if (expiresAt) {
+      const timeUntilExpiry = Math.max(expiresAt - Date.now(), 0);
+      sessionTimeoutRef.current = setTimeout(() => {
+        clearSession().catch(() => {});
+      }, timeUntilExpiry);
+    }
+
+    setIsAuth(true);
     setLoading(false);
-  };
+  }, [clearSession]);
 
   useEffect(() => {
-    checkToken();
-  }, []);
+    syncSessionFromToken();
+
+    return () => {
+      if (sessionTimeoutRef.current) {
+        clearTimeout(sessionTimeoutRef.current);
+      }
+    };
+  }, [syncSessionFromToken]);
+
+  useEffect(() => {
+    if (!isAuth) {
+      if (sessionTimeoutRef.current) {
+        clearTimeout(sessionTimeoutRef.current);
+        sessionTimeoutRef.current = null;
+      }
+    }
+  }, [isAuth]);
 
   if (loading) return null;
 
