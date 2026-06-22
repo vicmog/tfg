@@ -96,7 +96,7 @@ const parseDashboardFilters = (query) => {
     }
 
     if (month !== null && (month < 1 || month > 12)) {
-        return { error: "El mes debe estar entre 1 y 12" };
+        return { error: "El mes debe seleccionarse desde la lista de meses" };
     }
 
     if (day !== null && month === null) {
@@ -561,6 +561,7 @@ export const getReservaStats = async (req, res) => {
         }
 
         const id_negocio = idNegocioResult.value;
+
         const { year, month } = dashboardFilters;
 
         // Top 3 servicios más reservados (total del negocio)
@@ -1116,6 +1117,9 @@ export const getClientStats = async (req, res) => {
             req.params?.id_negocio,
             ESTADISTICAS_ERRORS.INVALID_NEGOCIO_ID
         );
+        const filterType = req.query?.filter || FILTER_TYPES.MONTH;
+        const startDate = req.query?.startDate;
+        const endDate = req.query?.endDate;
 
         if (!id_usuario) {
             return res.status(401).json({ message: ESTADISTICAS_ERRORS.USER_NOT_AUTHENTICATED });
@@ -1131,6 +1135,9 @@ export const getClientStats = async (req, res) => {
         }
 
         const id_negocio = idNegocioResult.value;
+    const dateRange = getDateRange(filterType, startDate, endDate);
+    const rangeStart = dateRange?.[Op.between]?.[0];
+    const rangeEnd = dateRange?.[Op.between]?.[1];
 
         // Top 3 clientes por dinero gastado (ventas + reservas)
         const clientesPorGasto = await sequelize.query(
@@ -1139,8 +1146,8 @@ export const getClientStats = async (req, res) => {
                           COALESCE(SUM(ps.precio), 0) as reservas_total,
                           COALESCE(SUM(v.precio_total), 0) + COALESCE(SUM(ps.precio), 0) as total_gastado
              FROM "Cliente" c
-             LEFT JOIN "Venta" v ON c.id_cliente = v.id_cliente
-             LEFT JOIN "Reserva" r ON c.id_cliente = r.id_cliente
+         LEFT JOIN "Venta" v ON c.id_cliente = v.id_cliente AND v.fecha BETWEEN :startDate AND :endDate
+         LEFT JOIN "Reserva" r ON c.id_cliente = r.id_cliente AND r.fecha_hora_inicio BETWEEN :startDate AND :endDate
              LEFT JOIN "ServicioReserva" sr ON r.id_reserva = sr.id_reserva
                       LEFT JOIN "Servicio" s ON sr.id_ps = s.id_ps
                       LEFT JOIN "ProductoServicio" ps ON s.id_ps = ps.id_ps
@@ -1149,7 +1156,7 @@ export const getClientStats = async (req, res) => {
              ORDER BY total_gastado DESC
              LIMIT 3`,
             {
-                replacements: { id_negocio },
+                replacements: { id_negocio, startDate: rangeStart, endDate: rangeEnd },
                 type: sequelize.QueryTypes.SELECT,
             }
         );
@@ -1157,13 +1164,13 @@ export const getClientStats = async (req, res) => {
         const clientesPorReservas = await sequelize.query(
             `SELECT c.id_cliente, c.nombre, c.apellido1, COUNT(r.id_reserva) as num_reservas
              FROM "Cliente" c
-             JOIN "Reserva" r ON c.id_cliente = r.id_cliente
+             JOIN "Reserva" r ON c.id_cliente = r.id_cliente AND r.fecha_hora_inicio BETWEEN :startDate AND :endDate
              WHERE c.id_negocio = :id_negocio
              GROUP BY c.id_cliente, c.nombre, c.apellido1
              ORDER BY num_reservas DESC
              LIMIT 3`,
             {
-                replacements: { id_negocio },
+                replacements: { id_negocio, startDate: rangeStart, endDate: rangeEnd },
                 type: sequelize.QueryTypes.SELECT,
             }
         );
@@ -1171,7 +1178,7 @@ export const getClientStats = async (req, res) => {
         const clientesPorVentas = await sequelize.query(
             `SELECT c.id_cliente, c.nombre, c.apellido1, COUNT(psv.id_ps) as num_productos_vendidos
              FROM "Cliente" c
-             JOIN "Venta" v ON c.id_cliente = v.id_cliente
+             JOIN "Venta" v ON c.id_cliente = v.id_cliente AND v.fecha BETWEEN :startDate AND :endDate
              JOIN "ProductoServicioVenta" psv ON v.id_venta = psv.id_venta
              JOIN "ProductoServicio" ps ON psv.id_ps = ps.id_ps
              WHERE c.id_negocio = :id_negocio AND ps.tipo = 'PRODUCTO'
@@ -1179,7 +1186,7 @@ export const getClientStats = async (req, res) => {
              ORDER BY num_productos_vendidos DESC
              LIMIT 3`,
             {
-                replacements: { id_negocio },
+                replacements: { id_negocio, startDate: rangeStart, endDate: rangeEnd },
                 type: sequelize.QueryTypes.SELECT,
             }
         );
@@ -1187,13 +1194,13 @@ export const getClientStats = async (req, res) => {
         const clientesPorCanceladas = await sequelize.query(
             `SELECT c.id_cliente, c.nombre, c.apellido1, COUNT(r.id_reserva) as num_canceladas
              FROM "Cliente" c
-             JOIN "Reserva" r ON c.id_cliente = r.id_cliente
+             JOIN "Reserva" r ON c.id_cliente = r.id_cliente AND r.fecha_hora_inicio BETWEEN :startDate AND :endDate
              WHERE c.id_negocio = :id_negocio AND r.estado = 'cancelada'
              GROUP BY c.id_cliente, c.nombre, c.apellido1
              ORDER BY num_canceladas DESC
              LIMIT 3`,
             {
-                replacements: { id_negocio },
+                replacements: { id_negocio, startDate: rangeStart, endDate: rangeEnd },
                 type: sequelize.QueryTypes.SELECT,
             }
         );

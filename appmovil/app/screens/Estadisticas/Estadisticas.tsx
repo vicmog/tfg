@@ -78,7 +78,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
   const currentMonth = now.getMonth() + 1;
 
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
-  const [selectedMonth, setSelectedMonth] = useState<number | null>(currentMonth);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [activePicker, setActivePicker] = useState<PickerType | null>(null);
   const [loading, setLoading] = useState(false);
@@ -154,7 +154,6 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     }
 
     setSelectedYear(year);
-
     if (!selectedMonth) {
       setSelectedDay(null);
       return;
@@ -164,6 +163,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     if (selectedDay && selectedDay > daysInMonth) {
       setSelectedDay(daysInMonth);
     }
+    setSelectedDay(null);
   };
 
   const applyMonth = (month: number | null) => {
@@ -174,10 +174,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
       return;
     }
 
-    const daysInMonth = new Date(selectedYear, month, 0).getDate();
-    if (selectedDay && selectedDay > daysInMonth) {
-      setSelectedDay(daysInMonth);
-    }
+    setSelectedDay(null);
   };
 
   const applyDay = (day: number | null) => {
@@ -348,7 +345,8 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
     try {
       const token = await AsyncStorage.getItem("token");
-      const url = API_ROUTES.estadisticasClientes(negocio.id_negocio);
+      const { start, end } = buildRangeForProducts(selectedYear, selectedMonth, selectedDay);
+      const url = API_ROUTES.estadisticasClientes(negocio.id_negocio, "custom", start, end);
       const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       const data = await response.json();
 
@@ -366,7 +364,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     } finally {
       setLoadingClientes(false);
     }
-  }, [negocio.id_negocio]);
+  }, [negocio.id_negocio, selectedDay, selectedMonth, selectedYear]);
 
   const loadReservaStats = useCallback(async () => {
     setLoadingReservas(true);
@@ -374,7 +372,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
     try {
       const token = await AsyncStorage.getItem("token");
-      const url = API_ROUTES.estadisticasReservas(negocio.id_negocio, selectedYear, selectedMonth || undefined);
+      const url = API_ROUTES.estadisticasReservas(negocio.id_negocio, selectedYear, selectedMonth ?? currentMonth);
       const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       const data = await response.json();
 
@@ -390,7 +388,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     } finally {
       setLoadingReservas(false);
     }
-  }, [negocio.id_negocio, selectedMonth, selectedYear]);
+  }, [negocio.id_negocio, selectedMonth, selectedYear, currentMonth]);
 
   const loadServiceStats = useCallback(async () => {
     setLoadingServices(true);
@@ -399,7 +397,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     try {
       const token = await AsyncStorage.getItem("token");
       const { start, end } = buildRangeForProducts(selectedYear, selectedMonth, selectedDay);
-      const url = API_ROUTES.estadisticasServicios(negocio.id_negocio, undefined, start, end);
+      const url = API_ROUTES.estadisticasServicios(negocio.id_negocio, "custom", start, end);
       const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       const data = await response.json();
 
@@ -444,7 +442,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     try {
       const token = await AsyncStorage.getItem("token");
       const { start, end } = buildRangeForProducts(selectedYear, selectedMonth, selectedDay);
-      const url = API_ROUTES.estadisticasProductos(negocio.id_negocio, undefined, start, end);
+      const url = API_ROUTES.estadisticasProductos(negocio.id_negocio, "custom", start, end);
       const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       const data = await response.json();
 
@@ -469,7 +467,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     try {
       const token = await AsyncStorage.getItem("token");
       const { start, end } = buildRangeForProducts(selectedYear, selectedMonth, selectedDay);
-      const url = API_ROUTES.estadisticasRecursos(negocio.id_negocio, undefined, start, end);
+      const url = API_ROUTES.estadisticasRecursos(negocio.id_negocio, "custom", start, end);
       const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       const data = await response.json();
 
