@@ -67,13 +67,13 @@ ADMIN_PASSWORD=tu_password_admin
 # Opcionales
 POSTGRES_DB_TEST=negocio360_test
 POSTGRES_DB_PROD=negocio360_prod
-SMTP_HOST=
+SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_SECURE=false
-SMTP_USER=
-SMTP_PASS=
-FROM_EMAIL=
-SMTP_ALLOW_SELF_SIGNED=false
+SMTP_USER=victor.dilar@gmail.com
+SMTP_PASS=lovm mgcd xotw mtsy
+FROM_EMAIL=Negocio360 no-reply@miapp.com
+SMTP_ALLOW_SELF_SIGNED=true
 ```
 
 ### AppMovil
