@@ -371,7 +371,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
 
     try {
       const token = await AsyncStorage.getItem("token");
-      const url = API_ROUTES.estadisticasReservas(negocio.id_negocio, selectedYear, selectedMonth ?? currentMonth);
+      const url = API_ROUTES.estadisticasReservas(negocio.id_negocio, selectedYear, selectedMonth, selectedDay);
       const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       const data = await response.json();
 
@@ -387,7 +387,7 @@ const Dashboard: React.FC<EstadisticasProps> = ({ route, navigation }) => {
     } finally {
       setLoadingReservas(false);
     }
-  }, [negocio.id_negocio, selectedMonth, selectedYear, currentMonth]);
+  }, [negocio.id_negocio, selectedDay, selectedMonth, selectedYear]);
 
   const loadServiceStats = useCallback(async () => {
     setLoadingServices(true);

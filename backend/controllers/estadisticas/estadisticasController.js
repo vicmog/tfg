@@ -561,8 +561,10 @@ export const getReservaStats = async (req, res) => {
         }
 
         const id_negocio = idNegocioResult.value;
+        const summaryRange = getSummaryRangeFromFilter(dashboardFilters);
 
         const { year, month } = dashboardFilters;
+        const { start, end } = summaryRange;
 
         // Top 3 servicios más reservados (total del negocio)
         const serviciosMasReservados = await sequelize.query(
@@ -573,11 +575,12 @@ export const getReservaStats = async (req, res) => {
              JOIN "Servicio" s ON sr.id_ps = s.id_ps
              JOIN "ProductoServicio" ps ON s.id_ps = ps.id_ps
              WHERE c.id_negocio = :id_negocio
+               AND r.fecha_hora_inicio BETWEEN :startDate AND :endDate
              GROUP BY ps.id_ps, ps.nombre
              ORDER BY cantidad DESC
              LIMIT 3`,
             {
-                replacements: { id_negocio },
+                replacements: { id_negocio, startDate: start, endDate: end },
                 type: sequelize.QueryTypes.SELECT,
             }
         );
