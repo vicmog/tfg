@@ -455,7 +455,6 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
         return;
       }
 
-      // Enviar email si está activado
       if (sendEmail && data.venta?.id_venta) {
         try {
           await fetch(API_ROUTES.sendVentaEmailById(data.venta.id_venta), {
@@ -466,7 +465,6 @@ const Ventas: React.FC<VentasProps> = ({ route, navigation }) => {
             },
           });
         } catch (emailError) {
-          // Email no crítico, continuar
           console.log("Email no enviado:", emailError);
         }
       }

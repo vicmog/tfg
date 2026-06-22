@@ -155,7 +155,7 @@ describe("EditarReserva", () => {
             expect(putCall).toBeTruthy();
 
             const payload = JSON.parse(putCall?.[1].body);
-            expect(payload.id_servicio).toBe(3);
+            expect(payload.id_ps).toBe(3);
             expect(payload.capacidad_solicitada).toBe(6);
         });
     });
