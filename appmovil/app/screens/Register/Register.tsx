@@ -15,12 +15,15 @@ import { RegisterScreenProps } from "./types";
 import {
   DEFAULT_REGISTER_ERROR,
   EMPTY_FIELDS_ERROR,
+  INVALID_EMAIL_ERROR,
   PASSWORD_MISMATCH_ERROR,
   PRIVACY_ACCEPTANCE_ERROR,
   REGISTER_ROUTE,
   REGISTER_SUCCESS_MESSAGE,
   SERVER_CONNECTION_ERROR,
 } from "./constants";
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [username, setUsername] = useState("");
@@ -48,6 +51,11 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       !confirmPassword
     ) {
       setError(EMPTY_FIELDS_ERROR);
+      return;
+    }
+
+    if (!EMAIL_REGEX.test(email.trim())) {
+      setError(INVALID_EMAIL_ERROR);
       return;
     }
 
