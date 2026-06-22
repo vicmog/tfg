@@ -30,8 +30,8 @@ El proyecto ya no esta en fase inicial. Actualmente cuenta con backend y app mov
 
 ## Estructura del repositorio
 
-- AppMovil: aplicacion Expo
-- backend: API REST, modelos Sequelize, migraciones y tests
+- AppMovil: aplicacion React Native
+- backend: API REST, modelos Sequelize, migraciones
 - docker-compose.yml: orquestacion para servicios de backend y base de datos
 
 ## Stack tecnico
