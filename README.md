@@ -110,6 +110,25 @@ API disponible en:
 
 http://localhost:3000
 
+### 3) Despliegue en Railway
+
+Railway te permite publicar solo el backend y una base de datos PostgreSQL sin montar un VPS.
+
+Pasos recomendados:
+
+1. Crea un proyecto en Railway.
+2. Añade un servicio de PostgreSQL.
+3. Añade el servicio del backend apuntando a la carpeta `backend/`.
+4. Define estas variables de entorno en el backend:
+	- `DATABASE_URL` si Railway te la expone automáticamente, o bien las variables `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD` y `PGDATABASE` del servicio de base de datos.
+	- `JWT_SECRET`
+	- `ADMIN_PASSWORD`
+	- `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `FROM_EMAIL`
+5. Railway te asigna el puerto con `PORT`; el backend ya lo lee automáticamente.
+6. Deja que el contenedor ejecute las migraciones al arrancar.
+
+Si quieres exponer la API al móvil, tendrás que cambiar la URL del backend en la app para apuntar al dominio que te dé Railway.
+
 ### 2) App movil
 
 Desde la carpeta AppMovil:

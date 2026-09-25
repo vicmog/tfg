@@ -10,4 +10,4 @@ COPY . .
 
 EXPOSE 3000
 
-CMD sh -c "NODE_ENV=development npm run migrate && NODE_ENV=production npm run start"
+CMD sh -c 'if [ -n "$DATABASE_URL" ]; then export NODE_ENV=production; else export NODE_ENV=development; fi && npm run migrate && npm run start'
