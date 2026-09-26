@@ -1,4 +1,4 @@
-export const API_BASE_URL = "http://localhost:3000";
+export const API_BASE_URL = "https://mojicacutsapi.onrender.com";
 
 const API_PREFIX = "/v1/api";
 
