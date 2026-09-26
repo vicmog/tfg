@@ -3,6 +3,8 @@ export const AUTH_ERRORS = {
   REQUIRED_FIELDS: "Faltan campos obligatorios",
   PRIVACY_CONSENT_REQUIRED: "Debes aceptar la política de privacidad y los términos",
   USERNAME_ALREADY_REGISTERED: "Usuario ya registrado con este nombre de usuario",
+  EMAIL_ALREADY_REGISTERED: "Usuario ya registrado con este email",
+  DNI_ALREADY_REGISTERED: "Usuario ya registrado con este DNI",
   USER_NOT_FOUND: "Usuario no encontrado",
   WRONG_PASSWORD: "Contraseña incorrecta",
   INVALID_CODE: "Código inválido",

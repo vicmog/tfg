@@ -22,6 +22,17 @@ export const register = async (req, res) => {
         if (existingUser) {
             return res.status(400).json({ message: AUTH_ERRORS.USERNAME_ALREADY_REGISTERED });
         }
+
+        const existingEmail = await Usuario.findOne({ where: { email } });
+        if (existingEmail) {
+            return res.status(400).json({ message: AUTH_ERRORS.EMAIL_ALREADY_REGISTERED });
+        }
+
+        const existingDni = await Usuario.findOne({ where: { dni } });
+        if (existingDni) {
+            return res.status(400).json({ message: AUTH_ERRORS.DNI_ALREADY_REGISTERED });
+        }
+
         const seed = await bcrypt.genSalt(PASSWORD_CONFIG.SALT_ROUNDS);
         const hashedPassword = await bcrypt.hash(contrasena, seed);
         const codigo_validacion = Math.floor(
@@ -48,6 +59,9 @@ export const register = async (req, res) => {
         return res.status(201).json({ message: AUTH_MESSAGES.USER_REGISTERED, userId: user.id_usuario });
     } catch (err) {
         console.error(err);
+        if (err?.name === "SequelizeUniqueConstraintError") {
+            return res.status(400).json({ message: AUTH_ERRORS.EMAIL_ALREADY_REGISTERED });
+        }
         return res.status(500).json({ message: AUTH_ERRORS.SERVER_ERROR });
     }
 }
